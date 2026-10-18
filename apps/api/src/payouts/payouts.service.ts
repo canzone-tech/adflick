@@ -56,9 +56,21 @@ export class PayoutsService {
     if (batch.status !== PayoutBatchStatus.DRAFT || !batch.items.length) throw new ConflictException('Only a non-empty draft batch can request approval.');
     const unresolved = await this.prisma.financeDispute.count({ where: { organizationId, ledgerEntryId: { in: batch.items.map((i) => i.ledgerEntryId) }, status: { in: [FinanceDisputeStatus.OPEN, FinanceDisputeStatus.UNDER_REVIEW] } } });
     if (unresolved) throw new ConflictException('Payout batch contains unresolved disputes.');
-    const updated = await this.prisma.payoutBatch.update({ where: { id, organizationId }, data: { status: PayoutBatchStatus.PENDING_APPROVAL } });
-    await this.audit(actor, organizationId, 'PAYOUT_BATCH_APPROVAL_REQUESTED', 'PayoutBatch', id, { itemCount: batch.itemCount, totalAmountPaise: batch.totalAmountPaise });
-    return updated;
+    return this.prisma.$transaction(async (tx) => {
+      const changed = await tx.payoutBatch.updateMany({
+        where: { id, organizationId, status: PayoutBatchStatus.DRAFT },
+        data: { status: PayoutBatchStatus.PENDING_APPROVAL },
+      });
+      if (changed.count !== 1) throw new ConflictException('Payout batch was changed by another request. Refresh and retry.');
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: actor.sub, organizationId, action: 'PAYOUT_BATCH_APPROVAL_REQUESTED',
+          entityType: 'PayoutBatch', entityId: id,
+          metadataJson: { itemCount: batch.itemCount, totalAmountPaise: batch.totalAmountPaise },
+        },
+      });
+      return tx.payoutBatch.findUniqueOrThrow({ where: { id } });
+    });
   }
   async decide(actor: AuthenticatedUser, id: string, dto: PayoutDecisionDto) {
     const organizationId = this.org(actor, true);

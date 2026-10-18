@@ -106,18 +106,22 @@ export class ReconciliationImportService {
 
       await this.store.prisma.$transaction(async (tx: any) => {
         await tx.reconciliationImportRow.createMany({
-          data: outcomes.map((outcome: any, index: number) => ({
+          data: outcomes.map((outcome: any, index: number) => {
+            const sourceRow = rows[index];
+            if (!sourceRow) throw new Error('Reconciliation outcome has no source statement row.');
+            return {
             organizationId,
             importId,
             rowNumber: index + 2,
-            providerReference: rows[index].providerReference,
-            payoutReference: rows[index].payoutReference,
-            amountPaise: rows[index].amountPaise,
-            currency: rows[index].currency,
-            statementStatus: rows[index].status,
+            providerReference: sourceRow.providerReference,
+            payoutReference: sourceRow.payoutReference,
+            amountPaise: sourceRow.amountPaise,
+            currency: sourceRow.currency,
+            statementStatus: sourceRow.status,
             outcome: outcome.outcome,
             detail: 'detail' in outcome ? outcome.detail : null,
-          })),
+            };
+          }),
         });
         const completed = await tx.reconciliationImport.updateMany({
           where: { id: importId, organizationId, status: 'PROCESSING', processingToken },

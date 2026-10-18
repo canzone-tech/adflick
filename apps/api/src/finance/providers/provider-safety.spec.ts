@@ -16,8 +16,8 @@ describe('provider safety primitives', () => {
   });
   it('parses valid statement rows and quoted commas', () => {
     const rows = parseReconciliationCsv('providerReference,payoutReference,amountPaise,currency,status,occurredAt\n"ref,1",PAY-1,12500,INR,PAID,2026-10-14T10:00:00Z');
-    expect(rows[0].providerReference).toBe('ref,1');
-    expect(rows[0].amountPaise).toBe(12500);
+    expect(rows[0]?.providerReference).toBe('ref,1');
+    expect(rows[0]?.amountPaise).toBe(12500);
   });
   it('rejects duplicate, invalid and malformed statement rows', () => {
     expect(() => parseReconciliationCsv('providerReference,payoutReference,amountPaise,currency,status\nr1,p1,10,INR,PAID\nr1,p1,10,INR,PAID')).toThrow(/Duplicate/);

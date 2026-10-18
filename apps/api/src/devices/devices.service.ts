@@ -3,7 +3,7 @@ import {
 } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import {
-  DeviceCommandStatus, DeviceCommandType, PairingCodeStatus, ScreenStatus, UserRole,
+  DeviceCommandStatus, DeviceCommandType, PairingCodeStatus, ScreenStatus, UserRole, Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -12,6 +12,19 @@ import { PairDeviceDto } from './dto/pair-device.dto';
 import { HeartbeatDto } from './dto/heartbeat.dto';
 import { CreateCommandDto } from './dto/create-command.dto';
 import { CommandResultDto } from './dto/command-result.dto';
+
+function isJsonSafeValue(value: unknown): boolean {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(isJsonSafeValue);
+  if (value === null || typeof value !== 'object') return false;
+  if (Object.getPrototypeOf(value) !== Object.prototype) return false;
+  return Object.values(value).every(isJsonSafeValue);
+}
+function isInputJsonObject(value: unknown): value is Prisma.InputJsonObject {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype && Object.values(value).every(isJsonSafeValue);
+}
 
 const FLEET_ROLES = [
   UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN,
@@ -253,6 +266,7 @@ export class DevicesService {
     });
     if (!screen) throw new NotFoundException('Screen not found.');
     const payload = dto.payload ?? {};
+    if (!isInputJsonObject(payload)) throw new BadRequestException('Device command payload must be a JSON-compatible object.');
     if (dto.type === DeviceCommandType.SET_VOLUME) {
       const volume = payload.volume;
       if (typeof volume !== 'number' || !Number.isInteger(volume) || volume < 0 || volume > 100) {

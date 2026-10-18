@@ -45,7 +45,8 @@ describe('AlertNotifierService', () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 202 }));
     await expect(notifier.notifyIncident(event)).resolves.toEqual({ delivered: true });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const init = fetchMock.mock.calls[0]?.[1];
+    if (!init) throw new Error('Expected a webhook call with request options.');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer test-secret');
     expect(String(init.body)).toContain('adflick.incident.created');
     expect(String(init.body)).not.toContain('test-secret');

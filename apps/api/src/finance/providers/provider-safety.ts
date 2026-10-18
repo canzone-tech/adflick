@@ -55,12 +55,16 @@ export function parseReconciliationCsv(csv: string): ProviderStatementRow[] {
   return records.map((cells, index) => {
     if (cells.length !== headers.length) throw new Error(`Column count mismatch on CSV row ${index + 2}`);
     const obj: Record<string, string> = {};
-    headers.forEach((h, i) => { obj[h] = cells[i].trim(); });
+    headers.forEach((h, i) => {
+      const cell = cells[i];
+      if (cell === undefined) throw new Error(`Column count mismatch on CSV row ${index + 2}`);
+      obj[h] = cell.trim();
+    });
     const providerReference = obj.providerReference;
     const payoutReference = obj.payoutReference;
     const amountPaise = Number(obj.amountPaise);
-    const currency = obj.currency.toUpperCase();
-    const status = obj.status.toUpperCase();
+    const currency = (obj.currency ?? '').toUpperCase();
+    const status = (obj.status ?? '').toUpperCase();
     if (!providerReference || providerReference.length > 160) throw new Error(`Invalid provider reference on row ${index + 2}`);
     if (!payoutReference || payoutReference.length > 160) throw new Error(`Invalid payout reference on row ${index + 2}`);
     if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0) throw new Error(`Invalid amountPaise on row ${index + 2}`);
