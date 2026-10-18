@@ -32,7 +32,8 @@ for (const token of ['conflicting organization ID', 'Resource not found.', 'orga
   }
 }
 const apiPackage = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'apps/api/package.json'), 'utf8'));
-if (apiPackage.jest?.testRegex !== '.*\\.spec\\.ts$') {
+const jestConfig = fs.readFileSync('apps/api/jest.config.cjs', 'utf8');
+if (!apiPackage.scripts?.test?.includes('--config ./jest.config.cjs') || !jestConfig.includes('testRegex') || !jestConfig.includes('ts-jest')) {
   console.error('[BATCH 26] Jest must discover TypeScript spec files.');
   process.exitCode = 1;
 }
