@@ -32,7 +32,8 @@
     "verify:clean-release": "node scripts/verify-clean-release.mjs",
     "verify": "node scripts/verify.mjs --all",
     "verify:backend": "node scripts/verify.mjs --backend",
-    "verify:frontend": "node scripts/verify.mjs --frontend"
+    "verify:frontend": "node scripts/verify.mjs --frontend",
+    "test:api:coverage": "npm run test -w apps/api -- --coverage"
   },
   "devDependencies": {
     "prisma": "^6.16.2",

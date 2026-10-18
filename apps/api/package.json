@@ -7,9 +7,9 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "jest --runInBand",
-    "test:e2e:security": "jest --runInBand --testRegex '.*\\.e2e-spec\\.ts$' --runTestsByPath test/security.e2e-spec.ts",
-    "test:e2e:finance": "jest --runInBand --testRegex '.*\\.mysql\\.e2e-spec\\.ts$' --runTestsByPath test/finance-transaction.mysql.e2e-spec.ts test/reconciliation-import.mysql.e2e-spec.ts test/reconciliation-import.http.e2e-spec.ts"
+    "test": "jest --config ./jest.config.cjs --runInBand",
+    "test:e2e:security": "jest --config ./jest.config.cjs --runInBand --testRegex '.*\\\\.e2e-spec\\\\.ts$' --runTestsByPath test/security.e2e-spec.ts",
+    "test:e2e:finance": "jest --config ./jest.config.cjs --runInBand --testRegex '.*\\\\.mysql\\\\.e2e-spec\\\\.ts$' --runTestsByPath test/finance-transaction.mysql.e2e-spec.ts test/reconciliation-import.mysql.e2e-spec.ts test/reconciliation-import.http.e2e-spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
@@ -53,27 +53,5 @@
     "@types/passport-jwt": "^4.0.1",
     "typescript-eslint": "^8.44.1",
     "@types/mime-types": "^2.1.4"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": ".",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": [
-        "ts-jest",
-        {
-          "tsconfig": "<rootDir>/tsconfig.json"
-        }
-      ]
-    },
-    "collectCoverageFrom": [
-      "src/**/*.ts"
-    ],
-    "testEnvironment": "node",
-    "maxWorkers": 1
   }
 }

@@ -52,7 +52,7 @@ try {
     execute('Generate Prisma client', npx, ['prisma', 'generate']);
     execute('Backend typecheck', npm, ['run', 'typecheck:api']);
     execute('Backend lint', npm, ['run', 'lint', '-w', 'apps/api']);
-    execute('Backend unit tests with coverage', npm, ['run', 'test:api', '--', '--coverage']);
+    execute('Backend unit tests with coverage', npm, ['run', 'test:api:coverage']);
     execute('Production backend build', npm, ['run', 'build:api']);
     assertDisposableDatabase();
     execute('Apply immutable migrations to disposable MySQL', npx, ['prisma', 'migrate', 'deploy']);
