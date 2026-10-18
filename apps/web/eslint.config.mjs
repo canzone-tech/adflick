@@ -1,9 +1,8 @@
-import { defineConfig, globalIgnores } from 'eslint/config';
-import nextVitals from 'eslint-config-next/core-web-vitals';
-import nextTs from 'eslint-config-next/typescript';
+import { FlatCompat } from '@eslint/eslintrc';
 
-export default defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
-]);
+// Next.js 15 still exports legacy ESLint configs; FlatCompat converts them for ESLint 9.
+const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
+export default [
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  { ignores: ['.next/**', 'out/**', 'build/**', 'next-env.d.ts'] },
+];
