@@ -29,7 +29,10 @@
     "test:e2e:finance": "npm run test:e2e:finance -w apps/api",
     "verify:reconciliation:release": "node scripts/run-reconciliation-release-gate.mjs",
     "verify:dependencies": "node scripts/verify-dependency-install.mjs",
-    "verify:clean-release": "node scripts/verify-clean-release.mjs"
+    "verify:clean-release": "node scripts/verify-clean-release.mjs",
+    "verify": "node scripts/verify.mjs --all",
+    "verify:backend": "node scripts/verify.mjs --backend",
+    "verify:frontend": "node scripts/verify.mjs --frontend"
   },
   "devDependencies": {
     "prisma": "^6.16.2",
