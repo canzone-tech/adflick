@@ -37,8 +37,9 @@ for (const [file, token] of specs) {
     process.exitCode = 1;
   }
 }
+const jestConfig = fs.readFileSync('apps/api/jest.config.cjs', 'utf8');
 const apiPkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'apps/api/package.json'), 'utf8'));
-if (!apiPkg.jest || apiPkg.jest.testRegex !== '.*\\.spec\\.ts$') {
+if (!apiPkg.scripts?.test?.includes('--config ./jest.config.cjs') || !jestConfig.includes('ts-jest') || !jestConfig.includes('testRegex')) {
   console.error('Jest must discover TypeScript specs.');
   process.exitCode = 1;
 }

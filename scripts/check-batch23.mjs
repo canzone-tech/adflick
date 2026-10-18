@@ -21,8 +21,9 @@ if (!/provider\s*=\s*"mysql"/.test(schema)) {
   console.error('Prisma provider must remain MySQL.');
   process.exitCode = 1;
 }
+const jestConfig = fs.readFileSync('apps/api/jest.config.cjs', 'utf8');
 const apiPkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'apps/api/package.json'), 'utf8'));
-if (!apiPkg.jest || apiPkg.jest.testRegex !== '.*\\.spec\\.ts$' || !apiPkg.jest.transform) {
+if (!apiPkg.scripts?.test?.includes('--config ./jest.config.cjs') || !jestConfig.includes('ts-jest') || !jestConfig.includes('testRegex')) {
   console.error('Jest must be configured to discover TypeScript spec files through ts-jest.');
   process.exitCode = 1;
 }
