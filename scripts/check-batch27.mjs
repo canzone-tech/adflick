@@ -1,3 +1,4 @@
+import { hasMysqlSecurityGate } from './ci-contract.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -41,8 +42,7 @@ if (!rootPkg.scripts?.['test:e2e:security'] || !rootPkg.scripts?.['check:source'
   console.error('[BATCH 27] Root scripts must expose security E2E and source checks.');
   process.exitCode = 1;
 }
-const ci = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
-if (!ci.includes('mysql:8.4') || !ci.includes('RUN_MYSQL_SECURITY_E2E: "1"') || !ci.includes('npm run test:e2e:security')) {
+if (!hasMysqlSecurityGate()) {
   console.error('[BATCH 27] CI must enable and run the MySQL security E2E suite against MySQL 8.4.');
   process.exitCode = 1;
 }

@@ -1,3 +1,4 @@
+import { hasMysqlMigrationGate } from './ci-contract.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -58,8 +59,7 @@ for (const token of ["@Headers('x-device-secret')", "this.devices.heartbeat", "t
 }
 const delivery = fs.readFileSync(path.join(root, 'apps/api/src/delivery/delivery.service.ts'), 'utf8');
 if (!/secret/i.test(delivery)) fail('Delivery service must retain device secret validation.');
-const ci = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
-if (!ci.includes('mysql:8.4') || !ci.includes('npx prisma migrate deploy')) fail('CI must use MySQL 8.4 and apply migrations.');
+if (!hasMysqlMigrationGate()) fail('CI must use MySQL 8.4 and apply migrations.');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 if (!pkg.scripts?.['check:source']?.includes('check-batch25.mjs')) fail('check:source must invoke check-batch25.mjs.');
 

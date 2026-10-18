@@ -1,3 +1,4 @@
+import { hasLockedDependencyGate } from './ci-contract.mjs';
 import fs from 'node:fs';
 
 const required = [
@@ -14,11 +15,9 @@ for (const file of required) {
 if (process.exitCode) process.exit(process.exitCode);
 
 const ci = fs.readFileSync('.github/workflows/ci.yml', 'utf8');
-for (const token of ['npm ci --no-audit --no-fund', 'package-lock.json', 'verify:dependencies']) {
-  if (!ci.includes(token)) {
-    console.error(`[BATCH 49] CI missing required token: ${token}`);
-    process.exitCode = 1;
-  }
+if (!hasLockedDependencyGate()) {
+  console.error('[BATCH 49] CI must fail closed without a lockfile and install via npm ci.');
+  process.exitCode = 1;
 }
 if (ci.includes('npm install --package-lock-only')) {
   console.error('[BATCH 49] CI must not generate a temporary lockfile; commit the reviewed lockfile.');

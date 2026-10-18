@@ -1,3 +1,4 @@
+import { hasMysqlSecurityGate } from './ci-contract.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 const root = process.cwd();
@@ -31,8 +32,7 @@ const matrix = fs.readFileSync(path.join(root, 'docs/BATCH_28_CROSS_TENANT_TEST_
 for (const id of ['TEN-028-01','TEN-028-06','TEN-028-07','TEN-028-11']) if (!matrix.includes(id)) {
   console.error(`[BATCH 28] Missing test matrix case: ${id}`); process.exitCode = 1;
 }
-const ci = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
-if (!ci.includes('mysql:8.4') || !ci.includes('npm run test:e2e:security')) {
+if (!hasMysqlSecurityGate()) {
   console.error('[BATCH 28] CI must run security E2E on MySQL 8.4.'); process.exitCode = 1;
 }
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));

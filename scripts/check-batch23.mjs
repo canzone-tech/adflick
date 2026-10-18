@@ -1,3 +1,4 @@
+import { hasMysqlMigrationGate } from './ci-contract.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -37,8 +38,7 @@ for (const [file, token] of expectedTests) {
     process.exitCode = 1;
   }
 }
-const ci = fs.readFileSync(path.join(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
-if (!ci.includes('mysql:8.4') || !ci.includes('npx prisma migrate deploy')) {
+if (!hasMysqlMigrationGate()) {
   console.error('CI must use MySQL 8.4 and apply migrations to its disposable test database.');
   process.exitCode = 1;
 }
