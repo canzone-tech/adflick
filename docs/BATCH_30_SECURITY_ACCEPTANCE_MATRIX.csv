@@ -1,0 +1,9 @@
+case_id,area,scenario,expected_result,verification_type,priority
+SEC-030-01,Campaigns,Update campaign with foreign creative asset,Reject before any association write,Unit test,P0
+SEC-030-02,Campaigns,Update campaign with foreign screen target,Reject before any association write,Unit test,P0
+SEC-030-03,Finance export,Export foreign organization's payout batch,404/not found and no export transaction,Unit test,P0
+SEC-030-04,Playback,Concurrent duplicate screen/event submissions,At most one row persists and only one event can qualify,MySQL concurrency E2E,P0
+SEC-030-05,Playback,Duplicate event retry after initial persistence,Duplicate result never qualifies for rewards,HTTP E2E,P0
+SEC-030-06,Finance,Two simultaneous approval requests,Only one transition succeeds and losing request has no audit,MySQL concurrency E2E,P0
+SEC-030-07,Finance export,HTTP export response contains only same-tenant payout items,No foreign item IDs or owner IDs in payload,HTTP E2E,P0
+SEC-030-08,Scheduler,Assign foreign playlist to organization screen,Reject before assignment upsert,Unit/HTTP E2E,P0

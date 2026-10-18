@@ -1,0 +1,21 @@
+Case ID,Area,Actor,Attempt,Expected result,Priority
+TEN-001,Campaigns,Org A advertiser,Read Org B campaign by ID,Not found and no data disclosed,Critical
+TEN-002,Campaigns,Org A manager,Update Org B campaign by ID,No mutation in Org B,Critical
+TEN-003,CMS,Org A content manager,Publish Org B layout by ID,No mutation in Org B,Critical
+TEN-004,CMS,Org A content manager,Activate playlist containing Org B asset,Rejected,Critical
+TEN-005,Devices,Org A operations manager,Assign Org B playlist to Org A screen,Rejected,Critical
+TEN-006,Devices,Org A administrator,Change status of Org B screen,Not found and no mutation,Critical
+TEN-007,Playback,Org A finance manager,Request report for Org B screen ID,No Org B rows returned,Critical
+TEN-008,Incidents,Org A support agent,Update Org B incident by ID,Not found and no mutation,Critical
+TEN-009,Finance,Org A finance manager,Approve Org B reward calculation,Not found and no ledger write,Critical
+TEN-010,Payouts,Org A finance manager,Reconcile payout item from Org B batch,Rejected and no mutation,Critical
+TEN-011,Disputes,Org A finance manager,Resolve Org B dispute by ID,Not found and no mutation,Critical
+TEN-012,Authorization,No organization context,Call organization-scoped service,Fail closed,Critical
+TEN-013,Authorization,Org A user,Supply organizationId=Org B in body,Ignore or reject caller tenant override,Critical
+TEN-014,Finance,Same maker,Approve own payout batch,Forbidden,Critical
+TEN-015,Finance,Two authorized finance users,Submit duplicate approval concurrently,Exactly one valid transition,Critical
+TEN-016,Playback,Device secret holder,Replay duplicate event batch,Idempotent duplicate handling,High
+TEN-017,Webhook,Provider callback,Replay previously accepted event,No duplicate financial transition,Critical
+TEN-018,Storage,Org A user,Guess Org B object storage key,Denied by API and storage policy,Critical
+TEN-019,Background job,Worker identity,Run scheduled job twice concurrently,No duplicate side effects,High
+TEN-020,Audit,Org A user,Attempt cross-tenant export,No export and security event logged,Critical

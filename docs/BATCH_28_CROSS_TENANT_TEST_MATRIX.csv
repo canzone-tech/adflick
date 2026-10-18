@@ -1,0 +1,12 @@
+case_id,area,scenario,expected_result,persistence_assertion,priority
+TEN-028-01,Campaigns,Organization A lists campaigns,Organization B campaign omitted,Foreign campaign ID absent from response,P0
+TEN-028-02,CMS assets,Organization A lists assets,Organization B asset omitted,Foreign asset ID absent from response,P0
+TEN-028-03,CMS layouts,Organization A lists layouts,Organization B layout omitted,Foreign layout ID absent from response,P0
+TEN-028-04,Fleet,Organization A lists screens,Organization B screen omitted,Foreign screen ID absent from response,P0
+TEN-028-05,Incidents,Organization A lists incidents,Organization B incident omitted,Foreign incident ID absent from response,P0
+TEN-028-06,Finance,Organization A lists payout batches,Organization B batch omitted,Foreign payout batch ID absent from response,P0
+TEN-028-07,Campaigns,Organization A updates Organization B campaign,404 Not Found,Campaign name remains unchanged,P0
+TEN-028-08,CMS,Organization A publishes Organization B layout,404 Not Found,Layout remains DRAFT,P0
+TEN-028-09,Fleet,Organization A changes Organization B screen status,404 Not Found,Screen remains ONLINE,P0
+TEN-028-10,Incidents,Organization A resolves Organization B incident,404 Not Found,Incident remains OPEN,P0
+TEN-028-11,Finance,Organization A approves Organization B payout batch,404 Not Found,Payout batch remains DRAFT,P0

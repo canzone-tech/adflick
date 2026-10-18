@@ -1,0 +1,74 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: adflick_playout
+          MYSQL_USER: adflick_app
+          MYSQL_PASSWORD: ci_app_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://adflick_app:ci_app_password@127.0.0.1:3306/adflick_playout
+      JWT_ACCESS_SECRET: ci-only-access-secret-32-characters-minimum
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-32-characters-minimum
+      WEB_ORIGIN: http://localhost:3000
+      SCHEDULER_ENABLED: "false"
+      RUN_MYSQL_SECURITY_E2E: "1"
+      RUN_MYSQL_FINANCE_E2E: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require reviewed dependency lockfile
+        run: test -f package-lock.json || (echo "::error::Root package-lock.json is required. Generate and commit it in a registry-enabled environment." && exit 1)
+      - name: Verify dependency/runtime requirements
+        run: npm run verify:dependencies
+      - name: Install workspace dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Static source checks
+        run: npm run check:source
+      - name: Validate environment
+        run: npm run validate:env
+      - name: Validate Prisma schema
+        run: npx prisma validate
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Apply migrations to disposable CI database
+        run: npx prisma migrate deploy
+      - name: Type-check API
+        run: npm run typecheck:api
+      - name: Type-check web
+        run: npm run typecheck:web
+      - name: Lint workspaces
+        run: npm run lint
+      - name: API unit tests
+        run: npm run test:api -- --coverage
+      - name: MySQL-backed security HTTP tests
+        run: npm run test:e2e:security
+      - name: MySQL finance transaction atomicity tests
+        run: npm run test:e2e:finance
+      - name: Build API
+        run: npm run build:api
+      - name: Build web
+        run: npm run build:web

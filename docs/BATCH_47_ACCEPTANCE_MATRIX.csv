@@ -1,0 +1,9 @@
+ID,Area,Acceptance criterion,Verification,Expected result,Live payout impact
+B47-01,Static checks,All cumulative batch source checkers execute, npm run check:source,Exit code 0,No change
+B47-02,Prisma,Prisma schema validates with installed dependencies,npx prisma validate,Exit code 0,No change
+B47-03,Unit tests,Processing idempotency observability and read tests execute,Focused Jest command,All required tests pass,No change
+B47-04,Database safety,Opt-in requires mysql scheme and local host,Release gate with RUN_MYSQL_FINANCE_E2E=1,Unsafe host rejected before tests,No change
+B47-05,HTTP tests,Authenticated finance endpoints and tenant isolation execute,MySQL 8.4 HTTP E2E,All required tests pass,No change
+B47-06,Concurrency,Claim and lease recovery tests execute,MySQL 8.4 integration suite,Single winner and stale-token rejection,No change
+B47-07,Transparency,Skipped tests are not described as passing,Review release log,Skipped suites explicitly listed,No change
+B47-08,Payments,No release gate code initiates payouts,Source review,No provider transfer calls,Live transfers remain disabled

@@ -1,0 +1,7 @@
+ID,Area,Acceptance criterion,Verification,Status
+B49-01,CI lockfile,CI fails clearly if root package-lock.json is missing,check-batch49.mjs,Static verified
+B49-02,Install,CI installs with npm ci and never bootstraps lockfile,check-batch49.mjs,Static verified
+B49-03,Runtime,Node and npm engine requirements remain checked,verify-dependency-install.mjs,Static verified
+B49-04,Workspace,All declared workspaces have package manifests,verify-dependency-install.mjs,Static verified
+B49-05,Runtime tests,Jest and MySQL 8.4 suites pass,CI runtime,Pending
+B49-06,Release,Prisma validation and production builds pass,CI runtime,Pending

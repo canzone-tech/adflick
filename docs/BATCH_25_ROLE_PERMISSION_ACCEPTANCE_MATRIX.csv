@@ -1,0 +1,10 @@
+role,read_campaigns,manage_campaigns,manage_content,manage_devices,manage_incidents,manage_rewards,manage_payouts,approve_payouts,audit_reports,notes
+SUPER_ADMIN,yes,yes,yes,yes,yes,yes,yes,yes,yes,Platform-wide access must still respect explicit organization scope for tenant-owned data
+ORGANIZATION_ADMIN,yes,yes,yes,yes,yes,yes,yes,yes,yes,Organization-scoped administration only
+ADVERTISER,yes,yes,limited,none,none,none,none,none,none,Must not access finance or other advertisers' records
+SCREEN_OWNER,none,none,none,limited,limited,read-own-only,none,none,none,Owner-facing self-service routes require owner identity and resource ownership checks
+CONTENT_MANAGER,yes,limited,yes,limited,none,none,none,none,limited,Content/device operations only as explicitly granted
+OPERATIONS_MANAGER,yes,yes,yes,yes,yes,limited,limited,none,yes,No self-approval of finance or payouts
+FINANCE_MANAGER,yes,none,none,none,read-limited,yes,yes,yes,yes,Finance actions require maker-checker and tenant scope
+SUPPORT_AGENT,limited,none,limited,limited,yes,none,none,none,limited,Support access should minimize sensitive fields and be audited
+AUDITOR_COMPLIANCE,read-only,none,read-only,read-only,read-only,read-only,read-only,none,yes,No operational mutations; exports must be tenant-scoped and logged

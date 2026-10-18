@@ -1,0 +1,16 @@
+Case ID,Module,Scenario,Expected assertion,Test layer,Priority
+B23-001,Campaigns,Org A edits Org B campaign by direct ID,Not found and campaign.update not called,Service Jest,Critical
+B23-002,Campaigns,No organization context reads campaign,Rejected before findFirst,Service Jest,Critical
+B23-003,Incidents,Org A updates Org B incident,Not found; update and audit not called,Service Jest,Critical
+B23-004,Payouts,Org A resolves Org B dispute,Not found; transaction not opened,Service Jest,Critical
+B23-005,Payouts,No organization context lists batches,Rejected before database access,Service Jest,Critical
+B23-006,CMS,Org A publishes Org B layout,Not found and no update,Service Jest,Critical
+B23-007,Devices,Org A changes Org B screen state,Not found and no mutation,Service Jest,Critical
+B23-008,Playback,Org A reports on Org B screen,No Org B events returned,MySQL integration,Critical
+B23-009,Finance,Concurrent duplicate reward approval,Exactly one ledger accrual,MySQL integration,Critical
+B23-010,Provider,Duplicate signed callback,No duplicate state transition,MySQL integration,Critical
+B23-011,Campaigns,Org A replaces associations with Org B asset IDs,Rejected with no association changes,MySQL integration,Critical
+B23-012,Storage,Org A requests Org B object key,Denied,HTTP/storage integration,Critical
+B23-013,Role matrix,Each role invokes every protected route,Expected allow/deny decision,HTTP integration,Critical
+B23-014,MySQL,Fresh migration deploy and constraints,Migration success and expected unique constraints,Database integration,High
+B23-015,Audit,Failed cross-tenant write,No target mutation; safe security evidence recorded where designed,Integration,High

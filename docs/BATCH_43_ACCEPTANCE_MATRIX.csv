@@ -1,0 +1,9 @@
+ID,Scenario,Expected result,Test location,Execution state
+B43-01,Two workers claim same RECEIVED import,Exactly one conditional update wins,test/reconciliation-import.mysql.e2e-spec.ts,CI runtime pending
+B43-02,Two workers recover expired PROCESSING lease,Exactly one token becomes current,test/reconciliation-import.mysql.e2e-spec.ts,CI runtime pending
+B43-03,Stale token tries to complete,Transaction rolls back inserted rows,test/reconciliation-import.mysql.e2e-spec.ts,CI runtime pending
+B43-04,Completion compare-and-set fails,Rows and aggregate counters roll back,test/reconciliation-import.mysql.e2e-spec.ts,CI runtime pending
+B43-05,Foreign tenant attempts claim or completion,Zero affected rows and original status unchanged,test/reconciliation-import.mysql.e2e-spec.ts,CI runtime pending
+B43-06,Matched and discrepancy outcomes persisted,Rows and counts commit atomically,test/reconciliation-import.mysql.e2e-spec.ts,CI runtime pending
+B43-07,Provider transfer side effects,No payout settlement or transfer is invoked,Source review,Static check
+B43-08,Disposable database guard,Reject non-MySQL or non-local DB,BeforeAll guard,Static check

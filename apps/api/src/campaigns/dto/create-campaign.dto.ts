@@ -1,0 +1,12 @@
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+
+export class CreateCampaignDto {
+  @IsString() @MaxLength(180) name!: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
+  @IsOptional() @IsDateString() startsAt?: string;
+  @IsOptional() @IsDateString() endsAt?: string;
+  @IsOptional() @IsInt() @Min(0) @Max(1000000000000) budgetPaise?: number;
+  @IsOptional() @IsString() @MaxLength(3) currency?: string;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(100) @IsString({ each: true }) creativeAssetIds!: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(500) @IsString({ each: true }) screenIds?: string[];
+}

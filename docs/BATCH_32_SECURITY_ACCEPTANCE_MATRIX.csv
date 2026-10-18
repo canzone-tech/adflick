@@ -1,0 +1,9 @@
+case_id,area,scenario,expected_result,verification_type,release_blocker
+SEC-032-01,Playback authorization,Two different event IDs race for one playback authorization,Exactly one completion is eligibility-counted and the loser is rejected,Mocked Jest unit test,Yes
+SEC-032-02,Playback idempotency,Previously stored event is submitted again,Duplicate is not eligibility-counted,Batch 31 unit test,Yes
+SEC-032-03,Payout export,Export query loads payout items,All item reads constrained by authenticated organization,Source checker plus API test,Yes
+SEC-032-04,Payout export,Export transition updates pending items,Update predicate contains batch and organization,Source checker,Yes
+SEC-032-05,Payout approval,Two approval decisions race,One conditional transition and one audit record at most,Existing unit contract; MySQL E2E pending,Yes
+SEC-032-06,Payout reconciliation,Two reconciliation requests race on same item,Terminal state cannot be overwritten and audit is persisted,MySQL E2E pending,Yes
+SEC-032-07,Finance boundary,Provider transfer is requested before release gate approval,Live transfer remains disabled,Release-gate/manual integration verification,Yes
+SEC-032-08,Tenant isolation,Organization A exports Organization B batch/items,No foreign batch or item data is returned,Existing HTTP security E2E plus export tests,Yes

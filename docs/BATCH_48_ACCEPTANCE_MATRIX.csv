@@ -1,0 +1,8 @@
+ID,Area,Acceptance criterion,Verification,Status
+B48-01,Runtime,Node major meets root engine requirement,verify:dependencies,Implemented
+B48-02,Runtime,npm major meets root engine requirement,verify:dependencies,Implemented
+B48-03,Workspaces,Every declared workspace has a package manifest and name,verify:dependencies,Implemented
+B48-04,Lockfile,Committed lockfile uses npm lockfileVersion 3,verify:dependencies,Implemented
+B48-05,CI,CI installs using npm ci after lockfile check,GitHub Actions workflow,Implemented
+B48-06,Reproducibility,Root package-lock committed and reviewed,Maintainer action,Pending
+B48-07,Runtime tests,Jest Prisma MySQL E2E and build suites run successfully,CI execution,Pending

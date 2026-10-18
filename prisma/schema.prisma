@@ -1,0 +1,894 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ORGANIZATION_ADMIN
+  ADVERTISER
+  SCREEN_OWNER
+  CONTENT_MANAGER
+  OPERATIONS_MANAGER
+  FINANCE_MANAGER
+  SUPPORT_AGENT
+  AUDITOR_COMPLIANCE
+}
+
+enum ScreenStatus {
+  PENDING_PAIRING
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+  SUSPENDED
+  RETIRED
+}
+
+enum AssetStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  REJECTED
+  ARCHIVED
+}
+
+
+
+enum PairingCodeStatus {
+  ACTIVE
+  CONSUMED
+  EXPIRED
+  REVOKED
+}
+
+enum PlaybackEventStatus {
+  RECEIVED
+  ACCEPTED
+  REJECTED
+  DUPLICATE
+}
+
+enum PlaybackEventType {
+  PLAY_STARTED
+  PLAY_COMPLETED
+  PLAY_INTERRUPTED
+  PLAY_ERROR
+}
+
+enum DeviceCommandStatus {
+  PENDING
+  ACKNOWLEDGED
+  FAILED
+  EXPIRED
+}
+
+enum DeviceCommandType {
+  REFRESH_PLAYLIST
+  RESTART_PLAYER
+  RELOAD_APP
+  SET_VOLUME
+  TAKE_SCREENSHOT
+  SYNC_TIME
+}
+
+enum LayoutStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PlaylistStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  REJECTED
+}
+
+enum IncidentStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentCategory {
+  SCREEN_OFFLINE
+  PLAYER_ERROR
+  RESOURCE_PRESSURE
+  COMMAND_FAILURE
+  SYNC_FAILURE
+  OTHER
+}
+
+
+enum NotificationOutboxStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+}
+
+enum RewardDeviceType {
+  TV
+  SMARTPHONE
+}
+
+enum RewardCalculationStatus {
+  ELIGIBLE
+  INELIGIBLE
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  ON_HOLD
+  REVERSED
+}
+
+enum FinanceApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LedgerEntryType {
+  REWARD_ACCRUAL
+  REWARD_REVERSAL
+  MANUAL_ADJUSTMENT
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum PayoutBatchStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  EXPORTED
+  SUBMITTED_TO_PROVIDER
+  RECONCILIATION_REQUIRED
+  PARTIALLY_RECONCILED
+  RECONCILED
+  CANCELLED
+}
+
+enum PayoutItemStatus {
+  PENDING
+  EXPORTED
+  SUBMITTED
+  PAID
+  FAILED
+  HELD
+  DISPUTED
+  REVERSED
+}
+
+enum FinanceDisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_OWNER_FAVOUR
+  RESOLVED_ORGANIZATION_FAVOUR
+  CLOSED
+}
+
+model Organization {
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  name        String   @db.VarChar(160)
+  slug        String   @unique @db.VarChar(180)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+  screens     Screen[]
+  assets      MediaAsset[]
+  campaigns   Campaign[]
+  layouts     ScreenLayout[]
+  playlists   Playlist[]
+  devicePairingCodes DevicePairingCode[]
+  deviceCommands DeviceCommand[]
+  playbackEvents PlaybackEvent[]
+  playbackGrants PlaybackAuthorization[]
+  playlistAssignments ScreenPlaylistAssignment[]
+  incidents Incident[]
+  notificationOutbox NotificationOutbox[]
+  rewardCalculations RewardCalculation[]
+  rewardPolicies RewardPolicy[]
+  rewardLedgerEntries RewardLedgerEntry[]
+  financeApprovals FinanceApproval[]
+  payoutBatches PayoutBatch[]
+  payoutItems PayoutItem[]
+  reconciliationImports ReconciliationImport[]
+  reconciliationImportRows ReconciliationImportRow[]
+  financeDisputes FinanceDispute[]
+
+  @@index([isActive, createdAt])
+}
+
+model User {
+  id             String       @id @default(cuid()) @db.VarChar(30)
+  organizationId String?      @db.VarChar(30)
+  email          String       @unique @db.VarChar(254)
+  displayName    String       @db.VarChar(160)
+  status         UserStatus   @default(INVITED)
+  passwordHash   String?      @db.VarChar(255)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  roleAssignments UserRoleAssignment[]
+  reconciliationImportsCreated ReconciliationImport[]
+  ownedScreens   Screen[]     @relation("ScreenOwner")
+  uploadedAssets MediaAsset[] @relation("AssetUploader")
+  createdLayouts ScreenLayout[] @relation("LayoutCreator")
+  createdPlaylists Playlist[] @relation("PlaylistCreator")
+  auditEvents    AuditEvent[] @relation("AuditActor")
+  refreshSessions RefreshSession[]
+  rewardCalculationsCreated RewardCalculation[] @relation("RewardCalculationCreator")
+  financeApprovalsCreated FinanceApproval[] @relation("FinanceApprovalCreator")
+  financeApprovalsDecided FinanceApproval[] @relation("FinanceApprovalDecider")
+
+  @@index([organizationId, status])
+  @@index([displayName])
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  userId    String   @db.VarChar(30)
+  role      UserRole
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role, createdAt])
+}
+
+model Screen {
+  id                String       @id @default(cuid()) @db.VarChar(30)
+  organizationId    String       @db.VarChar(30)
+  ownerUserId       String?      @db.VarChar(30)
+  name              String       @db.VarChar(160)
+  externalCode      String?      @unique @db.VarChar(80)
+  platform          String       @db.VarChar(60)
+  status            ScreenStatus @default(PENDING_PAIRING)
+  timezone          String       @default("Asia/Kolkata") @db.VarChar(80)
+  deviceKeyHash     String?      @unique @db.Char(64)
+  devicePlatform    String?      @db.VarChar(80)
+  playerVersion     String?      @db.VarChar(40)
+  lastHeartbeatAt   DateTime?
+  lastIpAddress     String?      @db.VarChar(45)
+  cpuPercent        Int?
+  memoryPercent     Int?
+  storagePercent    Int?
+  capabilitiesJson  Json?
+  lastSyncAt        DateTime?
+  lastPlayerError   String?      @db.VarChar(500)
+  lastSeenAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  owner             User?        @relation("ScreenOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  pairingCodes      DevicePairingCode[]
+  commands          DeviceCommand[]
+  playbackEvents    PlaybackEvent[]
+  rewardCalculations RewardCalculation[]
+  campaignTargets   CampaignScreenTarget[]
+  playbackGrants    PlaybackAuthorization[]
+  playlistAssignments ScreenPlaylistAssignment[]
+  incidents Incident[]
+
+  @@index([organizationId, status])
+  @@index([ownerUserId, status])
+  @@index([lastSeenAt])
+  @@index([lastHeartbeatAt])
+}
+
+model MediaAsset {
+  id             String      @id @default(cuid()) @db.VarChar(30)
+  organizationId String      @db.VarChar(30)
+  uploadedById   String?     @db.VarChar(30)
+  title          String      @db.VarChar(180)
+  originalName   String      @db.VarChar(255)
+  mimeType       String      @db.VarChar(120)
+  sizeBytes      BigInt
+  checksumSha256 String?     @db.Char(64)
+  storageKey     String?     @db.VarChar(512)
+  status         AssetStatus @default(UPLOADING)
+  durationMs     Int?
+  width          Int?
+  height         Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  uploadedBy     User?       @relation("AssetUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  versions       MediaAssetVersion[]
+  playbackEvents PlaybackEvent[]
+  campaignCreatives CampaignCreative[]
+  playbackGrants    PlaybackAuthorization[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([uploadedById, createdAt])
+}
+
+model Campaign {
+  id             String         @id @default(cuid()) @db.VarChar(30)
+  organizationId String         @db.VarChar(30)
+  name           String         @db.VarChar(180)
+  description    String?        @db.VarChar(1000)
+  status         CampaignStatus @default(DRAFT)
+  submittedAt    DateTime?
+  reviewedAt     DateTime?
+  reviewedById   String?        @db.VarChar(30)
+  reviewNote     String?        @db.VarChar(1000)
+  createdById    String?        @db.VarChar(30)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  budgetPaise    BigInt?
+  currency       String         @default("INR") @db.Char(3)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  playbackEvents PlaybackEvent[]
+  playbackGrants PlaybackAuthorization[]
+  creatives CampaignCreative[]
+  screenTargets CampaignScreenTarget[]
+
+  @@index([organizationId, status, startsAt])
+  @@index([status, startsAt, endsAt])
+  @@index([endsAt])
+}
+
+model AuditEvent {
+  id             String        @id @default(cuid()) @db.VarChar(30)
+  actorUserId    String?       @db.VarChar(30)
+  organizationId String?       @db.VarChar(30)
+  action         String        @db.VarChar(120)
+  entityType     String        @db.VarChar(80)
+  entityId       String?       @db.VarChar(80)
+  severity       AuditSeverity @default(INFO)
+  metadataJson   Json?
+  ipAddress      String?       @db.VarChar(45)
+  createdAt      DateTime      @default(now())
+  actor          User?         @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([severity, createdAt])
+}
+
+
+model RefreshSession {
+  id           String   @id @default(cuid()) @db.VarChar(30)
+  userId       String   @db.VarChar(30)
+  tokenHash    String   @unique @db.Char(64)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?  @db.VarChar(30)
+  userAgent    String?  @db.VarChar(512)
+  ipAddress    String?  @db.VarChar(45)
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([revokedAt, expiresAt])
+}
+
+
+model ScreenLayout {
+  id             String       @id @default(cuid()) @db.VarChar(30)
+  organizationId String       @db.VarChar(30)
+  createdById    String?      @db.VarChar(30)
+  name           String       @db.VarChar(180)
+  description    String?      @db.VarChar(500)
+  canvasWidth    Int          @default(1920)
+  canvasHeight   Int          @default(1080)
+  status         LayoutStatus @default(DRAFT)
+  version        Int          @default(1)
+  zonesJson      Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy      User?        @relation("LayoutCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, updatedAt])
+  @@index([createdById, updatedAt])
+}
+
+model Playlist {
+  id             String         @id @default(cuid()) @db.VarChar(30)
+  organizationId String         @db.VarChar(30)
+  createdById    String?        @db.VarChar(30)
+  name           String         @db.VarChar(180)
+  description    String?        @db.VarChar(500)
+  status         PlaylistStatus @default(DRAFT)
+  itemsJson      Json
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy      User?          @relation("PlaylistCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  playbackEvents PlaybackEvent[]
+  screenAssignments ScreenPlaylistAssignment[]
+
+  @@index([organizationId, status, updatedAt])
+  @@index([createdById, updatedAt])
+}
+
+model MediaAssetVersion {
+  id             String   @id @default(cuid()) @db.VarChar(30)
+  mediaAssetId   String   @db.VarChar(30)
+  version        Int
+  storageKey     String   @db.VarChar(512)
+  checksumSha256 String   @db.Char(64)
+  mimeType       String   @db.VarChar(120)
+  sizeBytes      BigInt
+  createdAt      DateTime @default(now())
+  mediaAsset     MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaAssetId, version])
+  @@index([checksumSha256])
+}
+
+
+model DevicePairingCode {
+  id             String            @id @default(cuid()) @db.VarChar(30)
+  organizationId String            @db.VarChar(30)
+  screenId       String            @db.VarChar(30)
+  codeHash       String            @unique @db.Char(64)
+  status         PairingCodeStatus @default(ACTIVE)
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdById    String?           @db.VarChar(30)
+  createdAt      DateTime          @default(now())
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  screen         Screen            @relation(fields: [screenId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, expiresAt])
+  @@index([screenId, status])
+}
+
+model DeviceCommand {
+  id             String              @id @default(cuid()) @db.VarChar(30)
+  organizationId String              @db.VarChar(30)
+  screenId       String              @db.VarChar(30)
+  type           DeviceCommandType
+  payloadJson    Json?
+  status         DeviceCommandStatus @default(PENDING)
+  requestedById  String?             @db.VarChar(30)
+  requestedAt    DateTime            @default(now())
+  expiresAt      DateTime
+  acknowledgedAt DateTime?
+  deliveryCount  Int                 @default(0)
+  lastDeliveredAt DateTime?
+  lastError      String?             @db.VarChar(500)
+  resultJson     Json?
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  screen         Screen              @relation(fields: [screenId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, requestedAt])
+  @@index([screenId, status, expiresAt])
+}
+
+
+model PlaybackEvent {
+  id                 String              @id @default(cuid()) @db.VarChar(30)
+  organizationId     String              @db.VarChar(30)
+  screenId           String              @db.VarChar(30)
+  assetId            String              @db.VarChar(30)
+  campaignId         String?             @db.VarChar(30)
+  playlistId         String?             @db.VarChar(30)
+  eventId            String              @db.VarChar(100)
+  eventType          PlaybackEventType
+  status             PlaybackEventStatus @default(RECEIVED)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  durationMs         Int?
+  expectedDurationMs Int?
+  sequenceNumber     BigInt?
+  clientReportedAt   DateTime?
+  receivedAt         DateTime            @default(now())
+  validationReason   String?             @db.VarChar(255)
+  metadataJson       Json?
+  authorizationId    String?             @db.VarChar(30)
+  authorization      PlaybackAuthorization? @relation(fields: [authorizationId], references: [id], onDelete: SetNull)
+  screen             Screen              @relation(fields: [screenId], references: [id], onDelete: Restrict)
+  asset              MediaAsset          @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  campaign           Campaign?            @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  playlist           Playlist?            @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([screenId, eventId])
+  @@index([authorizationId])
+  @@index([organizationId, status, receivedAt])
+  @@index([screenId, eventType, completedAt])
+  @@index([campaignId, status, completedAt])
+  @@index([assetId, status, completedAt])
+}
+
+
+model ScreenPlaylistAssignment {
+  id             String   @id @default(cuid()) @db.VarChar(30)
+  organizationId String   @db.VarChar(30)
+  screenId       String   @db.VarChar(30)
+  playlistId     String   @db.VarChar(30)
+  priority       Int      @default(100)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  isEnabled      Boolean  @default(true)
+  assignedById   String?  @db.VarChar(30)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screen         Screen   @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  playlist       Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([screenId, playlistId])
+  @@index([organizationId, screenId, isEnabled, startsAt, endsAt], map: "ScreenPlaylistAssignment_org_screen_enabled_window_idx")
+  @@index([playlistId, isEnabled])
+}
+
+model PlaybackAuthorization {
+  id             String      @id @default(cuid()) @db.VarChar(30)
+  organizationId String      @db.VarChar(30)
+  screenId       String      @db.VarChar(30)
+  assetId        String      @db.VarChar(30)
+  campaignId     String?     @db.VarChar(30)
+  playlistId     String?     @db.VarChar(30)
+  tokenHash      String      @db.Char(64)
+  issuedAt       DateTime    @default(now())
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screen         Screen      @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  asset          MediaAsset  @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  campaign       Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  events         PlaybackEvent[]
+
+  @@index([screenId, expiresAt])
+  @@index([campaignId, screenId])
+  @@index([assetId, expiresAt])
+}
+
+model CampaignCreative {
+  id          String     @id @default(cuid()) @db.VarChar(30)
+  campaignId  String     @db.VarChar(30)
+  assetId     String     @db.VarChar(30)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  asset       MediaAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@unique([campaignId, assetId])
+  @@index([campaignId, sortOrder])
+  @@index([assetId])
+}
+
+model CampaignScreenTarget {
+  id             String   @id @default(cuid()) @db.VarChar(30)
+  campaignId     String   @db.VarChar(30)
+  screenId       String   @db.VarChar(30)
+  createdAt      DateTime @default(now())
+  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  screen         Screen   @relation(fields: [screenId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, screenId])
+  @@index([screenId, campaignId])
+}
+
+
+model Incident {
+  id               String           @id @default(cuid()) @db.VarChar(30)
+  organizationId   String           @db.VarChar(30)
+  screenId         String?          @db.VarChar(30)
+  title            String           @db.VarChar(180)
+  description      String?          @db.Text
+  category         IncidentCategory @default(OTHER)
+  severity         IncidentSeverity @default(MEDIUM)
+  status           IncidentStatus   @default(OPEN)
+  openedById       String           @db.VarChar(30)
+  assignedToId     String?          @db.VarChar(30)
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  resolutionNote   String?          @db.VarChar(1000)
+  lastNotifiedAt   DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screen           Screen?          @relation(fields: [screenId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, severity, createdAt])
+  @@index([screenId, status, createdAt])
+  @@index([assignedToId, status])
+}
+
+
+model NotificationOutbox {
+  id             String                  @id @default(cuid()) @db.VarChar(30)
+  eventKey       String                  @unique @db.VarChar(180)
+  eventType      String                  @db.VarChar(100)
+  organizationId String                  @db.VarChar(30)
+  payload        Json
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status         NotificationOutboxStatus @default(PENDING)
+  attempts       Int                     @default(0)
+  maxAttempts    Int                     @default(8)
+  availableAt    DateTime                @default(now())
+  lockedAt       DateTime?
+  deliveredAt    DateTime?
+  lastError      String?                 @db.VarChar(500)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([status, availableAt, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([status, lockedAt])
+}
+
+
+// Reward rules are configurable per organization; defaults are indicative only.
+model RewardPolicy {
+  id                         String   @id @default(cuid()) @db.VarChar(30)
+  organizationId             String   @db.VarChar(30)
+  tvMonthlyAmountPaise       Int      @default(100000)
+  smartphoneMonthlyAmountPaise Int     @default(33300)
+  tvMinimumValidPlays        Int      @default(1000)
+  smartphoneMinimumValidPlays Int     @default(500)
+  minimumCampaignCoveragePercent Int  @default(1)
+  minimumDeviceUptimePercent  Int      @default(0)
+  enabled                    Boolean  @default(false)
+  effectiveFrom              DateTime @default(now())
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+  organization               Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  @@unique([organizationId])
+  @@index([enabled, effectiveFrom])
+}
+
+model RewardCalculation {
+  id                    String   @id @default(cuid()) @db.VarChar(30)
+  organizationId        String   @db.VarChar(30)
+  screenId              String   @db.VarChar(30)
+  ownerUserId           String?  @db.VarChar(30)
+  periodStart           DateTime
+  periodEnd             DateTime
+  deviceType            RewardDeviceType
+  validCompletedPlays   Int      @default(0)
+  requiredCompletedPlays Int
+  campaignCoveragePercent Int    @default(0)
+  amountPaise           Int      @default(0)
+  status                RewardCalculationStatus @default(INELIGIBLE)
+  reasonCode            String   @db.VarChar(80)
+  reasonDetail          String   @db.VarChar(500)
+  policySnapshotJson    Json
+  createdById           String   @db.VarChar(30)
+  approvedAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  screen                Screen   @relation(fields: [screenId], references: [id], onDelete: Restrict)
+  createdBy             User     @relation("RewardCalculationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  ledgerEntries         RewardLedgerEntry[]
+  approvals             FinanceApproval[]
+  @@unique([screenId, periodStart, periodEnd])
+  @@index([organizationId, status, periodStart])
+  @@index([ownerUserId, periodStart, periodEnd])
+}
+
+model RewardLedgerEntry {
+  id                String   @id @default(cuid()) @db.VarChar(30)
+  organizationId    String   @db.VarChar(30)
+  rewardCalculationId String @db.VarChar(30)
+  entryType         LedgerEntryType
+  amountPaise       Int
+  currency          String   @default("INR") @db.Char(3)
+  idempotencyKey    String   @unique @db.VarChar(160)
+  description       String   @db.VarChar(500)
+  createdById       String   @db.VarChar(30)
+  createdAt         DateTime @default(now())
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  calculation      RewardCalculation @relation(fields: [rewardCalculationId], references: [id], onDelete: Restrict)
+  @@index([organizationId, createdAt])
+  payoutItem PayoutItem?
+  disputes FinanceDispute[]
+  @@index([rewardCalculationId, createdAt])
+}
+
+model FinanceApproval {
+  id                String   @id @default(cuid()) @db.VarChar(30)
+  organizationId    String   @db.VarChar(30)
+  rewardCalculationId String @db.VarChar(30)
+  requestedById     String   @db.VarChar(30)
+  decidedById       String?  @db.VarChar(30)
+  status            FinanceApprovalStatus @default(PENDING)
+  decisionNote      String?  @db.VarChar(500)
+  requestKey        String   @unique @db.VarChar(160)
+  createdAt         DateTime @default(now())
+  decidedAt         DateTime?
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  calculation      RewardCalculation @relation(fields: [rewardCalculationId], references: [id], onDelete: Restrict)
+  requestedBy      User     @relation("FinanceApprovalCreator", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy        User?    @relation("FinanceApprovalDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  @@index([organizationId, status, createdAt])
+  @@index([rewardCalculationId, status])
+}
+
+
+// Batch 17: payout is a controlled workflow only; this system does not transfer money.
+model PayoutBatch {
+  id                    String           @id @default(cuid()) @db.VarChar(30)
+  organizationId        String           @db.VarChar(30)
+  batchReference        String           @unique @db.VarChar(80)
+  status                PayoutBatchStatus @default(DRAFT)
+  currency              String           @default("INR") @db.Char(3)
+  totalAmountPaise      Int              @default(0)
+  itemCount             Int              @default(0)
+  createdById           String           @db.VarChar(30)
+  approvedById          String?          @db.VarChar(30)
+  approvalNote          String?          @db.VarChar(500)
+  providerName          String?          @db.VarChar(100)
+  providerBatchReference String?         @db.VarChar(160)
+  exportedAt            DateTime?
+  submittedAt           DateTime?
+  reconciledAt          DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  organization          Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  items                 PayoutItem[]
+  @@index([organizationId, status, createdAt])
+}
+
+model PayoutItem {
+  id                    String          @id @default(cuid()) @db.VarChar(30)
+  organizationId        String          @db.VarChar(30)
+  payoutBatchId         String          @db.VarChar(30)
+  ledgerEntryId         String          @unique @db.VarChar(30)
+  ownerUserId           String          @db.VarChar(30)
+  amountPaise           Int
+  currency              String          @default("INR") @db.Char(3)
+  status                PayoutItemStatus @default(PENDING)
+  ownerIdentityVerified Boolean         @default(false)
+  kycReviewed           Boolean         @default(false)
+  fraudReviewed         Boolean         @default(false)
+  taxReviewCompleted    Boolean         @default(false)
+  providerReference     String?         @db.VarChar(160)
+  reconciliationNote    String?         @db.VarChar(500)
+  reconciledAt          DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  batch                 PayoutBatch     @relation(fields: [payoutBatchId], references: [id], onDelete: Restrict)
+  organization          Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ledgerEntry           RewardLedgerEntry @relation(fields: [ledgerEntryId], references: [id], onDelete: Restrict)
+  @@index([organizationId, status, createdAt])
+  @@index([payoutBatchId, status])
+  @@index([ownerUserId, createdAt])
+}
+
+model FinanceDispute {
+  id                    String              @id @default(cuid()) @db.VarChar(30)
+  organizationId        String              @db.VarChar(30)
+  ledgerEntryId          String              @db.VarChar(30)
+  openedById             String              @db.VarChar(30)
+  assignedToId           String?             @db.VarChar(30)
+  status                 FinanceDisputeStatus @default(OPEN)
+  reasonCode             String              @db.VarChar(80)
+  description            String              @db.VarChar(1000)
+  resolutionNote         String?             @db.VarChar(1000)
+  resolvedById           String?             @db.VarChar(30)
+  resolvedAt             DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  organization           Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ledgerEntry            RewardLedgerEntry   @relation(fields: [ledgerEntryId], references: [id], onDelete: Restrict)
+  @@index([organizationId, status, createdAt])
+  @@index([ledgerEntryId, status])
+}
+
+// Batch 18: idempotent provider webhook receipt registry; payload contents are not retained.
+enum ReconciliationImportStatus {
+  RECEIVED
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+
+enum ProviderWebhookEventStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+model ReconciliationImport {
+  id               String                   @id @default(cuid()) @db.VarChar(30)
+  organizationId   String                   @db.VarChar(30)
+  providerName      String                   @db.VarChar(100)
+  idempotencyKey    String                   @db.VarChar(180)
+  payloadSha256     String                   @db.Char(64)
+  status            ReconciliationImportStatus @default(RECEIVED)
+  rowCount          Int                      @default(0)
+  matchedCount      Int                      @default(0)
+  discrepancyCount  Int                      @default(0)
+  lastErrorCode     String?                  @db.VarChar(100)
+  processingToken   String?                  @db.VarChar(36)
+  processingLeaseUntil DateTime?
+  attemptCount      Int                      @default(0)
+  createdById       String?                  @db.VarChar(30)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  completedAt       DateTime?
+  rows              ReconciliationImportRow[]
+  organization      Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy         User?                    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, providerName, idempotencyKey])
+  @@index([organizationId, status, createdAt])
+  @@index([payloadSha256])
+}
+
+model ReconciliationImportRow {
+  id                 String   @id @default(cuid()) @db.VarChar(30)
+  organizationId     String   @db.VarChar(30)
+  importId           String   @db.VarChar(30)
+  rowNumber          Int
+  providerReference  String   @db.VarChar(180)
+  payoutReference    String   @db.VarChar(180)
+  amountPaise        Int
+  currency           String   @db.Char(3)
+  statementStatus    String   @db.VarChar(30)
+  outcome            String   @db.VarChar(40)
+  detail             String?  @db.VarChar(500)
+  createdAt          DateTime @default(now())
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  import             ReconciliationImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@unique([importId, rowNumber])
+  @@index([organizationId, importId, outcome])
+  @@index([organizationId, payoutReference])
+}
+
+model ProviderWebhookEvent {
+  id             String                    @id @default(cuid()) @db.VarChar(30)
+  providerName   String                    @db.VarChar(100)
+  providerEventId String                   @db.VarChar(180)
+  payloadSha256  String                    @db.Char(64)
+  status         ProviderWebhookEventStatus @default(RECEIVED)
+  attemptCount   Int                       @default(0)
+  lastErrorCode  String?                   @db.VarChar(100)
+  receivedAt     DateTime                  @default(now())
+  processedAt    DateTime?
+  updatedAt      DateTime                  @updatedAt
+  @@unique([providerName, providerEventId])
+  @@index([status, receivedAt])
+  @@index([payloadSha256])
+}

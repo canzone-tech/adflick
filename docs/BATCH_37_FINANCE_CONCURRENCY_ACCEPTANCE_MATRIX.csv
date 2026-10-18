@@ -1,0 +1,7 @@
+ID,Scenario,Expected Result,Verification
+B37-01,Two transactions transition same expected payout batch state,Exactly one transaction commits,MySQL integration test
+B37-02,Loser transaction attempts audit after stale conditional update,No loser audit is persisted,MySQL integration test
+B37-03,Winner status transition,Status is PARTIALLY_RECONCILED,Reload persisted batch
+B37-04,Winner audit record,Exactly one of the two action records exists,Count persisted audit rows
+B37-05,Database URL uses PostgreSQL,Suite refuses to run,Guard assertion
+B37-06,Database host is not localhost or 127.0.0.1,Suite refuses to run,Guard assertion

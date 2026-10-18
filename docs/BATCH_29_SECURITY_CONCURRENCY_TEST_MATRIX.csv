@@ -1,0 +1,11 @@
+case_id,area,scenario,expected_result,verification_type,priority
+SEC-029-01,Finance,Concurrent payout approval loses conditional update race,409 conflict and no approval audit from losing attempt,Unit plus MySQL concurrency,P0
+SEC-029-02,Finance,Creator approves own payout batch,Forbidden and no transaction,Unit plus HTTP E2E,P0
+SEC-029-03,Finance,Valid independent approver approves batch,Conditional transition and audit occur,Unit plus MySQL integration,P0
+SEC-029-04,Campaigns,Foreign creative ID supplied in campaign update,Request rejected and foreign asset unchanged,HTTP E2E,P0
+SEC-029-05,Scheduler,Foreign playlist assignment ID used with another screen,Request rejected and assignment unchanged,HTTP E2E,P0
+SEC-029-06,Fleet,Foreign screen ID used for command/status,Request rejected and foreign screen unchanged,HTTP E2E,P0
+SEC-029-07,Exports,Organization A exports payout data,Only Organization A rows included,HTTP E2E plus DB assertions,P0
+SEC-029-08,Playback,Two concurrent identical event IDs,At most one persisted event for screen/event pair,MySQL concurrency E2E,P0
+SEC-029-09,Playback,Duplicate or replay event returned by ingestion,Duplicate/rejected and never reward eligible,HTTP E2E plus DB assertions,P0
+SEC-029-10,Finance,Two concurrent payout decisions,Only one legal state transition commits,MySQL concurrency E2E,P0

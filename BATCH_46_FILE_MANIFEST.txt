@@ -1,0 +1,11 @@
+BATCH 46 — RECONCILIATION OBSERVABILITY
+Added:
+- apps/api/src/finance/reconciliation/reconciliation-import-observability.ts
+- apps/api/src/finance/reconciliation/reconciliation-import-observability.spec.ts
+- docs/BATCH_46_RECONCILIATION_OBSERVABILITY.md
+- docs/BATCH_46_ACCEPTANCE_MATRIX.csv
+- scripts/check-batch46.mjs
+Updated:
+- apps/api/src/finance/reconciliation/reconciliation-import.service.ts
+- package.json (cumulative check:source includes Batch 46)
+Security note: no raw CSV payloads or raw exception messages are written to lastErrorCode.

@@ -1,0 +1,10 @@
+ID,Scenario,Expected result,Automation status
+B42-01,New idempotency key,Single worker claims RECEIVED reservation,Static guard + unit test
+B42-02,Concurrent duplicate while lease active,Return IN_PROGRESS; no duplicate row persistence,Static guard; MySQL race test pending
+B42-03,Retry after expired PROCESSING lease,Conditional lease claim succeeds for one worker,Static guard; MySQL race test pending
+B42-04,Same key with changed payload,Payload conflict,Existing idempotency helper coverage
+B42-05,Worker loses claim before commit,Transaction aborts and row inserts roll back,Unit guard added; transaction rollback integration test pending dependencies
+B42-06,Foreign organization payout reference,No cross-tenant payout match,Existing organization-scoped query; runtime test pending
+B42-07,Successful discrepancy processing,Rows and completion commit atomically,Existing processing test; execute pending dependencies
+B42-08,Finance review outcomes,No payout status change or transfer,Source inspection
+B42-09,Expired lease migration,MySQL 8.4 migration applies cleanly,Runtime migration test pending

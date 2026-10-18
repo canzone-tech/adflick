@@ -1,0 +1,7 @@
+ID,Scenario,Expected result,Verification
+B46-01,Malformed CSV failure,Stable STATEMENT_INVALID code,Unit test
+B46-02,Lost processing claim,Stable CLAIM_LOST code,Unit test
+B46-03,Database unavailable,Stable DATABASE_UNAVAILABLE code,Unit test
+B46-04,Operational event allow-list,No raw exception or payload fields,Unit test
+B46-05,Import failure persistence,lastErrorCode stores only a stable code,Source checker and runtime test
+B46-06,Payout safety,No payout transfer initiated by observability code,Review

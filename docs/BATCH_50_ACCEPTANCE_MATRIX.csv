@@ -1,0 +1,11 @@
+ID,Area,Acceptance criterion,Verification,Expected status in current environment
+B50-01,Runtime,Node.js major version is 22 or newer,verify-clean-release.mjs,Executable preflight
+B50-02,Package manager,npm major version is 10 or newer,verify-clean-release.mjs,Executable preflight
+B50-03,Dependency reproducibility,Committed root package-lock.json exists and parses,verify-clean-release.mjs,Blocked until lockfile committed
+B50-04,Workspaces,All declared workspace manifests exist,verify-clean-release.mjs,Executable preflight
+B50-05,CI,CI uses npm ci and does not create a temporary lockfile,verify-clean-release.mjs,Executable preflight
+B50-06,Source regression,Batches 01-50 static checks run,check:source,Must pass
+B50-07,Runtime tests,Jest and E2E tests execute against disposable test services,CI,Pending runtime execution
+B50-08,Database,Prisma validation and MySQL 8.4 migrations succeed,CI,Pending runtime execution
+B50-09,Production build,API and web production builds succeed,CI,Pending runtime execution
+B50-10,Payout safety,No live transfer enabled by reconciliation import processing,Code review and integration tests,Must remain disabled until approvals

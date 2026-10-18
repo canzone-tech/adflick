@@ -1,0 +1,15 @@
+BATCH 50 — FILE MANIFEST
+
+Added:
+- scripts/verify-clean-release.mjs
+- scripts/check-batch50.mjs
+- docs/BATCH_50_CLEAN_RELEASE_PREFLIGHT.md
+- docs/BATCH_50_ACCEPTANCE_MATRIX.csv
+- BATCH_50_FILE_MANIFEST.txt
+
+Updated:
+- package.json (verify:clean-release and cumulative check:source wiring)
+
+Release boundary:
+- No lockfile was fabricated; the release preflight intentionally blocks until a reviewed package-lock.json is committed.
+- Runtime tests, Prisma validation, MySQL 8.4 integration tests and production builds are not claimed as passed by static checks.

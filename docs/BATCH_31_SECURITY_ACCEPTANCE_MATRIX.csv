@@ -1,0 +1,8 @@
+case_id,area,scenario,expected_result,verification_type,priority
+SEC-031-01,Playback,Event ID already exists for screen,Return DUPLICATE and countedForEligibility false,Unit test,P0
+SEC-031-02,Playback,Concurrent event insertion loses unique-key race,Map P2002 to DUPLICATE and countedForEligibility false,Unit plus MySQL concurrency E2E,P0
+SEC-031-03,Playback,Invalid device secret,Reject before event lookup,Unit plus HTTP E2E,P0
+SEC-031-04,Finance export,Batch item read,Filter nested items by authenticated organization,Unit plus MySQL integration,P0
+SEC-031-05,Finance export,Export item query,Filter by payoutBatchId and organizationId,Unit plus MySQL integration,P0
+SEC-031-06,Finance,Concurrent approval and reconciliation,Only legal conditional state transition persists,MySQL concurrency E2E,P0
+SEC-031-07,Playback,Duplicate event attempts to qualify for owner reward,Never count duplicate result as eligible,Unit plus finance integration,P0

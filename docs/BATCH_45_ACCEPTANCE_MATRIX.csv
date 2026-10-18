@@ -1,0 +1,14 @@
+ID,Area,Scenario,Expected result,Test status
+B45-01,Authentication,No bearer token on import detail,HTTP 401,Implemented - execution pending
+B45-02,Authentication,No bearer token on import rows,HTTP 401,Implemented - execution pending
+B45-03,HTTP read,Finance Manager reads completed import,HTTP 200 with persisted counts,Implemented - execution pending
+B45-04,HTTP read,Finance Manager reads paginated discrepancy row,HTTP 200 with stable row order,Implemented - execution pending
+B45-05,RBAC,Auditor reads import metadata,HTTP 200,Implemented - execution pending
+B45-06,RBAC,Advertiser reads finance import,HTTP 403,Implemented - execution pending
+B45-07,RBAC,Advertiser posts to process endpoint,HTTP 403,Implemented - execution pending
+B45-08,Tenant isolation,Organization A reads Organization B import detail,HTTP 404,Implemented - execution pending
+B45-09,Tenant isolation,Organization A reads Organization B import rows,HTTP 404,Implemented - execution pending
+B45-10,Pagination,Limit greater than 200,HTTP 400,Implemented - execution pending
+B45-11,Pagination,Negative offset,HTTP 400,Implemented - execution pending
+B45-12,Integrity,Rejected reads do not mutate seeded rows,Counts unchanged,Implemented - execution pending
+B45-13,Environment,Non-MySQL or non-local DB,Suite refuses to run,Implemented - execution pending
