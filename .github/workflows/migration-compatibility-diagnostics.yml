@@ -1,0 +1,62 @@
+name: Migration Compatibility Diagnostics
+on:
+  push:
+    branches: [dev/local-foundation]
+    paths:
+      - .github/workflows/migration-compatibility-diagnostics.yml
+      - scripts/diagnose-migration-sandbox.mjs
+      - scripts/migration-fk-audit.mjs
+      - prisma/**
+      - apps/api/**
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-temporary-copy-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: diagnostic_root_only
+          MYSQL_DATABASE: adflick_diagnostic
+          MYSQL_USER: adflick_diagnostic
+          MYSQL_PASSWORD: diagnostic_app_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pdiagnostic_root_only"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      CI: "true"
+      NODE_ENV: test
+      ADFLICK_DISPOSABLE_SCHEMA_EXPERIMENT: "1"
+      DATABASE_URL: mysql://adflick_diagnostic:diagnostic_app_only@127.0.0.1:3306/adflick_diagnostic
+      JWT_ACCESS_SECRET: ci-diagnostic-only-access-secret-32-characters
+      JWT_REFRESH_SECRET: ci-diagnostic-only-refresh-secret-32-characters
+      WEB_ORIGIN: http://localhost:3000
+      SCHEDULER_ENABLED: "false"
+      RUN_MYSQL_SECURITY_E2E: "1"
+      RUN_MYSQL_FINANCE_E2E: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Deterministic install and Prisma client
+        run: |
+          npm ci --no-audit --no-fund
+          npx prisma generate
+      - name: Compile original API source
+        run: npm run build:api
+      - name: Isolated historical SQL compatibility experiment
+        run: node scripts/diagnose-migration-sandbox.mjs
+      - name: MySQL security HTTP tests (diagnostic schema only)
+        run: npm run test:e2e:security
+      - name: MySQL finance HTTP/transaction tests (diagnostic schema only)
+        run: npm run test:e2e:finance
+      - name: Compiled API health/readiness/401 smoke (diagnostic schema only)
+        run: node scripts/smoke-runtime.mjs api
