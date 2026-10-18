@@ -70,6 +70,8 @@ try {
     execute('Backend lint', npm, ['run', 'lint', '-w', 'apps/api']);
     execute('Backend unit tests with coverage', npm, ['run', 'test:api:coverage']);
     execute('Production backend build', npm, ['run', 'build:api']);
+    execute('FK contract regression tests', process.execPath, ['--test', 'scripts/migration-fk-audit.test.mjs']);
+    execute('Historical FK collation check', process.execPath, ['scripts/check-migration-fks.mjs']);
     assertDisposableDatabase();
     execute('Apply immutable migrations to disposable MySQL', npx, ['prisma', 'migrate', 'deploy']);
     execute('MySQL security HTTP integration', npm, ['run', 'test:e2e:security'], { RUN_MYSQL_SECURITY_E2E: '1' });
