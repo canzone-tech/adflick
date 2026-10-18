@@ -28,7 +28,7 @@ describe('PayoutsService tenant isolation contract', () => {
 
   it('fails closed without organization context', async () => {
     const service = new PayoutsService(prisma as any);
-    await expect(service.listBatches({ ...actor, organizationId: null })).rejects.toThrow();
+    expect(() => service.listBatches({ ...actor, organizationId: null })).toThrow('Organization context is required.');
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

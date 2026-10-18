@@ -45,9 +45,21 @@ describe('reserveReconciliationImport', () => {
     const digest = crypto.createHash('sha256').update(base.rawPayload).digest('hex');
     const store: ReconciliationImportStore = {
       create: jest.fn().mockRejectedValue(uniqueError),
-      findByKey: jest.fn().mockResolvedValue({ id: 'imp-1', payloadSha256: digest, status: 'PROCESSING' }),
+      findByKey: jest.fn().mockResolvedValue({ id: 'imp-1', payloadSha256: digest, status: 'PROCESSING', processingLeaseUntil: new Date(Date.now() + 60_000) }),
     };
     await expect(reserveReconciliationImport(store, base)).resolves.toEqual({ outcome: 'IN_PROGRESS', importId: 'imp-1' });
+  });
+
+  it('allows only an expired processing lease to be recovered', async () => {
+    const crypto = await import('node:crypto');
+    const digest = crypto.createHash('sha256').update(base.rawPayload).digest('hex');
+    const store: ReconciliationImportStore = {
+      create: jest.fn().mockRejectedValue(uniqueError),
+      findByKey: jest.fn().mockResolvedValue({
+        id: 'imp-1', payloadSha256: digest, status: 'PROCESSING', processingLeaseUntil: new Date(Date.now() - 60_000),
+      }),
+    };
+    await expect(reserveReconciliationImport(store, base)).resolves.toEqual({ outcome: 'RECOVERABLE', importId: 'imp-1' });
   });
 
   it('fails closed if unique conflict cannot be resolved inside tenant scope', async () => {

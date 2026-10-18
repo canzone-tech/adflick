@@ -28,7 +28,7 @@ describe('ReconciliationImportService.process', () => {
   };
   const dto = {
     providerName: 'SANDBOX', idempotencyKey: 'statement-1',
-    payload: 'providerReference,payoutReference,amountPaise,currency,status\\nprovider-tx-1,item-1,25000,INR,PAID',
+    payload: 'providerReference,payoutReference,amountPaise,currency,status\nprovider-tx-1,item-1,25000,INR,PAID',
   };
 
   beforeEach(() => {
