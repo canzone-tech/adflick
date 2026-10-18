@@ -73,14 +73,14 @@ export class CampaignsService {
     const where = this.visibility(actor, orgId);
     return this.prisma.campaign.findMany({
       where, orderBy: { updatedAt: 'desc' }, take: 200,
-      include: { creatives: { include: { asset: { select: { id: true, title: true, mimeType: true, durationMs: true, status: true } } }, orderBy: { sortOrder: 'asc' } }, screenTargets: { include: { screen: { select: { id: true, name: true, status: true, platform: true } } } },
+      include: { creatives: { include: { asset: { select: { id: true, title: true, mimeType: true, durationMs: true, status: true } } }, orderBy: { sortOrder: 'asc' } }, screenTargets: { include: { screen: { select: { id: true, name: true, status: true, platform: true } } } } },
     });
   }
   async get(actor: AuthenticatedUser, id: string) {
     const orgId = this.org(actor);
     const row = await this.prisma.campaign.findFirst({
       where: { id, ...this.visibility(actor, orgId) },
-      include: { creatives: { include: { asset: { select: { id: true, title: true, mimeType: true, durationMs: true, status: true } } }, orderBy: { sortOrder: 'asc' } }, screenTargets: { include: { screen: { select: { id: true, name: true, status: true, platform: true } } } },
+      include: { creatives: { include: { asset: { select: { id: true, title: true, mimeType: true, durationMs: true, status: true } } }, orderBy: { sortOrder: 'asc' } }, screenTargets: { include: { screen: { select: { id: true, name: true, status: true, platform: true } } } } },
     });
     if (!row) throw new NotFoundException('Campaign not found.');
     return row;
