@@ -1,0 +1,13 @@
+node_modules/
+.next/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Database backups can contain production data. Never commit them.
+backups/
+.env.production
