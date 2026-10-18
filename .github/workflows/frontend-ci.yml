@@ -1,0 +1,22 @@
+name: Frontend CI
+on:
+  push:
+    branches: [dev/local-foundation]
+  pull_request:
+    branches: [dev/local-foundation]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:4000/api/v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Production frontend install, quality gates and compiled route smoke
+        run: npm run verify:frontend
