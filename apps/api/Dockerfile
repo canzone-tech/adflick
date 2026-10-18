@@ -1,18 +1,18 @@
 # Build from repository root: docker build -f apps/api/Dockerfile -t adflick-api:local .
-FROM node:22-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /workspace
-COPY package.json .npmrc ./
+COPY package.json package-lock.json .npmrc ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
 COPY prisma prisma
 COPY prisma.config.ts tsconfig.base.json ./
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 COPY apps/api apps/api
 COPY packages/shared packages/shared
 RUN npx prisma generate && npm run build -w apps/api
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /workspace
 # Keep generated Prisma engines and workspace resolution consistent with the build stage.

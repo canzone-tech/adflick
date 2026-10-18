@@ -1,4 +1,4 @@
-name: CI
+name: Backend CI
 on:
   push:
   pull_request:
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - name: Require reviewed dependency lockfile
         run: test -f package-lock.json || (echo "::error::Root package-lock.json is required. Generate and commit it in a registry-enabled environment." && exit 1)
       - name: Verify dependency/runtime requirements
