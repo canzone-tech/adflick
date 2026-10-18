@@ -128,7 +128,7 @@ export class CmsService {
         organizationId, createdById: actor.sub,
         name: dto.name.trim(), description: dto.description,
         canvasWidth: width, canvasHeight: height,
-        status: LayoutStatus.DRAFT, zonesJson: dto.zones,
+        status: LayoutStatus.DRAFT, zonesJson: dto.zones.map(({ id, name, x, y, width, height, type }) => ({ id, name, x, y, width, height, ...(type === undefined ? {} : { type }) })),
       },
     });
     await this.prisma.auditEvent.create({

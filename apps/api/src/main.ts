@@ -15,7 +15,7 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean);
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
       // Non-browser callers (health checks, device agents) may omit Origin.
       if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error('Origin is not allowed by CORS.'), false);

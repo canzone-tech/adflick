@@ -14,7 +14,7 @@ export class DeliveryService {
   private async authenticate(screenId: string, secret: string) {
     if (!secret || secret.length < 20 || secret.length > 256) throw new ForbiddenException('Invalid device credentials.');
     const screen = await this.prisma.screen.findUnique({ where: { id: screenId } });
-    if (!screen || !screen.deviceKeyHash || [ScreenStatus.SUSPENDED, ScreenStatus.RETIRED, ScreenStatus.PENDING_PAIRING].includes(screen.status)) {
+    if (!screen || !screen.deviceKeyHash || new Set<ScreenStatus>([ScreenStatus.SUSPENDED, ScreenStatus.RETIRED, ScreenStatus.PENDING_PAIRING]).has(screen.status)) {
       throw new ForbiddenException('Device is not authorized for delivery.');
     }
     const actual = Buffer.from(this.hash(secret), 'hex');

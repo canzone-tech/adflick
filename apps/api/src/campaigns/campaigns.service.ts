@@ -6,7 +6,7 @@ import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 
 const reviewRoles = [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.OPERATIONS_MANAGER];
-const manageRoles = [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.ADVERTISER, UserRole.CONTENT_MANAGER, UserRole.OPERATIONS_MANAGER];
+const manageRoles: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.ADVERTISER, UserRole.CONTENT_MANAGER, UserRole.OPERATIONS_MANAGER];
 
 @Injectable()
 export class CampaignsService {
@@ -113,7 +113,7 @@ export class CampaignsService {
     const orgId = this.org(actor);
     const current = await this.prisma.campaign.findFirst({ where: { id, ...this.visibility(actor, orgId) } });
     if (!current) throw new NotFoundException('Campaign not found.');
-    if (![CampaignStatus.DRAFT, CampaignStatus.REJECTED].includes(current.status)) throw new BadRequestException('Only draft or rejected campaigns can be edited.');
+    if (!new Set<CampaignStatus>([CampaignStatus.DRAFT, CampaignStatus.REJECTED]).has(current.status)) throw new BadRequestException('Only draft or rejected campaigns can be edited.');
     const startsAt = dto.startsAt === undefined ? current.startsAt : new Date(dto.startsAt);
     const endsAt = dto.endsAt === undefined ? current.endsAt : new Date(dto.endsAt);
     await this.validateSchedule(startsAt, endsAt);
@@ -136,7 +136,7 @@ export class CampaignsService {
     if (!this.has(actor, manageRoles)) throw new ForbiddenException();
     const current = await this.prisma.campaign.findFirst({ where: { id, ...this.visibility(actor, this.org(actor)) }, include: { creatives: true } });
     if (!current) throw new NotFoundException('Campaign not found.');
-    if (![CampaignStatus.DRAFT, CampaignStatus.REJECTED].includes(current.status)) throw new BadRequestException('Only draft or rejected campaigns can be submitted.');
+    if (!new Set<CampaignStatus>([CampaignStatus.DRAFT, CampaignStatus.REJECTED]).has(current.status)) throw new BadRequestException('Only draft or rejected campaigns can be submitted.');
     if (!current.creatives.length) throw new BadRequestException('Add at least one approved media asset before submitting.');
     await this.validateSchedule(current.startsAt, current.endsAt);
     return this.prisma.campaign.update({ where: { id, organizationId: current.organizationId }, data: { status: CampaignStatus.PENDING_REVIEW, submittedAt: new Date(), reviewNote: null } });
@@ -172,9 +172,9 @@ export class CampaignsService {
     if (!current) throw new NotFoundException('Campaign not found.');
     const now = new Date();
     let status: CampaignStatus;
-    if (action === 'pause' && [CampaignStatus.ACTIVE, CampaignStatus.SCHEDULED].includes(current.status)) status = CampaignStatus.PAUSED;
+    if (action === 'pause' && new Set<CampaignStatus>([CampaignStatus.ACTIVE, CampaignStatus.SCHEDULED]).has(current.status)) status = CampaignStatus.PAUSED;
     else if (action === 'resume' && current.status === CampaignStatus.PAUSED) status = current.startsAt && current.startsAt > now ? CampaignStatus.SCHEDULED : CampaignStatus.ACTIVE;
-    else if (action === 'complete' && [CampaignStatus.ACTIVE, CampaignStatus.PAUSED, CampaignStatus.SCHEDULED].includes(current.status)) status = CampaignStatus.COMPLETED;
+    else if (action === 'complete' && new Set<CampaignStatus>([CampaignStatus.ACTIVE, CampaignStatus.PAUSED, CampaignStatus.SCHEDULED]).has(current.status)) status = CampaignStatus.COMPLETED;
     else throw new BadRequestException(`Cannot ${action} a campaign in ${current.status} state.`);
     return this.prisma.campaign.update({ where: { id, organizationId: current.organizationId }, data: { status } });
   }

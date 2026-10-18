@@ -20,7 +20,7 @@ export class PlaybackService {
   private async device(screenId: string, secret: string) {
     if (!secret || secret.length < 20 || secret.length > 256) throw new ForbiddenException('Invalid device credentials.');
     const screen = await this.prisma.screen.findUnique({ where: { id: screenId } });
-    if (!screen || !screen.deviceKeyHash || [ScreenStatus.SUSPENDED, ScreenStatus.RETIRED].includes(screen.status)) {
+    if (!screen || !screen.deviceKeyHash || new Set<ScreenStatus>([ScreenStatus.SUSPENDED, ScreenStatus.RETIRED]).has(screen.status)) {
       throw new ForbiddenException('Device is not authorized.');
     }
     const actual=Buffer.from(this.hash(secret),'hex');
@@ -125,7 +125,7 @@ export class PlaybackService {
         let finalStatus = status;
         let finalReason = validation.reason;
         let eligible = validation.ok && event.eventType === PlaybackEventType.PLAY_COMPLETED;
-        const terminalPlaybackEvent = [PlaybackEventType.PLAY_COMPLETED, PlaybackEventType.PLAY_INTERRUPTED, PlaybackEventType.PLAY_ERROR].includes(event.eventType as PlaybackEventType);
+        const terminalPlaybackEvent = new Set<PlaybackEventType>([PlaybackEventType.PLAY_COMPLETED, PlaybackEventType.PLAY_INTERRUPTED, PlaybackEventType.PLAY_ERROR]).has(event.eventType);
         if (validation.ok && terminalPlaybackEvent && event.authorizationId) {
           const consumed = await this.prisma.playbackAuthorization.updateMany({
             where: { id: event.authorizationId, screenId, assetId: event.assetId, campaignId: event.campaignId ?? null, playlistId: event.playlistId ?? null, consumedAt: null, expiresAt: { gt: new Date() } },
@@ -161,7 +161,7 @@ export class PlaybackService {
 
   async report(actor: AuthenticatedUser, screenId?: string) {
     if (!actor.organizationId) throw new ForbiddenException('Organization context is required.');
-    const allowed = [UserRole.SUPER_ADMIN,UserRole.ORGANIZATION_ADMIN,UserRole.OPERATIONS_MANAGER,UserRole.FINANCE_MANAGER,UserRole.AUDITOR_COMPLIANCE];
+    const allowed: UserRole[] = [UserRole.SUPER_ADMIN,UserRole.ORGANIZATION_ADMIN,UserRole.OPERATIONS_MANAGER,UserRole.FINANCE_MANAGER,UserRole.AUDITOR_COMPLIANCE];
     if (!actor.roles.some((r) => allowed.includes(r as UserRole))) throw new ForbiddenException('Your role cannot view playback reports.');
     const where: any = { organizationId: actor.organizationId, status: PlaybackEventStatus.ACCEPTED, eventType: PlaybackEventType.PLAY_COMPLETED };
     if (screenId) where.screenId = screenId;

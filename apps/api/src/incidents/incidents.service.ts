@@ -131,7 +131,7 @@ export class IncidentsService {
         assignedToId: dto.assignedToId,
         resolutionNote: dto.resolutionNote?.trim(),
         acknowledgedAt: dto.status === IncidentStatus.ACKNOWLEDGED && !current.acknowledgedAt ? now : undefined,
-        resolvedAt: dto.status === IncidentStatus.RESOLVED ? now : dto.status && dto.status !== IncidentStatus.RESOLVED ? null : undefined,
+        resolvedAt: dto.status === IncidentStatus.RESOLVED ? now : dto.status ? null : undefined,
       },
       include: { screen: { select: { id: true, name: true, status: true, platform: true } } },
     });

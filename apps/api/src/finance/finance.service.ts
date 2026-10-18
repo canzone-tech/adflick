@@ -58,7 +58,7 @@ export class FinanceService {
       else if (coverage < policy.minimumCampaignCoveragePercent) { status = RewardCalculationStatus.INELIGIBLE; reasonCode = 'CAMPAIGN_COVERAGE_NOT_MET'; reasonDetail = `Campaign-linked play coverage ${coverage}% is below required ${policy.minimumCampaignCoveragePercent}%.`; payable = 0; }
       else if (policy.minimumDeviceUptimePercent > 0) { status = RewardCalculationStatus.ON_HOLD; reasonCode = 'UPTIME_EVIDENCE_UNAVAILABLE'; reasonDetail = 'Reliable period-wide uptime evidence is not implemented; manual review required. No reward is approved.'; payable = 0; }
       const prior = await this.prisma.rewardCalculation.findUnique({ where: { screenId_periodStart_periodEnd: { screenId: screen.id, periodStart: start, periodEnd: end } } });
-      if (prior && [RewardCalculationStatus.PENDING_APPROVAL, RewardCalculationStatus.APPROVED, RewardCalculationStatus.REJECTED, RewardCalculationStatus.REVERSED].includes(prior.status)) {
+      if (prior && new Set<RewardCalculationStatus>([RewardCalculationStatus.PENDING_APPROVAL, RewardCalculationStatus.APPROVED, RewardCalculationStatus.REJECTED, RewardCalculationStatus.REVERSED]).has(prior.status)) {
         output.push(prior);
         continue;
       }
