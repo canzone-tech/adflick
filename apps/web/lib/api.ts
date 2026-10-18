@@ -47,7 +47,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  let { accessToken } = getStoredTokens();
+  const { accessToken } = getStoredTokens();
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
   let response = await fetch(`${API_BASE}${path.startsWith('/') ? path : `/${path}`}`, { ...init, headers, cache: 'no-store' });
   if (response.status === 401) {

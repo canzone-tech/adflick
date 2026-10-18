@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useState } from 'react';
 import './fleet.css';
@@ -34,7 +35,7 @@ export default function FleetPage() {
   }
 
   return <main className="fleet-shell">
-    <header className="fleet-header"><div><a href="/" className="back-link">← Back to overview</a><p className="eyebrow">DEVICE OPERATIONS / BATCH 04</p><h1>Screen Fleet</h1><p className="fleet-lead">Register screens, pair players and inspect fleet health.</p></div><span className="preview-pill">INTERACTIVE PREVIEW</span></header>
+    <header className="fleet-header"><div><Link href="/" className="back-link">← Back to overview</Link><p className="eyebrow">DEVICE OPERATIONS / BATCH 04</p><h1>Screen Fleet</h1><p className="fleet-lead">Register screens, pair players and inspect fleet health.</p></div><span className="preview-pill">INTERACTIVE PREVIEW</span></header>
     <section className="fleet-stats"><div><span>Total screens</span><strong>{screens.length}</strong></div><div><span>Online</span><strong>{screens.filter(s=>s.status==='ONLINE').length}</strong></div><div><span>Offline</span><strong>{screens.filter(s=>s.status==='OFFLINE').length}</strong></div><div><span>Awaiting pairing</span><strong>{screens.filter(s=>s.status==='PENDING_PAIRING').length}</strong></div></section>
     <section className="fleet-main">
       <div className="fleet-panel">

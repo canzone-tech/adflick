@@ -1,6 +1,7 @@
 'use client';
+import Link from 'next/link';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import './cms.css';
 
 type Zone = { id: number; name: string; x: number; y: number; width: number; height: number; type: 'Video' | 'Ticker' | 'Image' };
@@ -21,7 +22,6 @@ export default function CmsPage() {
   const [assets, setAssets] = useState<{ name: string; type: string; status: string }[]>([]);
   const [playlistName, setPlaylistName] = useState('Morning Store Playlist');
   const [playlistItems, setPlaylistItems] = useState<string[]>([]);
-  const totalArea = useMemo(() => zones.reduce((sum, z) => sum + z.width * z.height, 0), [zones]);
 
   function updateZone(id: number, patch: Partial<Zone>) {
     setZones((current) => current.map((zone) => zone.id === id ? { ...zone, ...patch } : zone));
@@ -54,7 +54,7 @@ export default function CmsPage() {
   return (
     <main className="cms-shell">
       <header className="cms-header">
-        <div><a className="back-link" href="/">← Back to overview</a><p className="eyebrow">CONTENT OPERATIONS / BATCH 03</p><h1>CMS & Layout Studio</h1><p className="lead">Design screen layouts, prepare media and compose playlists.</p></div>
+        <div><Link className="back-link" href="/">← Back to overview</Link><p className="eyebrow">CONTENT OPERATIONS / BATCH 03</p><h1>CMS & Layout Studio</h1><p className="lead">Design screen layouts, prepare media and compose playlists.</p></div>
         <span className="preview-pill">INTERACTIVE PREVIEW</span>
       </header>
       <div className="cms-tabs" role="tablist" aria-label="CMS modules">

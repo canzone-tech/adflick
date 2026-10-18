@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './incidents.css';
 import { apiRequest, errorMessage, formatAge, getStoredTokens } from '../../lib/api';
@@ -39,7 +40,7 @@ export default function IncidentsPage(){
   try{await apiRequest(`/incidents/${encodeURIComponent(active.id)}`,{method:'PATCH',body:JSON.stringify(body)});setNotice(`${active.id} updated to ${human(status)}.`);await load();}
   catch(e){setNotice(errorMessage(e));}finally{setBusy(false);}
  }
- return <main className="inc-shell"><a href="/" className="inc-back">← Back to overview</a><header className="inc-head"><div><span className="inc-eyebrow">OPERATIONS / INCIDENTS · BATCH 11</span><h1>Incident management</h1><p>Live incident queue, fleet alert scans and recovery workflow.</p></div><button disabled={busy||loading} onClick={()=>void scan()}>{busy?'Working…':'↻ Scan fleet alerts'}</button></header>
+ return <main className="inc-shell"><Link href="/" className="inc-back">← Back to overview</Link><header className="inc-head"><div><span className="inc-eyebrow">OPERATIONS / INCIDENTS · BATCH 11</span><h1>Incident management</h1><p>Live incident queue, fleet alert scans and recovery workflow.</p></div><button disabled={busy||loading} onClick={()=>void scan()}>{busy?'Working…':'↻ Scan fleet alerts'}</button></header>
  <div className={`inc-banner ${live?'inc-live':''}`}><b>{live?'Live API':'Connection status'}</b><span>{notice}</span><button onClick={()=>void load()} disabled={loading}>{loading?'Loading…':'Refresh'}</button></div>
  <section className="inc-kpis"><article><small>OPEN</small><strong>{summary.open}</strong><span>Requires triage</span></article><article><small>CRITICAL</small><strong>{summary.critical}</strong><span>Immediate attention</span></article><article><small>IN PROGRESS</small><strong>{summary.inProgress}</strong><span>Being investigated</span></article><article><small>RESOLVED TODAY</small><strong>{summary.resolvedToday}</strong><span>Current API summary</span></article></section>
  <div className="inc-layout"><section className="inc-list"><div className="inc-list-head"><div><span className="inc-eyebrow">INCIDENT QUEUE</span><h2>Incidents <span>{rows.length}</span></h2></div><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="ALL">All incidents</option><option value="OPEN">Open</option><option value="ACKNOWLEDGED">Acknowledged</option><option value="IN_PROGRESS">In progress</option><option value="RESOLVED">Resolved</option><option value="CRITICAL">Critical severity</option><option value="HIGH">High severity</option><option value="MEDIUM">Medium severity</option><option value="LOW">Low severity</option></select></div>

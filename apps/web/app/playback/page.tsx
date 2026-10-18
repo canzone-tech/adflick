@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useMemo, useState } from 'react';
 import './playback.css';
@@ -23,7 +24,7 @@ export default function PlaybackPage() {
  const duplicates=rows.filter(r=>r.status==='DUPLICATE').length;
  function exportCsv(){const csv=['event_id,screen,asset,campaign,duration,status,reason,time',...visible.map(r=>[r.id,r.screen,r.asset,r.campaign,r.duration,r.status,r.reason,r.time].map(v=>`"${v.replaceAll('"','""')}"`).join(','))].join('\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='adflick-playback-demo.csv';a.click();URL.revokeObjectURL(url);setNotice('Exported the currently filtered sample rows. Live export must use the authenticated reporting API.');}
  return <main className="playback-shell">
-  <header className="playback-header"><div><a className="back-link" href="/">← Back to overview</a><p className="eyebrow">PLAYBACK ANALYTICS / BATCH 05</p><h1>Proof of Play</h1><p className="playback-lead">Inspect playback events, validation outcomes and reporting foundations.</p></div><button className="export-button" onClick={exportCsv}>↓ Export CSV</button></header>
+  <header className="playback-header"><div><Link className="back-link" href="/">← Back to overview</Link><p className="eyebrow">PLAYBACK ANALYTICS / BATCH 05</p><h1>Proof of Play</h1><p className="playback-lead">Inspect playback events, validation outcomes and reporting foundations.</p></div><button className="export-button" onClick={exportCsv}>↓ Export CSV</button></header>
   <section className="playback-stats"><div><span>Accepted completions</span><strong>{accepted}</strong><small>Candidate qualifying events</small></div><div><span>Rejected events</span><strong>{rejected}</strong><small>Validation failures</small></div><div><span>Duplicates</span><strong>{duplicates}</strong><small>Idempotency protection</small></div><div><span>Completion rule</span><strong>90%</strong><small>Minimum of expected duration</small></div></section>
   <section className="playback-panel"><div className="playback-panel-head"><div><span className="eyebrow">EVENT LEDGER</span><h2>Playback event records</h2></div><span className="demo-pill">SAMPLE DATA</span></div>
    <div className="playback-controls"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search screen, asset, campaign…" aria-label="Search playback events"/><div className="playback-filters">{['ALL','ACCEPTED','REJECTED','DUPLICATE'].map(f=><button key={f} className={filter===f?'active':''} onClick={()=>setFilter(f)}>{f==='ALL'?'All events':f[0]+f.slice(1).toLowerCase()}</button>)}</div></div>

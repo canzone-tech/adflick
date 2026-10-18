@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import './scheduler.css';
 const initial=[
@@ -13,7 +14,7 @@ export default function SchedulerPage(){
  const [notice,setNotice]=useState('Demo data only — this page does not call the API.');
  const visible=useMemo(()=>rows.filter(r=>filter==='ALL'||(filter==='ENABLED'?r.enabled:!r.enabled)),[rows,filter]);
  function toggle(id:string){setRows(old=>old.map(r=>r.id===id?{...r,enabled:!r.enabled}:r));setNotice('Local preview changed. Save/disable through the API in the integrated player console.');}
- return <main className="sched-shell"><a href="/" className="sched-back">← Back to overview</a><header className="sched-head"><div><span className="sched-eyebrow">PLAYLISTS / SCHEDULER · BATCH 08</span><h1>Scheduling & player sync</h1><p>Assign active playlists to screens and preview scheduler-driven refresh behavior.</p></div><a href="/delivery" className="sched-primary">Open delivery engine ↗</a></header>
+ return <main className="sched-shell"><Link href="/" className="sched-back">← Back to overview</Link><header className="sched-head"><div><span className="sched-eyebrow">PLAYLISTS / SCHEDULER · BATCH 08</span><h1>Scheduling & player sync</h1><p>Assign active playlists to screens and preview scheduler-driven refresh behavior.</p></div><a href="/delivery" className="sched-primary">Open delivery engine ↗</a></header>
  <div className="sched-notice"><b>Prototype</b><span>{notice}</span></div>
  <section className="sched-metrics"><article><small>ASSIGNMENTS</small><strong>{rows.length.toString().padStart(2,'0')}</strong></article><article><small>ENABLED</small><strong>{rows.filter(r=>r.enabled).length.toString().padStart(2,'0')}</strong></article><article><small>SYNC COMMANDS</small><strong>02</strong></article><article><small>SCHEDULER CYCLE</small><strong>60 sec</strong></article></section>
  <section className="sched-panel"><div className="sched-panel-head"><div><span className="sched-eyebrow">SCREEN ASSIGNMENTS</span><h2>Playlist assignment register</h2></div><div className="sched-filters">{[['ALL','All'],['ENABLED','Enabled'],['DISABLED','Disabled']].map(([v,l])=><button key={v} className={filter===v?'selected':''} onClick={()=>setFilter(v)}>{l}</button>)}</div></div>
