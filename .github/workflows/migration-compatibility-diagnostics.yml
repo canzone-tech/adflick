@@ -60,3 +60,16 @@ jobs:
         run: npm run test:e2e:finance
       - name: Compiled API health/readiness/401 smoke (diagnostic schema only)
         run: node scripts/smoke-runtime.mjs api
+      - name: Local disposable Docker start/readiness/cleanup regression
+        run: |
+          node --input-type=module -e "
+            import { startDisposableMysql } from './scripts/verify-local-mysql.mjs';
+            const disposable = startDisposableMysql();
+            try {
+              const url = new URL(disposable.url);
+              if (url.hostname !== '127.0.0.1' || url.pathname !== '/adflick_verify') {
+                throw new Error('Disposable database endpoint is not isolated.');
+              }
+              console.log('Local verification Docker container started, responded to SELECT 1 and used a loopback-only port.');
+            } finally { disposable.stop(); }
+          "
