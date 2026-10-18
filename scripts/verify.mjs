@@ -14,16 +14,32 @@ if (nodeMajor !== 24) {
   process.exit(1);
 }
 const environment = { ...process.env, SCHEDULER_ENABLED: 'false', ALERT_SCAN_ENABLED: 'false', NOTIFICATION_OUTBOX_ENABLED: 'false' };
+// Hard bounds prevent hanging local/CI verification and make timeout failures explicit.
+const parsedTimeout = Number(process.env.ADFLICK_VERIFY_STEP_TIMEOUT_SECONDS ?? 300);
+if (!Number.isInteger(parsedTimeout) || parsedTimeout < 30 || parsedTimeout > 900) {
+  console.error('ADFLICK_VERIFY_STEP_TIMEOUT_SECONDS must be an integer from 30 to 900.');
+  process.exit(2);
+}
+const defaultTimeoutMs = parsedTimeout * 1000;
 function execute(label, command, args, override = {}) {
+  const started = Date.now();
   console.log('\n=== ' + label + ' ===');
   const result = spawnSync(command, args, {
-    stdio: 'inherit', shell: false, env: { ...environment, ...override },
+    stdio: 'inherit', shell: false, timeout: defaultTimeoutMs, killSignal: 'SIGTERM',
+    env: { ...environment, ...override },
     ...(process.platform === 'win32' ? { windowsHide: true } : {})
   });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(label + ' failed with exit code ' + (result.status ?? 'signal'));
+  const elapsedSeconds = ((Date.now() - started) / 1000).toFixed(1);
+  if (result.error?.code === 'ETIMEDOUT') {
+    throw new Error(label + ' TIMED OUT after ' + elapsedSeconds +
+      's (limit ' + parsedTimeout + 's); see the preceding stage output.');
   }
+  if (result.error) throw new Error(label + ' could not start: ' + result.error.message);
+  if (result.status !== 0) {
+    throw new Error(label + ' FAILED after ' + elapsedSeconds +
+      's; exit=' + (result.status ?? 'signal ' + (result.signal ?? 'unknown')));
+  }
+  console.log('PASS: ' + label + ' (' + elapsedSeconds + 's)');
 }
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';

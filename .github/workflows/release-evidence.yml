@@ -31,7 +31,19 @@ jobs:
                 if (!wanted.includes(run.name) || run.head_sha !== sha) continue;
                 if (!latest[run.name] || latest[run.name].run_attempt < run.run_attempt) latest[run.name] = run;
               }
+              // Never wait for the polling deadline after a required gate has failed.
+              const failed = wanted.find(name => latest[name]?.status === 'completed'
+                && latest[name]?.conclusion !== 'success');
+              if (failed) {
+                core.setFailed(failed + ' failed on exact SHA ' + sha +
+                  ' (run: ' + latest[failed].html_url + '); release remains blocked.');
+                return;
+              }
               if (wanted.every(name => latest[name]?.status === 'completed')) break;
+              if (attempt === 64) {
+                core.setFailed('Timed out waiting for exact-SHA Backend CI and Frontend CI; release remains blocked.');
+                return;
+              }
               await new Promise(resolve => setTimeout(resolve, 10000));
             }
             for (const name of wanted) {
