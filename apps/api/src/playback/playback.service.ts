@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ForbiddenException, Injectable, NotFoundException,
+  ForbiddenException, Injectable,
 } from '@nestjs/common';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Prisma, AssetStatus, PlaybackEventStatus, PlaybackEventType, ScreenStatus, UserRole } from '@prisma/client';

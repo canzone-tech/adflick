@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { PlaybackService } from './playback.service';
-import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 
 describe('PlaybackService duplicate ingestion safety', () => {
   const secret = 'test-device-secret-that-is-long-enough';

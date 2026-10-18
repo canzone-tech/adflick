@@ -93,7 +93,7 @@ export class FinanceService {
     if (dto.status === 'APPROVED' && approval.calculation.status !== RewardCalculationStatus.PENDING_APPROVAL) throw new ConflictException('Reward calculation is not pending approval.');
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedApproval = await tx.financeApproval.update({ where: { id, organizationId }, data: { status: dto.status === 'ON_HOLD' ? FinanceApprovalStatus.CANCELLED : dto.status, decidedById: actor.sub, decisionNote: dto.note?.trim(), decidedAt: new Date() } });
-      let calculationStatus: RewardCalculationStatus = dto.status === 'APPROVED' ? RewardCalculationStatus.APPROVED : dto.status === 'REJECTED' ? RewardCalculationStatus.REJECTED : RewardCalculationStatus.ON_HOLD;
+      const calculationStatus: RewardCalculationStatus = dto.status === 'APPROVED' ? RewardCalculationStatus.APPROVED : dto.status === 'REJECTED' ? RewardCalculationStatus.REJECTED : RewardCalculationStatus.ON_HOLD;
       await tx.rewardCalculation.update({ where: { id: approval.rewardCalculationId, organizationId }, data: { status: calculationStatus, ...(dto.status === 'APPROVED' ? { approvedAt: new Date() } : {}) } });
       if (dto.status === 'APPROVED') {
         await tx.rewardLedgerEntry.create({ data: { organizationId, rewardCalculationId: approval.rewardCalculationId, entryType: LedgerEntryType.REWARD_ACCRUAL, amountPaise: approval.calculation.amountPaise, idempotencyKey: `reward-accrual:${approval.rewardCalculationId}`, description: `Approved owner reward accrual for ${approval.calculation.periodStart.toISOString()} to ${approval.calculation.periodEnd.toISOString()}`, createdById: actor.sub } });

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { UserRole } from '@prisma/client';
 import { ReconciliationImportService } from './reconciliation-import.service';
 
@@ -66,7 +67,7 @@ describe('ReconciliationImportService.process', () => {
     store.create.mockRejectedValue({ code: 'P2002' });
     store.findByKey.mockResolvedValue({
       id: 'import-1',
-      payloadSha256: require('node:crypto').createHash('sha256').update(dto.payload).digest('hex'),
+      payloadSha256: createHash('sha256').update(dto.payload).digest('hex'),
       status: 'COMPLETED',
     });
     await expect(service.process(actor, dto)).resolves.toMatchObject({ outcome: 'REPLAY', importId: 'import-1' });
