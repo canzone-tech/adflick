@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { config as loadEnvironment } from 'dotenv';
 
-loadEnvironment({ quiet: true });
+// Node 24's native dotenv loader works before npm ci; never require uninstalled packages.
+if (existsSync('.env')) process.loadEnvFile('.env');
 const mode = process.argv[2] ?? '--all';
 if (!['--all', '--backend', '--frontend'].includes(mode)) {
   console.error('Usage: node scripts/verify.mjs [--all|--backend|--frontend]');
