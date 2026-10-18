@@ -32,7 +32,9 @@ for (const file of ['prisma/schema.prisma', '.github/workflows/ci.yml', 'scripts
   check(`Required release file: ${file}`, fs.existsSync(file));
 }
 const ci = fs.readFileSync('.github/workflows/ci.yml', 'utf8');
-check('CI uses deterministic npm ci', ci.includes('npm ci --no-audit --no-fund'));
+const verifier = fs.readFileSync('scripts/verify.mjs', 'utf8');
+check('CI uses deterministic npm ci', ci.includes('npm run verify:backend') && verifier.includes("['ci', '--no-audit', '--no-fund']"),
+  'npm ci --no-audit --no-fund is executed by the shared verifier');
 check('CI does not bootstrap a temporary lockfile', !ci.includes('npm install --package-lock-only'));
 console.log('Clean release preflight report');
 for (const item of checks) console.log(`${item.status} | ${item.name}${item.detail ? ` | ${item.detail}` : ''}`);
