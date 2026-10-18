@@ -55,7 +55,30 @@ function assertDisposableDatabase() {
   }
   if (!['mysql:', 'mysql2:'].includes(url.protocol)) throw new Error('MySQL verification database required.');
 }
+let disposableMysql;
+function cleanupDisposableMysql() {
+  if (disposableMysql) {
+    disposableMysql.stop();
+    disposableMysql = undefined;
+  }
+}
+process.once('SIGINT', () => { cleanupDisposableMysql(); process.exit(130); });
+process.once('SIGTERM', () => { cleanupDisposableMysql(); process.exit(143); });
 try {
+  // One command on a developer workstation: never reuse a user DB or Compose volume.
+  if (environment.CI !== 'true' && mode !== '--frontend') {
+    if (environment.NODE_ENV === 'production') {
+      throw new Error('Refusing automatic local test DB setup in production mode.');
+    }
+    console.log('Starting disposable MySQL 8.4 on a random localhost port; no existing database will be touched.');
+    const { startDisposableMysql } = await import('./verify-local-mysql.mjs');
+    disposableMysql = startDisposableMysql();
+    environment.DATABASE_URL = disposableMysql.url;
+    environment.ADFLICK_VERIFY_TEST_DATABASE = '1';
+    environment.NODE_ENV = 'test';
+    environment.JWT_ACCESS_SECRET = 'local-only-' + (await import('node:crypto')).randomBytes(32).toString('hex');
+    environment.JWT_REFRESH_SECRET = 'local-only-' + (await import('node:crypto')).randomBytes(32).toString('hex');
+  }
   if (!existsSync('package-lock.json')) throw new Error('Root package-lock.json is missing.');
   execute('Deterministic dependency install', npm, ['ci', '--no-audit', '--no-fund']);
   execute('Dependency and runtime contract', npm, ['run', 'verify:dependencies']);
@@ -73,6 +96,7 @@ try {
     assertDisposableDatabase();
     // Health/readiness only query SELECT 1 and must work independently of schema migration state.
     execute('Compiled API startup, health and unauthorized smoke', process.execPath, ['scripts/smoke-runtime.mjs', 'api']);
+    execute('Local disposable MySQL safety regression', process.execPath, ['--test', 'scripts/verify-local-mysql.test.mjs']);
     execute('FK contract regression tests', process.execPath, ['--test', 'scripts/migration-fk-audit.test.mjs']);
     execute('Historical FK collation check', process.execPath, ['scripts/check-migration-fks.mjs']);
     assertDisposableDatabase();
@@ -90,4 +114,7 @@ try {
 } catch (error) {
   console.error('\nVerification FAILED: ' + (error instanceof Error ? error.message : String(error)));
   process.exitCode = 1;
+}
+finally {
+  cleanupDisposableMysql();
 }
