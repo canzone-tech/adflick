@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import cookieParser from 'cookie-parser';
+import * as cookieParser from 'cookie-parser';
 import { UserRole, UserStatus } from '@prisma/client';
 import * as request from 'supertest';
 import * as argon2 from 'argon2';
