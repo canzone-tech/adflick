@@ -1,48 +1,41 @@
+// One-time ADFLICK-only developer admin bootstrap. No secrets echoed, logged or stored in source.
 import { createInterface } from 'node:readline/promises';
+import { spawnSync } from 'node:child_process';
 import { PrismaClient } from '@prisma/client';
 import { startPersistentDevMysql } from './local-dev-db.mjs';
 import { createFirstAdmin } from '../prisma/first-admin.mjs';
+import { readHiddenPassword } from './read-hidden-password.mjs';
 import process from 'node:process';
 
 if (!process.stdin.isTTY || !process.stdout.isTTY || process.env.CI === 'true' || process.env.NODE_ENV === 'production') {
   throw new Error('First-admin bootstrap needs a developer interactive terminal, never CI or production.');
 }
-function secret(label) {
-  return new Promise((resolve, reject) => {
-    let value = '';
-    const stdin = process.stdin;
-    process.stdout.write(label);
-    stdin.setRawMode(true);
-    stdin.resume();
-    const onData = chunk => {
-      for (const ch of String(chunk)) {
-        if (ch === '\r' || ch === '\n') {
-          stdin.off('data', onData); stdin.setRawMode(false); process.stdout.write('\n');
-          resolve(value); return;
-        }
-        if (ch === '\u0003') {
-          stdin.off('data', onData); stdin.setRawMode(false); process.stdout.write('\n');
-          reject(new Error('Cancelled by operator.')); return;
-        }
-        if (ch === '\b' || ch === '\u007f') { value = value.slice(0, -1); continue; }
-        if (ch >= ' ' && value.length < 128) value += ch;
-      }
-    };
-    stdin.on('data', onData);
-  });
-}
-const rl = createInterface({ input: process.stdin, output: process.stdout });
 let db, prisma;
 try {
-  const organization = await rl.question('Organization name (local development): ');
-  const displayName = await rl.question('First administrator display name: ');
-  const email = await rl.question('Administrator email: ');
-  rl.pause();
-  // readline is paused while password fields are handled with non-echo raw TTY.
-  const password = await secret('Password (12-128 chars, hidden): ');
-  const confirmation = await secret('Repeat password (hidden): ');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  let organization, displayName, email;
+  try {
+    organization = await rl.question('Organization name (local development): ');
+    displayName = await rl.question('First administrator display name: ');
+    email = await rl.question('Administrator email: ');
+  } finally {
+    // IMPORTANT: readline itself echoes typed/pasted text. Closing (not pausing)
+    // the interface is required before reading a secret with the TTY in raw mode.
+    rl.close();
+  }
+  const password = await readHiddenPassword('Password (12-128 chars, hidden): ');
+  const confirmation = await readHiddenPassword('Repeat password (hidden): ');
   if (password !== confirmation) throw new Error('Passwords do not match; no user created.');
+
   db = startPersistentDevMysql();
+  const env = { ...process.env, DATABASE_URL: db.url };
+  const migration = spawnSync('node_modules/.bin/prisma', ['migrate', 'deploy'], {
+    env, shell: false, stdio: 'inherit', timeout: 120000, windowsHide: true
+  });
+  if (migration.error || migration.status !== 0) {
+    throw new Error('Owned local-development MySQL migration failed; first admin was NOT created.');
+  }
+  // The first admin must only be inserted into a fully migrated, owned development DB.
   process.env.DATABASE_URL = db.url;
   prisma = new PrismaClient();
   const created = await createFirstAdmin(prisma, { organization, displayName, email, password });
@@ -54,5 +47,4 @@ try {
 } finally {
   await prisma?.$disconnect();
   db?.stop();
-  rl.close();
 }
