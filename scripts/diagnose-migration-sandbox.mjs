@@ -1,67 +1,52 @@
-// CI-only, disposable schema research. NEVER edits committed migrations or production DBs.
-// Compare a temporary normalized copy of migrations with the historical, original SQL.
+// GitHub CI-only isolated replay of unchanged ADFLICK migrations.
+// NOT a source migration rewrite, not a production authorisation or recovery procedure.
 import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { auditMigrationSources } from './migration-fk-audit.mjs';
 
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.ADFLICK_DISPOSABLE_SCHEMA_EXPERIMENT !== '1') {
-  throw new Error('Schema experiment is restricted to the isolated GitHub CI diagnostic job.');
+  throw new Error('Schema rehearsal only runs in its dedicated GitHub CI diagnostic job.');
 }
 const url = new URL(process.env.DATABASE_URL ?? '');
 if (url.protocol !== 'mysql:' || !['localhost', '127.0.0.1', '::1'].includes(url.hostname) ||
     url.pathname !== '/adflick_diagnostic') {
-  throw new Error('Refusing to run outside the dedicated local adflick_diagnostic test schema.');
+  throw new Error('Refusing to use any database except dedicated localhost adflick_diagnostic.');
 }
-const temp = mkdtempSync(join(process.cwd(), '.adflick-migration-research-'));
-const originalRoot = resolve('prisma/migrations');
+const temp = mkdtempSync(join(process.cwd(), '.adflick-migration-rehearsal-'));
+const folders = readdirSync(resolve('prisma/migrations'), { withFileTypes: true })
+  .filter(x => x.isDirectory()).map(x => x.name).sort();
+const sources = folders.map(name => {
+  const path = join('prisma', 'migrations', name, 'migration.sql');
+  return { path, sql: readFileSync(resolve(path), 'utf8') };
+});
 try {
+  const audit = auditMigrationSources(sources);
+  console.log('Immutable migrations: ' + sources.length + ', FK findings: ' + audit.findings.length);
+  for (const finding of audit.findings) console.error(finding);
+  if (audit.findings.length !== 0) throw new Error('Original migration compatibility audit failed.');
   cpSync(resolve('prisma'), join(temp, 'prisma'), { recursive: true });
-  // Resolve the existing Prisma CLI without contacting the registry.
-  const prismaBinary = resolve('node_modules/.bin/prisma');
-  const original = [];
-  const modified = [];
-  const folders = readdirSync(originalRoot, { withFileTypes: true })
-    .filter(f => f.isDirectory()).map(f => f.name).sort();
-  for (const name of folders) {
-    const file = join('prisma', 'migrations', name, 'migration.sql');
-    const from = readFileSync(resolve(file), 'utf8');
-    original.push({ path: file, sql: from });
-    const corrected = from.replaceAll('COLLATE utf8mb4_unicode_ci', 'COLLATE utf8mb4_0900_ai_ci');
-    if (corrected !== from) modified.push(name);
-    writeFileSync(join(temp, file), corrected);
-  }
-  const historical = auditMigrationSources(original);
-  const experimental = auditMigrationSources(original.map(x => ({
-    path: x.path, sql: x.sql.replaceAll('COLLATE utf8mb4_unicode_ci', 'COLLATE utf8mb4_0900_ai_ci')
-  })));
-  console.log('Historical FK findings: ' + historical.findings.length);
-  console.log('Temporary diagnostic FK findings: ' + experimental.findings.length);
-  console.log('Temporary SQL copies normalized in ' + modified.length + ' migration directories.');
-  if (historical.findings.length < 1 || experimental.findings.length !== 0) {
-    throw new Error('Schema experiment preflight differs from expected historical defect.');
-  }
-  // Resolve dependencies from root node_modules while keeping every modified SQL file outside the repository tree.
   writeFileSync(join(temp, 'prisma.config.ts'), [
     "import { defineConfig, env } from 'prisma/config';",
     "export default defineConfig({ schema: 'prisma/schema.prisma',",
     "  migrations: { path: 'prisma/migrations' }, datasource: { url: env('DATABASE_URL') } });",
     ''
   ].join('\n'));
+  const prismaBinary = resolve('node_modules/.bin/prisma');
   const result = spawnSync(prismaBinary, ['migrate', 'deploy'], {
     cwd: temp, env: process.env, stdio: 'inherit', timeout: 120000, shell: false
   });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error('Temporary schema migration failed: exit ' + result.status);
-  // Prove the test did not modify any historical SQL bytes in the checked-out repository.
-  for (const row of original) {
-    if (readFileSync(resolve(row.path), 'utf8') !== row.sql) {
-      throw new Error('Committed historical migration changed unexpectedly: ' + row.path);
+  if (result.status !== 0) throw new Error('Unmodified schema rehearsal failed with exit ' + result.status);
+  for (const item of sources) {
+    const actual = readFileSync(resolve(item.path), 'utf8');
+    const replay = readFileSync(join(temp, item.path), 'utf8');
+    if (actual !== item.sql || replay !== item.sql) {
+      throw new Error('Migration history modified during rehearsal: ' + item.path);
     }
   }
-  console.log('DIAGNOSTIC ONLY: temporary MySQL migration replay succeeded; historical migrations are still broken and unchanged.');
+  console.log('PASS: identical original migration SQL applied on CI-only adflick_diagnostic; no historical source modifications.');
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

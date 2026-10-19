@@ -52,7 +52,7 @@ jobs:
           npx prisma generate
       - name: Compile original API source
         run: npm run build:api
-      - name: Isolated historical SQL compatibility experiment
+      - name: Isolated exact-source Prisma migration replay (diagnostic schema only)
         run: node scripts/diagnose-migration-sandbox.mjs
       - name: MySQL security HTTP tests (diagnostic schema only)
         run: npm run test:e2e:security
