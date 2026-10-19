@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import cookieParser from 'cookie-parser';
 import { UserRole, UserStatus } from '@prisma/client';
 import * as request from 'supertest';
 import * as argon2 from 'argon2';
@@ -22,6 +23,7 @@ suite('MySQL-backed HttpOnly cookie authentication acceptance', () => {
     if (!process.env.DATABASE_URL?.startsWith('mysql://')) throw new Error('Cookie auth E2E requires MySQL.');
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
+    app.use(cookieParser());
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
     await app.init();

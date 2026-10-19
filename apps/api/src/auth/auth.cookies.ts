@@ -1,6 +1,9 @@
 import type { CookieOptions } from 'express';
 import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_DAYS } from './auth.constants';
 
+if (process.env.NODE_ENV === 'production' && process.env.AUTH_COOKIE_SECURE === 'false') {
+  throw new Error('AUTH_COOKIE_SECURE=false is forbidden in production. Use HTTPS and Secure cookies.');
+}
 const secure = process.env.AUTH_COOKIE_SECURE === 'true'
   || (process.env.AUTH_COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
 const sameSiteValue = (process.env.AUTH_COOKIE_SAME_SITE ?? 'lax').toLowerCase();
