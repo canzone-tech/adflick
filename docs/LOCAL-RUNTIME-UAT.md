@@ -17,7 +17,7 @@ This command builds the API and web from source, launches **a uniquely named dis
 
 ## Browser UAT
 
-`npm run local:uat` runs the same isolated compiled runtime and uses real headless Chrome to navigate public/UI routes, trigger sidebar navigation, test browser form validation and unauthorized API behavior, and save screenshots into the ignored `.adflick-uat/` directory. The GitHub **Frontend CI** also runs this check and uploads screenshots as a run artifact.
+`npm run local:uat` runs the same isolated compiled runtime and uses real headless Chrome to navigate public/UI routes, trigger sidebar navigation, test CMS tab feedback, add local preview media, prepare a playlist draft, create a sample campaign and prove it does not persist, test browser form validation and unauthorized API behavior, and save screenshots into the ignored `.adflick-uat/` directory. The GitHub **Frontend CI** also runs this check and uploads screenshots as a run artifact.
 
 On the operator's desktop, additional **manual visual UAT is still required**: inspect spacing, overflow, responsive behavior, side navigation, keyboard access, app-level error states and actual user account workflow. The UI currently includes static prototype screens and lacks an accepted physical Smart TV client. Browser UAT is not product/business approval.
 

@@ -127,6 +127,47 @@ async function run() {
   const apiStatus = await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/auth/me') +
     ", {credentials:'omit'});return r.status;})()");
   if (apiStatus !== 401) throw new Error('Browser API unauthenticated request was not HTTP 401.');
+  // Actual UI interaction regression, not just static route screenshots.
+  await navigate('/cms');
+  await click('.cms-tabs button:nth-child(3)');
+  await until("document.body.innerText.includes('Add preview assets in the Media Library tab first.')", 'empty playlist guidance');
+  if (!await evaluate("document.querySelector('.playlist-grid .primary-button')?.disabled === true")) {
+    throw new Error('Empty playlist preview must be disabled instead of looking savable.');
+  }
+  if (!await evaluate("document.querySelector('[role=status]')?.innerText.includes('Playlist preview only.')")) {
+    throw new Error('Switching CMS tabs did not reset stale feedback.');
+  }
+  await click('.cms-tabs button:nth-child(2)');
+  await until("Boolean(document.querySelector('.media-form input'))", 'media form loaded');
+  await click('.media-form input');
+  await command('Input.insertText', { text: 'UAT Local Image' });
+  await click('.media-form button');
+  await until("document.body.innerText.includes('UAT Local Image') && document.body.innerText.includes('Needs upload')", 'preview media added');
+  await click('.cms-tabs button:nth-child(3)');
+  await until("Boolean(document.querySelector('.playlist-sequence input[type=checkbox]'))", 'preview media available for playlist');
+  await click('.playlist-sequence input[type=checkbox]');
+  await until("document.querySelector('.playlist-grid .primary-button')?.disabled === false", 'playlist draft becomes enabled');
+  await click('.playlist-grid .primary-button');
+  await until("document.querySelector('[role=status]')?.innerText.includes('has not been saved or scheduled')", 'playlist disclaimer');
+  console.log('Chrome CMS interactions PASS: tab feedback, empty playlist disabled, preview media selection and draft disclaimer');
+
+  await navigate('/campaigns');
+  await until("document.querySelector('.campaign-preview-note')?.innerText.includes('browser-only')", 'campaign demo warning');
+  await click('.campaign-header .campaign-primary');
+  await until("Boolean(document.querySelector('.campaign-form-grid input'))", 'campaign draft form');
+  await click('.campaign-form-grid input');
+  await command('Input.insertText', { text: 'UAT Draft Campaign' });
+  await click('.campaign-form-grid label:nth-child(2) input');
+  await command('Input.insertText', { text: 'Test Brand Only' });
+  await click('.campaign-form-grid label:nth-child(3) input');
+  await command('Input.insertText', { text: '1000' });
+  await click('.campaign-form-actions button');
+  await until("document.body.innerText.includes('UAT Draft Campaign') && document.querySelector('.campaign-notice')?.innerText.includes('No backend request was made')", 'local campaign preview');
+  await navigate('/campaigns');
+  if (await evaluate("document.body.innerText.includes('UAT Draft Campaign')")) {
+    throw new Error('Campaign demo unexpectedly persisted after reloading route.');
+  }
+  console.log('Chrome Campaign interactions PASS: visible demo warning, local draft creation and no persistence');
   await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   for (const path of ['/', '/login', '/cms']) {
     await navigate(path);
