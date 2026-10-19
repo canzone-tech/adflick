@@ -1,6 +1,6 @@
 # ADFLICK — Functional Application Conversion Assessment
 **Date:** 2026-10-19  
-**Status:** PROPOSED engineering plan, **not** product-rule, infrastructure, or production approval  
+**Status:** Phase 1 local-development-only implementation OWNER APPROVED (19 October 2026). Business rules, Phase 2–4, staging and production NOT authorized.  
 **Inspected repository:** `canzone-tech/adflick` on `dev/local-foundation` at `b69d8b6e81e183990ddf45965bc5eb753881e4e0`
 
 ## Decision
@@ -39,10 +39,26 @@ Connect devices, player pairing, content assignments, manifests, heartbeat and p
 ### Phase 4 — Production engineering and independent authorization
 Review auth cookie/CSRF model and rate limits, operational metrics/logging, PostgreSQL-free MySQL ledger authority, backup/restore proof, immutable checksum-verified source-free runtime artifacts, scoped rollbacks and real device/provider UAT. Explicit operator/product approval for exact release. No live payouts or product rules invented from prototypes.
 
-## First implementation slice, pending user approval
-Recommend **Phase 1 only**, followed by CMS read/list/create integration as the first real operational screen. Do **not** rewrite everything at once. Review the final deliverables in GitHub and require Backend CI, Frontend CI, Release Evidence SUCCESS on a single SHA before local `git pull` + `npm run verify`.
+## First implementation slice — owner approved 19 October 2026
+Owner approved **Phase 1 only**. Implementation adds `scripts/local-dev-db.mjs`, interactive `scripts/local-dev-admin.mjs`, `npm run local:dev:up`, authenticated `/account` logout UI and end-to-end GitHub CI. **No** automatic production transfer, SMTP provider or product policy changes. Phase 2 requires separate approval.
 
 ## Reporting / open decisions
 - **Current:** technical CI GREEN on inspected SHA; prior user-provided local `npm run verify` PASS; current website is **not** an accepted live application.
 - **Unresolved:** owner authorization for a new persistent development-only MySQL volume and development account bootstrap; approved roles/accounts and media storage choice; TV platform/player source; business policy decisions; production infrastructure approval.
 - **Not performed by this assessment:** code/UI changes, DB migration in any existing environment, production deployment, payment processing, or changes to unrelated projects.
+
+## Phase 1 developer handoff (read before use)
+
+```bash
+# From ~/ADFLICK, after exact-SHA three-CI success has been confirmed:
+git pull
+npm run verify
+npm run local:dev:admin
+npm run local:dev:up
+```
+
+The one-time admin CLI asks for *organization name*, *display name*, *email*, and a password twice without echoing it. It creates one `ORGANIZATION_ADMIN` with Argon2id password hashing and an audit event, and refuses to change/overwrite an existing user. **Do not** use the demo `prisma db seed` for this process.
+
+`local:dev:up` launches an ADFLICK-owned MySQL 8.4 Docker container and named **persistent volume** with dynamically assigned loopback TCP port, authenticates via ignored root `.adflick-local/db.json` (mode 0600), deploys source migrations, and builds/starts the compiled API and UI on dynamically assigned loopback ports. Browser `/login` now leads to `/account`, which verifies identity using `GET /auth/me` and revokes the server session on logout. Ctrl+C shuts down only the scoped ADFLICK app and the MySQL container it started; the **named volume and data survive** and are reused next launch. Docker Compose, PM2 and the operator's other projects are untouched. `npm run verify` remains isolated and disposable; the two databases never share a volume.
+
+Never commit/share `.adflick-local/db.json`, passwords or token values. Local browser JWT/refresh tokens still use browser localStorage **only as a development prototype**; production-grade HttpOnly/CSRF session design must be independently reviewed. A real Ubuntu browser sign-in, logout, refresh and process-restart check is still user-operator pending even when CI turns green.

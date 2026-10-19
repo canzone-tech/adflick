@@ -18,3 +18,7 @@ CI uses its own GitHub Actions disposable MySQL service and never starts this lo
 ## Legacy migration compatibility bridge
 
 Use the ordered new migration `202610140009z_identifier_fk_collation_bridge` on **fresh disposable** CI/local databases as part of normal Prisma migrate deploy. Existing migration SQL remains untouched. This bridge modifies opaque ID/FK collations, temporarily drops/restores 35 foreign keys with original actions and is nontransactional MySQL DDL. Never auto-run on production or any existing authoritative database with unknown history. For staging/production, explicitly inspect `_prisma_migrations`, table/column collations and actual data, approve maintenance and migration backup/restore separately; see `docs/MIGRATION-FK-COLLATION-BRIDGE.md`.
+
+## Approved persistent development data boundary
+
+The new `local:dev:*` workflows are limited to ADFLICK-only localhost MySQL 8.4 Docker resources with validated ownership labels and an owned volume; operator approval granted for local development only. Never use `docker compose down -v`, `docker volume prune`, or destructive resets. Local state/credentials are ignored by Git; don't paste them to chat. Development org bootstrap grants only `ORGANIZATION_ADMIN`, not `SUPER_ADMIN`, and fails closed if any existing accounts/organizations exist. The demo data seeder is not auto-run. `local:dev:up` is **not** root local acceptance; continue to use `npm run verify` and exact-SHA three-CI green before handoff.

@@ -33,3 +33,7 @@ On the operator's desktop, additional **manual visual UAT is still required**: i
 ## 19 October 2026 screenshot review and safe UX corrections
 
 The user supplied Ubuntu desktop screenshots of the overview, CMS layout, empty playlist and Campaign Management. Layouts visually rendered without major overlap. Source inspection confirmed inaccurate legacy approval/progress language, stale CMS feedback/empty playlist affordance, and demo campaign workflow controls that must not be confused with persisted/live state. Frontend fixes landed under `apps/web/app/page.tsx`, `apps/web/app/cms/*`, and `apps/web/app/campaigns/*`. CI Chrome UAT [run 39218977525](https://github.com/canzone-tech/adflick/actions/runs/39218977525) now performs CMS media/playlist tab actions and checks demo Campaign creation does not survive route reload. Physical Ubuntu acceptance of updated UI remains pending.
+
+## Approved persistent local development (Phase 1)
+
+After current exact-SHA CI release gates PASS, use `npm run local:dev:admin` once (interactive hidden password), then `npm run local:dev:up`. This is **not** `npm run local:up`: the latter remains disposable. Persistent data is stored only in the ADFLICK-scoped Docker volume `adflick-dev-local-v1-mysql-data`, with encrypted transport not claimed because access is loopback-only and development-only. On Ctrl+C the container is stopped but the volume persists. Any old `local:up` process must be stopped before rebuilding the same Next.js output directory. See conversion plan for UAT.
