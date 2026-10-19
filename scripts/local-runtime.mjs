@@ -6,8 +6,9 @@ import net from 'node:net';
 import process from 'node:process';
 import { startDisposableMysql } from './verify-local-mysql.mjs';
 
+const persistentDevelopment = process.argv.slice(2).length === 1 && process.argv[2] === '--persistent-dev';
 const browserUat = process.argv.slice(2).length === 1 && process.argv[2] === '--browser-uat';
-if (process.argv.length > 2 && !browserUat) throw new Error('Usage: npm run local:up or npm run local:uat');
+if (process.argv.length > 2 && !browserUat && !persistentDevelopment) throw new Error('Usage: local:up, local:uat or local:dev:up');
 if (process.versions.node.split('.')[0] !== '24') throw new Error('ADFLICK local runtime requires Node.js 24.');
 if (process.env.NODE_ENV === 'production') throw new Error('Refusing to start local runtime in NODE_ENV=production.');
 if (!existsSync('node_modules/.bin/prisma') || !existsSync('node_modules/.bin/next')) {
@@ -88,8 +89,8 @@ async function main() {
   while (webPort === apiPort) webPort = await freePort();
   const apiUrl = 'http://127.0.0.1:' + apiPort + '/api/v1';
   const webUrl = 'http://127.0.0.1:' + webPort;
-  console.log('ADFLICK local session: isolated MySQL 8.4; random localhost ports; no shared Compose services.');
-  mysql = startDisposableMysql();
+  console.log(persistentDevelopment ? 'ADFLICK persistent DEVELOPMENT session (owned MySQL volume; no other projects touched).' : 'ADFLICK local session: isolated MySQL 8.4; random localhost ports; no shared Compose services.');
+  mysql = persistentDevelopment ? (await import('./local-dev-db.mjs')).startPersistentDevMysql() : startDisposableMysql();
   const common = {
     ...process.env,
     CI: browserUat ? 'true' : 'false',
@@ -143,13 +144,13 @@ async function main() {
   console.log('Login:     ' + webUrl + '/login');
   console.log('CMS:       ' + webUrl + '/cms');
   console.log('API health:' + apiUrl + '/health');
-  console.log('Database:  disposable Docker MySQL 8.4 (localhost only; will be destroyed on exit)');
+  console.log(persistentDevelopment ? 'Database:  persistent ADFLICK-only MySQL 8.4 volume; survives Ctrl+C and relaunch' : 'Database:  disposable Docker MySQL 8.4 (localhost only; will be destroyed on exit)');
   if (browserUat) {
     await command('Real headless Chrome browser UAT', process.execPath,
       ['scripts/browser-uat.mjs', webUrl, apiUrl], { ...common, ADFLICK_UAT_URL: webUrl });
     console.log('BROWSER UAT PASS (isolated compiled runtime).');
   } else {
-    console.log('Open the URLs in your Ubuntu browser. Press Ctrl+C here to stop only ADFLICK services.');
+    console.log('Open the URLs in your Ubuntu browser. Press Ctrl+C to stop only ADFLICK application services.' + (persistentDevelopment ? ' MySQL volume will be preserved.' : ''));
     // A resolved promise on SIGINT would close services without touching any unrelated process.
     await Promise.race([
       new Promise(resolve => api.child.once('exit', () => resolve('API stopped unexpectedly'))),

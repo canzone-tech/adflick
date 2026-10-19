@@ -1,8 +1,7 @@
 import { createInterface } from 'node:readline/promises';
 import { PrismaClient } from '@prisma/client';
 import { startPersistentDevMysql } from './local-dev-db.mjs';
-import { createFirstAdmin } from '../prisma/first-admin.ts';
-import { randomBytes } from 'node:crypto';
+import { createFirstAdmin } from '../prisma/first-admin.mjs';
 import process from 'node:process';
 
 if (!process.stdin.isTTY || !process.stdout.isTTY || process.env.CI === 'true' || process.env.NODE_ENV === 'production') {

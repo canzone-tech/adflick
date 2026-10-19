@@ -1,10 +1,9 @@
 // One-time local-only Organization Admin. No hardcoded credentials and no production accounts.
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { startPersistentDevMysql } from '../scripts/local-dev-db.mjs';
 
-type AdminInput = { organization: string; displayName: string; email: string; password: string };
-export function validateFirstAdmin(input: AdminInput) {
+export function validateFirstAdmin(input) {
   const name = input.organization.trim(), display = input.displayName.trim();
   const email = input.email.trim().toLowerCase();
   const password = input.password;
@@ -14,7 +13,7 @@ export function validateFirstAdmin(input: AdminInput) {
   if (/^\s+$/.test(password)) throw new Error('Password cannot be whitespace-only.');
   return { name, display, email, password };
 }
-export async function createFirstAdmin(prisma: PrismaClient, input: AdminInput) {
+export async function createFirstAdmin(prisma, input) {
   const data = validateFirstAdmin(input);
   const passwordHash = await argon2.hash(data.password, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 });
   return prisma.$transaction(async tx => {
