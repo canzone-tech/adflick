@@ -1,10 +1,11 @@
 // CI-only proof that local persistent database survives process and database restart.
 // Exercises the real compiled NestJS API with actual Argon2 credentials and session revocation.
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import net from 'node:net';
 import { PrismaClient } from '@prisma/client';
 import { startPersistentDevMysql, cleanupPersistentDevCI } from './local-dev-db.mjs';
+import { prepareFirstAdminDatabase } from './prepare-first-admin-db.mjs';
 import { createFirstAdmin } from '../prisma/first-admin.mjs';
 
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' ||
@@ -57,11 +58,8 @@ async function haltApi() {
   api=null;
 }
 try {
-  db=startPersistentDevMysql();
+  db=prepareFirstAdminDatabase();
   process.env.DATABASE_URL=db.url;
-  const migrate=spawnSync('node_modules/.bin/prisma',['migrate','deploy'],
-    {env:{...process.env,DATABASE_URL:db.url},stdio:'inherit',timeout:120000,shell:false});
-  if(migrate.error||migrate.status!==0)throw new Error('Persistent schema migration failed.');
   prisma=new PrismaClient();
   const created=await createFirstAdmin(prisma,{organization:'ADFLICK CI Organization',
     displayName:'CI Operator',email,password});

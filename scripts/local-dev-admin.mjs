@@ -1,8 +1,7 @@
 // One-time ADFLICK-only developer admin bootstrap. No secrets echoed, logged or stored in source.
 import { createInterface } from 'node:readline/promises';
-import { spawnSync } from 'node:child_process';
 import { PrismaClient } from '@prisma/client';
-import { startPersistentDevMysql } from './local-dev-db.mjs';
+import { prepareFirstAdminDatabase } from './prepare-first-admin-db.mjs';
 import { createFirstAdmin } from '../prisma/first-admin.mjs';
 import { readHiddenPassword } from './read-hidden-password.mjs';
 import process from 'node:process';
@@ -27,14 +26,7 @@ try {
   const confirmation = await readHiddenPassword('Repeat password (hidden): ');
   if (password !== confirmation) throw new Error('Passwords do not match; no user created.');
 
-  db = startPersistentDevMysql();
-  const env = { ...process.env, DATABASE_URL: db.url };
-  const migration = spawnSync('node_modules/.bin/prisma', ['migrate', 'deploy'], {
-    env, shell: false, stdio: 'inherit', timeout: 120000, windowsHide: true
-  });
-  if (migration.error || migration.status !== 0) {
-    throw new Error('Owned local-development MySQL migration failed; first admin was NOT created.');
-  }
+  db = prepareFirstAdminDatabase();
   // The first admin must only be inserted into a fully migrated, owned development DB.
   process.env.DATABASE_URL = db.url;
   prisma = new PrismaClient();

@@ -38,3 +38,32 @@ test('bootstrap writes only org admin with Argon2 and is one-time only', async (
   assert.equal(store.created.organizationId, 'org-1');
   await assert.rejects(() => createFirstAdmin(prisma, valid), /first-run only/);
 });
+
+import { prepareFirstAdminDatabase } from '../scripts/prepare-first-admin-db.mjs';
+test('CLI and CI bootstrap share migrate-before-user preflight against the owned DB only', () => {
+  const calls = [];
+  const db = { url: 'mysql://adflick_dev:local@127.0.0.1:45001/adflick_development',
+    stop: () => calls.push('stop') };
+  const out = prepareFirstAdminDatabase({
+    startDatabase: () => { calls.push('start'); return db; },
+    migrate: (command, args, opts) => {
+      assert.equal(command, 'node_modules/.bin/prisma');
+      assert.deepEqual(args, ['migrate', 'deploy']);
+      assert.equal(opts.env.DATABASE_URL, db.url);
+      assert.equal(opts.shell, false);
+      assert.equal(opts.timeout, 120000);
+      calls.push('migrate');
+      return { status: 0 };
+    }, env: { NODE_ENV: 'test' }
+  });
+  assert.equal(out, db);
+  assert.deepEqual(calls, ['start', 'migrate']);
+});
+test('migration failure prevents bootstrap and stops only the owned test DB', () => {
+  const calls = [];
+  assert.throws(() => prepareFirstAdminDatabase({
+    startDatabase: () => ({ url: 'mysql://local.test', stop: () => calls.push('stop') }),
+    migrate: () => { calls.push('fail migrate'); return { status: 1 }; }
+  }), /first admin was NOT created/);
+  assert.deepEqual(calls, ['fail migrate', 'stop']);
+});
