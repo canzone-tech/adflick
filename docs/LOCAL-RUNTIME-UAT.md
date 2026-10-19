@@ -37,3 +37,11 @@ The user supplied Ubuntu desktop screenshots of the overview, CMS layout, empty 
 ## Approved persistent local development (Phase 1)
 
 After current exact-SHA CI release gates PASS, use `npm run local:dev:admin` once (interactive hidden password), then `npm run local:dev:up`. This is **not** `npm run local:up`: the latter remains disposable. Persistent data is stored only in the ADFLICK-scoped Docker volume `adflick-dev-local-v1-mysql-data`, with encrypted transport not claimed because access is loopback-only and development-only. On Ctrl+C the container is stopped but the volume persists. Any old `local:up` process must be stopped before rebuilding the same Next.js output directory. See conversion plan for UAT.
+
+## First-time admin bootstrap fix — 19 October 2026
+
+Ubuntu operator reported a successful root `npm run verify` but first `npm run local:dev:admin` failed with Prisma missing `User` table, since `verify` correctly ran migrations against a **different disposable database** and the persistent development volume had not yet been migrated. Additionally the old password-entry method paused (but did not close) readline and terminal characters were visibly echoed. The displayed development password must be regarded as exposed and **never reused**.
+
+**Fix:** `scripts/prepare-first-admin-db.mjs` is now shared by the real first-admin CLI and the CI integration runner, ensuring `prisma migrate deploy` runs first on the **ADFLICK-owned persistent** MySQL URL. If migration fails, no first admin is created, and only the process-owned DB container can be stopped; the persistent volume is neither reset nor removed. `scripts/local-dev-admin.mjs` fully closes the name/email readline before entering a raw, non-echo TTY password reader; `scripts/read-hidden-password.test.mjs` validates no echo, backspace, Ctrl+C and raw-mode reset. Operator must choose a **new unique password** and should never include passwords/tokens in screenshots.
+
+After exact-SHA Backend CI, Frontend CI and Release Evidence all pass, operator can restart from repo root with `git pull` then `npm run verify`, followed by one-time `npm run local:dev:admin` and `npm run local:dev:up`. No `docker volume rm`, `prisma migrate reset`, or Docker Compose volume operation is needed. Local gate and operator visual test remain separately pending.

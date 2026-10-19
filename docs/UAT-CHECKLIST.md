@@ -35,3 +35,9 @@ Each line requires real test log, reviewer, SHA and PASS/FAIL/BLOCKED. Static so
 - [x] Chrome signed-in account, refresh, logout, browser tokens cleared and API server 401 after logout: [Frontend CI 39239629962](https://github.com/canzone-tech/adflick/actions/runs/39239629962)
 - [ ] **Operator Ubuntu** actual first-admin prompt, local `npm run verify` on new commit, login/logout screenshot and persistence after restart — awaiting user
 - [ ] Production cookies/CSRF, backup/restore, product/platform acceptance — not Phase 1 sign-off
+
+## Ubuntu first-admin bootstrap defect — observed 19 October 2026
+
+**Observed:** root local verify SUCCESS; interactive development admin CLI could not access `User` because the persistent owned DB had not applied migrations, and password keystrokes appeared in terminal screenshot. This is not evidence of a successful first account creation or sign-in, and does not imply any fault in the disposable root verifier. No password string or screenshot containing personal terminal context is stored in this repository.
+
+**Engineering action:** auto-run Prisma migrate deploy via shared fail-closed persistent DB preparation before any first-admin query, fully close readline before entering raw TTY password input, and add no-echo/migration-preflight regressions. **Operator local acceptance pending** after final three-CI SHA and retry with a fresh unique secret. No historical migration editing, database deletion, production operation or other-project changes.
