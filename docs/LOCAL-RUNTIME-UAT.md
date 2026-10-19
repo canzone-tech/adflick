@@ -29,3 +29,7 @@ On the operator's desktop, additional **manual visual UAT is still required**: i
 - Browser screenshots from CI demonstrate execution on GitHub runners, not verification of the exact user desktop appearance; operator confirmation remains pending.
 - `npm run verify` remains the authoritative full local gate; launcher/browser UAT is an additional runtime experience, not a substitute.
 - Production and provider/finance approvals remain **PENDING**.
+
+## 19 October 2026 screenshot review and safe UX corrections
+
+The user supplied Ubuntu desktop screenshots of the overview, CMS layout, empty playlist and Campaign Management. Layouts visually rendered without major overlap. Source inspection confirmed inaccurate legacy approval/progress language, stale CMS feedback/empty playlist affordance, and demo campaign workflow controls that must not be confused with persisted/live state. Frontend fixes landed under `apps/web/app/page.tsx`, `apps/web/app/cms/*`, and `apps/web/app/campaigns/*`. CI Chrome UAT [run 39218977525](https://github.com/canzone-tech/adflick/actions/runs/39218977525) now performs CMS media/playlist tab actions and checks demo Campaign creation does not survive route reload. Physical Ubuntu acceptance of updated UI remains pending.
