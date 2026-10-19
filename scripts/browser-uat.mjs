@@ -168,6 +168,32 @@ async function run() {
     throw new Error('Campaign demo unexpectedly persisted after reloading route.');
   }
   console.log('Chrome Campaign interactions PASS: visible demo warning, local draft creation and no persistence');
+  if (process.env.ADFLICK_BROWSER_TEST_EMAIL && process.env.ADFLICK_BROWSER_TEST_PASSWORD) {
+    await navigate('/login');
+    await click('input[type=email]');
+    await command('Input.insertText', { text: process.env.ADFLICK_BROWSER_TEST_EMAIL });
+    await click('input[type=password]');
+    await command('Input.insertText', { text: process.env.ADFLICK_BROWSER_TEST_PASSWORD });
+    await click('form button');
+    await until("location.pathname === '/account' && document.body.innerText.includes('Your organization session')",
+      'authenticated login redirect');
+    await until("document.body.innerText.includes('ORGANIZATION_ADMIN')", 'real API identity and role');
+    await screenshot('authenticated-account');
+    const token = await evaluate("localStorage.getItem('adflick_access_token')");
+    if (!token) throw new Error('Login did not establish a local development session.');
+    await navigate('/account');
+    await until("document.body.innerText.includes('ORGANIZATION_ADMIN')", 'identity survives browser route refresh');
+    await click('.account-logout');
+    await until("location.pathname === '/login'", 'logout redirects to login');
+    if (await evaluate("localStorage.getItem('adflick_access_token') !== null")) {
+      throw new Error('Logout did not clear browser access token.');
+    }
+    const revoked = await evaluate("(async()=>{const r=await fetch(" +
+      JSON.stringify(apiUrl + '/auth/me') + ",{headers:{Authorization:'Bearer " +
+      token + "'}});return r.status;})()");
+    if (revoked !== 401) throw new Error('Server did not revoke logged-out session.');
+    console.log('Chrome authenticated operator UAT PASS: login, account role, refresh, logout, server 401 revocation');
+  }
   await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   for (const path of ['/', '/login', '/cms']) {
     await navigate(path);

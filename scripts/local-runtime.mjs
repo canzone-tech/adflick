@@ -6,9 +6,10 @@ import net from 'node:net';
 import process from 'node:process';
 import { startDisposableMysql } from './verify-local-mysql.mjs';
 
-const persistentDevelopment = process.argv.slice(2).length === 1 && process.argv[2] === '--persistent-dev';
-const browserUat = process.argv.slice(2).length === 1 && process.argv[2] === '--browser-uat';
-if (process.argv.length > 2 && !browserUat && !persistentDevelopment) throw new Error('Usage: local:up, local:uat or local:dev:up');
+const commandMode = process.argv[2];
+const persistentDevelopment = ['--persistent-dev', '--persistent-dev-uat'].includes(commandMode);
+const browserUat = ['--browser-uat', '--persistent-dev-uat'].includes(commandMode);
+if (process.argv.length > 3 || (process.argv.length > 2 && !browserUat && !persistentDevelopment)) throw new Error('Usage: local:up, local:uat, local:dev:up or local:dev:uat');
 if (process.versions.node.split('.')[0] !== '24') throw new Error('ADFLICK local runtime requires Node.js 24.');
 if (process.env.NODE_ENV === 'production') throw new Error('Refusing to start local runtime in NODE_ENV=production.');
 if (!existsSync('node_modules/.bin/prisma') || !existsSync('node_modules/.bin/next')) {
@@ -110,6 +111,21 @@ async function main() {
   const buildEnv = { ...common, NODE_ENV: 'production' };
   await command('Prisma client generation', 'node_modules/.bin/prisma', ['generate'], common);
   await command('Apply ADFLICK migrations to the disposable MySQL only', 'node_modules/.bin/prisma', ['migrate', 'deploy'], common);
+  if (commandMode === '--persistent-dev-uat') {
+    if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' ||
+        process.env.ADFLICK_LOCAL_DEV_CI !== '1') throw new Error('Persistent auth browser test is CI only.');
+    const { PrismaClient } = await import('@prisma/client');
+    const { createFirstAdmin } = await import('../prisma/first-admin.mjs');
+    const prisma = new PrismaClient();
+    try {
+      const userEmail = 'uat+' + randomBytes(5).toString('hex') + '@adflick.example.test';
+      const userPassword = randomBytes(24).toString('hex');
+      await createFirstAdmin(prisma, { organization: 'ADFLICK Browser CI', displayName: 'Browser Operator',
+        email: userEmail, password: userPassword });
+      common.ADFLICK_BROWSER_TEST_EMAIL = userEmail;
+      common.ADFLICK_BROWSER_TEST_PASSWORD = userPassword;
+    } finally { await prisma.$disconnect(); }
+  }
   await command('Build the compiled API', 'npm', ['run', 'build:api'], common);
   await command('Build the UI against this session API URL', 'npm', ['run', 'build:web'], buildEnv);
 
@@ -163,6 +179,10 @@ try {
 } catch (error) {
   console.error('ADFLICK local runtime FAILED: ' + (error instanceof Error ? error.message : String(error)));
   process.exitCode = 1;
-} finally {
+ } finally {
   cleanup();
+  if (commandMode === '--persistent-dev-uat') {
+    const { cleanupPersistentDevCI } = await import('./local-dev-db.mjs');
+    cleanupPersistentDevCI();
+  }
 }
