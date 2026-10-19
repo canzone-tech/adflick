@@ -1,0 +1,99 @@
+name: Release Artifact
+on:
+  workflow_dispatch:
+    inputs:
+      production_api_base_url:
+        description: 'Production HTTPS API base URL baked into the Next.js build (for example https://example.com/api/v1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package:
+    if: github.ref == 'refs/heads/dev/local-foundation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_SHA: ${{ github.sha }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ inputs.production_api_base_url }}
+    steps:
+      - name: Checkout exact release SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Require exact-SHA Backend CI and Frontend CI success
+        uses: actions/github-script@v7
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        with:
+          script: |
+            const wanted = ['Backend CI', 'Frontend CI'];
+            const sha = process.env.RELEASE_SHA;
+            const { owner, repo } = context.repo;
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner, repo, head_sha: sha, per_page: 100
+            });
+            for (const name of wanted) {
+              const runs = data.workflow_runs
+                .filter(run => run.name === name && run.head_sha === sha && run.status === 'completed')
+                .sort((a, b) => b.run_attempt - a.run_attempt);
+              const run = runs[0];
+              if (!run || run.conclusion !== 'success') {
+                core.setFailed(`${name} is not SUCCESS on exact SHA ${sha}; release artifact blocked.`);
+                return;
+              }
+              core.info(`${name}: SUCCESS ${run.html_url}`);
+            }
+
+      - name: Validate production API URL
+        run: |
+          node -e "const u=new URL(process.env.NEXT_PUBLIC_API_BASE_URL); if(u.protocol!=='https:') throw new Error('Production API base URL must use HTTPS');"
+
+      - name: Deterministic dependency install
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build compiled API
+        run: npm run build:api
+
+      - name: Build production web with approved API base URL
+        run: npm run build:web
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_BASE_URL: ${{ inputs.production_api_base_url }}
+
+      - name: Package immutable source-free runtime artifact
+        run: node scripts/package-release-artifact.mjs
+
+      - name: Verify artifact checksums and embedded release SHA
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          outer="$(find release-artifacts -maxdepth 1 -name 'adflick-release-*.zip' -print -quit)"
+          inner="$(find release-artifacts -maxdepth 1 -name 'adflick-runtime-*.tar.gz' -print -quit)"
+          [[ -n "$outer" && -n "$inner" ]]
+          unzip -t "$outer"
+          sha256sum -c "$outer.sha256"
+          sha256sum -c "$inner.sha256"
+          tar -xOf "$inner" metadata/release.json > /tmp/adflick-release.json
+          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/adflick-release.json','utf8')); if(x.release_sha!==process.env.RELEASE_SHA) throw new Error('Embedded release SHA mismatch'); if(x.api_base_url!==new URL(process.env.NEXT_PUBLIC_API_BASE_URL).toString()) throw new Error('Embedded API base URL mismatch'); console.log('Embedded release metadata PASS:', x.release_sha);"
+
+      - name: Publish immutable deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: adflick-deployable-release-${{ github.sha }}
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 30
