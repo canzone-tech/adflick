@@ -36,3 +36,15 @@ The approved local gate now uses the same original historical source migrations 
 - **Not established:** real browser visual/device UAT, physical Smart TV player, provider payout certification, production database upgrade compatibility, off-host encrypted backup/isolated restore, deployment, and unrelated local project runtime isolation beyond the disposable database design.
 
 **Release decision:** Local development technical verification is **PASS based on user evidence**; production business/operator approval remains **PENDING**. All further changes require their own exact-SHA CI gate and local verification when warranted.
+
+## Phase 1 functional development acceptance — 19 October 2026
+
+Owner explicitly approved the **local-development-only** scope; production and Phase 2 remain separate.
+Implementation verified on commit `f157286f691b6b14aeec3b14d76a627a4a0b9405`:
+
+- [Backend CI 39239629953](https://github.com/canzone-tech/adflick/actions/runs/39239629953) **SUCCESS:** root backend validation, clean MySQL 8.4/18 migrations, 92/92 unit, 6/6 security, 13/13 finance; **additional persistent-dev integration** created the first organization admin with Argon2, rejected repeat bootstrap and invalid login, tested real access/refresh/logout tokens, unauthorized 401, SCREEN_OWNER finance role 403, restarted the owned MySQL container and confirmed the account/role can authenticate again.
+- [Frontend CI 39239629962](https://github.com/canzone-tech/adflick/actions/runs/39239629962) **SUCCESS:** original compiled 12-route Chrome UAT plus a separate ADFLICK-owned persistent-development Chrome test using a generated, non-committed account: real sign-in to `/account`, organization role displayed, browser route refresh, sign-out and server-side 401 revocation. Screenshot artifact available on the run.
+- [Release Evidence 39239629943](https://github.com/canzone-tech/adflick/actions/runs/39239629943) **SUCCESS:** same exact SHA backend and frontend gates; **production approval PENDING**.
+- `npm run local:dev:admin` (operator-only no-echo first-admin CLI) and `npm run local:dev:up` (owned persistent Docker volume) introduced; `npm run verify` remains disposable and unaffected. No production config changes, no real payments, no unrelated container actions.
+
+**Not yet confirmed by user on this new SHA:** full Ubuntu root `npm run verify`, interactive first-admin CLI, physically observed signed-in page, restart of user's persisted local database, visual operator approval. Do not confuse GitHub CI test environment with actual Ubuntu local result.

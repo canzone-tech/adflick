@@ -26,3 +26,12 @@ Each line requires real test log, reviewer, SHA and PASS/FAIL/BLOCKED. Static so
 
 **Open:** visual approval of the **updated** UI on the user's own Ubuntu browser, keyboard-only focus and responsive/touch interaction, real authenticated backend save flows, readability of the existing 8–11px prototype metadata, API loading/error UX, screen-player integration, and business/provider approval. User screenshots are intentionally **not committed** because they include desktop/browser chrome and other personal context.
 
+
+## Phase 1 authenticated local development evidence
+
+- [x] CI-only persistent MySQL 8.4 labeled volume and container ownership; test data survives container stop/restart: [Backend CI 39239629953](https://github.com/canzone-tech/adflick/actions/runs/39239629953)
+- [x] CI-only one-time organization admin bootstrap; Argon2; no hardcoded default password; second attempt blocked: same backend run
+- [x] Real compiled API login, refresh, logout/session revocation and 401/403 role denial: same backend run
+- [x] Chrome signed-in account, refresh, logout, browser tokens cleared and API server 401 after logout: [Frontend CI 39239629962](https://github.com/canzone-tech/adflick/actions/runs/39239629962)
+- [ ] **Operator Ubuntu** actual first-admin prompt, local `npm run verify` on new commit, login/logout screenshot and persistence after restart — awaiting user
+- [ ] Production cookies/CSRF, backup/restore, product/platform acceptance — not Phase 1 sign-off
