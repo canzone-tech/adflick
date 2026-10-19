@@ -31,4 +31,5 @@ jobs:
           name: adflick-browser-uat
           path: .adflick-uat/
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 14
