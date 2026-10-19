@@ -58,7 +58,7 @@ export default function CmsPage() {
         <span className="preview-pill">INTERACTIVE PREVIEW</span>
       </header>
       <div className="cms-tabs" role="tablist" aria-label="CMS modules">
-        {(['layouts', 'media', 'playlists'] as const).map((value) => <button key={value} className={tab === value ? 'selected' : ''} onClick={() => setTab(value)} role="tab" aria-selected={tab === value}>{value === 'layouts' ? 'Layout Studio' : value === 'media' ? 'Media Library' : 'Playlists & Scheduling'}</button>)}
+        {(['layouts', 'media', 'playlists'] as const).map((value) => <button key={value} className={tab === value ? 'selected' : ''} onClick={() => { setTab(value); setMessage(value === 'layouts' ? 'Layout preview only. Drafts are not saved to the API.' : value === 'media' ? 'Media metadata is browser-only; no file bytes are uploaded.' : 'Playlist preview only. Add local media, then select items to prepare a draft.'); }} role="tab" aria-selected={tab === value}>{value === 'layouts' ? 'Layout Studio' : value === 'media' ? 'Media Library' : 'Playlists & Scheduling'}</button>)}
       </div>
 
       {tab === 'layouts' && <section className="cms-grid">
@@ -70,7 +70,7 @@ export default function CmsPage() {
             {zones.map((zone) => <div key={zone.id} className={`zone zone-${zone.type.toLowerCase()}`} style={{ left: `${zone.x}%`, top: `${zone.y}%`, width: `${zone.width}%`, height: `${zone.height}%` }}><b>{zone.name}</b><span>{zone.type}</span></div>)}
           </div></div>
           <div className="canvas-footer"><span>Canvas preview · 16:9</span><span>{zones.length} zones</span></div>
-          <button className="primary-button" onClick={() => setMessage(`Draft "${layoutName}" prepared locally. Use POST /api/v1/cms/layouts after connecting API authentication.`)}>Save draft layout</button>
+          <button className="primary-button" onClick={() => setMessage(`Layout draft "${layoutName}" prepared in browser only. It has not been saved to the API.`)}>Preview layout draft</button>
         </div>
         <div className="panel properties-panel">
           <div className="panel-heading"><div><span className="eyebrow">PROPERTIES</span><h2>Zone settings</h2></div><button className="small-button" onClick={addZone}>+ Add zone</button></div>
@@ -91,7 +91,7 @@ export default function CmsPage() {
       </section>}
 
       {tab === 'playlists' && <section className="cms-grid playlist-grid">
-        <div className="panel"><div className="panel-heading"><div><span className="eyebrow">PLAYLIST BUILDER</span><h2>Sequence content</h2></div></div><label className="field-label" htmlFor="playlistName">Playlist name</label><input id="playlistName" value={playlistName} onChange={(e) => setPlaylistName(e.target.value)} maxLength={180} /><div className="playlist-sequence"><div className="sequence-title">Available local media</div>{assets.length === 0 ? <p className="empty-state">Add preview assets in the Media Library tab first.</p> : assets.map((asset) => <label className="check-row" key={asset.name}><input type="checkbox" checked={playlistItems.includes(asset.name)} onChange={() => togglePlaylist(asset.name)} /> <span>{asset.name}</span><small>{asset.type}</small></label>)}</div><button className="primary-button" onClick={() => setMessage(`Playlist "${playlistName}" has ${playlistItems.length} selected local items. Real persistence requires API authentication and READY assets.`)}>Save playlist draft</button></div>
+        <div className="panel"><div className="panel-heading"><div><span className="eyebrow">PLAYLIST BUILDER</span><h2>Sequence content</h2></div></div><label className="field-label" htmlFor="playlistName">Playlist name</label><input id="playlistName" value={playlistName} onChange={(e) => setPlaylistName(e.target.value)} maxLength={180} /><div className="playlist-sequence"><div className="sequence-title">Available local media</div>{assets.length === 0 ? <p className="empty-state">Add preview assets in the Media Library tab first.</p> : assets.map((asset) => <label className="check-row" key={asset.name}><input type="checkbox" checked={playlistItems.includes(asset.name)} onChange={() => togglePlaylist(asset.name)} /> <span>{asset.name}</span><small>{asset.type}</small></label>)}</div><button className="primary-button" disabled={playlistItems.length === 0} onClick={() => setMessage(`Playlist "${playlistName}" prepared in browser only with ${playlistItems.length} selected preview items. It has not been saved or scheduled.`)}>Preview playlist draft</button></div>
         <div className="panel"><span className="eyebrow">SCHEDULING FOUNDATION</span><h2>Playback plan</h2><div className="schedule-card"><span className="schedule-time">06:00 — 11:00</span><strong>Morning rotation</strong><small>Weekdays · Asia/Kolkata</small></div><div className="schedule-card"><span className="schedule-time">11:00 — 18:00</span><strong>Daytime rotation</strong><small>Every day · Asia/Kolkata</small></div><div className="schedule-card"><span className="schedule-time">18:00 — 23:00</span><strong>Evening rotation</strong><small>Every day · Asia/Kolkata</small></div><p className="hint">Scheduling UI is illustrative. Device targeting, conflict resolution and timezone-aware delivery are planned for later batches.</p></div>
       </section>}
 
