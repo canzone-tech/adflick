@@ -38,7 +38,8 @@
     "local:uat": "node scripts/local-runtime.mjs --browser-uat",
     "local:dev:up": "node scripts/local-runtime.mjs --persistent-dev",
     "local:dev:admin": "node scripts/local-dev-admin.mjs",
-    "local:dev:test": "node --test scripts/first-admin.test.mjs"
+    "local:dev:test": "node --test scripts/first-admin.test.mjs",
+    "local:dev:integration": "node scripts/local-dev-integration.mjs"
   },
   "devDependencies": {
     "prisma": "^6.16.2",

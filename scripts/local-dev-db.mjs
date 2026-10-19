@@ -109,3 +109,24 @@ export function startPersistentDevMysql() {
 export function persistentDevMetadata() {
   return { volumeName, containerName, configPath: statePath };
 }
+
+// Only CI ephemeral runners may remove resources. A developer's persistent data is never removed.
+export function cleanupPersistentDevCI() {
+  if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' ||
+      process.env.ADFLICK_LOCAL_DEV_CI !== '1') {
+    throw new Error('Refusing persistent developer database cleanup outside dedicated CI.');
+  }
+  const container = inspect('container', containerName);
+  if (container) {
+    if (!metadataMatches(container) ||
+        !container.Mounts?.some(m => m.Name === volumeName)) {
+      throw new Error('Refusing removal of container with invalid ADFLICK ownership.');
+    }
+    checked(['rm', '--force', containerName], 30000);
+  }
+  const volume = inspect('volume', volumeName);
+  if (volume) {
+    if (!metadataMatches(volume)) throw new Error('Refusing to remove unrelated volume.');
+    checked(['volume', 'rm', volumeName], 30000);
+  }
+}

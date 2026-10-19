@@ -42,3 +42,9 @@ jobs:
           node-version: 24
       - name: Full backend verification (includes database migrations and compiled runtime)
         run: npm run verify:backend
+      - name: First-admin regression and persistent MySQL auth/session UAT
+        env:
+          ADFLICK_LOCAL_DEV_CI: "1"
+        run: |
+          npm run local:dev:test
+          node scripts/local-dev-integration.mjs
