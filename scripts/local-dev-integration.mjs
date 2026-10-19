@@ -74,8 +74,19 @@ try {
   if(!logged.accessToken||!logged.refreshToken||!logged.user?.roles?.includes('ORGANIZATION_ADMIN'))throw new Error('Auth tokens or least-privileged role missing.');
   const me=await call(base,'/auth/me',200,undefined,logged.accessToken);
   if(me.email!==email)throw new Error('Authenticated identity mismatch.');
-  // Finance endpoints reject an org admin who has no finance permission.
-  await call(base,'/finance/reward-policies',403,undefined,logged.accessToken);
+  // Role-based denial must be tested with a genuinely underprivileged authenticated user.
+  // Organization admin has finance permissions in the currently approved RBAC matrix.
+  const viewerEmail = 'viewer+' + randomBytes(5).toString('hex') + '@adflick.example.test';
+  const { default: argon2 } = await import('argon2');
+  await prisma.user.create({ data: {
+    email: viewerEmail, displayName: 'Screen Owner Test', status: 'ACTIVE',
+    organizationId: (await prisma.user.findUniqueOrThrow({ where: { email } })).organizationId,
+    passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+    roleAssignments: { create: { role: 'SCREEN_OWNER' } }
+  } });
+  const viewer = await call(base,'/auth/login',201,{email:viewerEmail,password});
+  if (!viewer.user.roles.includes('SCREEN_OWNER')) throw new Error('Underprivileged test role missing.');
+  await call(base,'/finance/ledger',403,undefined,viewer.accessToken);
   const second=await call(base,'/auth/refresh',201,{refreshToken:logged.refreshToken});
   await call(base,'/auth/me',200,undefined,second.accessToken);
   await call(base,'/auth/logout',201,{refreshToken:second.refreshToken},second.accessToken);
