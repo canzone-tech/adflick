@@ -44,7 +44,7 @@ export function auditMigrationSources(sources) {
       }
       for (const key of body.matchAll(FK)) fks.set(table + '.' + key[1], { path, table, name: key[1], column: key[2], parent: key[3], target: key[4] });
     }
-    const total = (sql.match(/\bFOREIGN\s+KEY\b/gi) ?? []).length;
+    const total = (sql.match(/\bFOREIGN\s+KEY\b/gi) ?? []).length - (sql.match(/\bDROP\s+FOREIGN\s+KEY\b/gi) ?? []).length;
     const recognized = [...sql.matchAll(FK)].length;
     if (total !== recognized) findings.push(path + ': parsed ' + recognized + '/' + total + ' FK constraints.');
   }
