@@ -13,6 +13,6 @@ console.log('FK compatibility audit: ' + result.tables + ' tables, ' + result.fo
   ' foreign keys, ' + result.findings.length + ' findings.');
 for (const message of result.findings) console.error('MIGRATION CONTRACT FAIL: ' + message);
 if (result.findings.length) {
-  console.error('Historical migration SQL unchanged. Do not bypass a failed Prisma migrate deploy.');
+  console.error('Historical migration compatibility is incomplete. Do not bypass a failed Prisma migrate deploy.');
   process.exitCode = 1;
 }

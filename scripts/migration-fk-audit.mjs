@@ -11,7 +11,7 @@ function columnType(sql, column) {
 }
 export function auditMigrationSources(sources) {
   const tables = new Map();
-  const fks = [];
+  const fks = new Map();
   const findings = [];
   for (const { path, sql } of sources) {
     const declarations = [...sql.matchAll(CREATE)];
@@ -24,8 +24,8 @@ export function auditMigrationSources(sources) {
         findings.push(path + ': duplicate CREATE TABLE ' + table + '.');
         continue;
       }
-      tables.set(table, { charset, collation, declaration: body });
-      for (const key of body.matchAll(FK)) fks.push({ path, table, name: key[1], column: key[2], parent: key[3], target: key[4] });
+      tables.set(table, { charset, collation, declaration: body, columnOverrides: new Map() });
+      for (const key of body.matchAll(FK)) fks.set(table + '.' + key[1], { path, table, name: key[1], column: key[2], parent: key[3], target: key[4] });
     }
     for (const match of sql.matchAll(ALTER)) {
       const [, table, body] = match;
@@ -35,13 +35,20 @@ export function auditMigrationSources(sources) {
         continue;
       }
       existing.declaration += '\n' + body;
-      for (const key of body.matchAll(FK)) fks.push({ path, table, name: key[1], column: key[2], parent: key[3], target: key[4] });
+      for (const modified of body.matchAll(/MODIFY\s+COLUMN\s+`([^`]+)`\s+(?:VARCHAR|CHAR)\([0-9]+\)\s+CHARACTER\s+SET\s+(\w+)\s+COLLATE\s+(\w+)/gi)) {
+        existing.columnOverrides.set(modified[1], { charset: modified[2], collation: modified[3] });
+      }
+      for (const dropped of body.matchAll(/DROP\s+FOREIGN\s+KEY\s+`([^`]+)`/gi)) {
+        const key = table + '.' + dropped[1];
+        if (!fks.delete(key)) findings.push(path + ': attempted to drop unknown FK ' + key + '.');
+      }
+      for (const key of body.matchAll(FK)) fks.set(table + '.' + key[1], { path, table, name: key[1], column: key[2], parent: key[3], target: key[4] });
     }
     const total = (sql.match(/\bFOREIGN\s+KEY\b/gi) ?? []).length;
-    const recognized = fks.filter(f => f.path === path).length;
+    const recognized = [...sql.matchAll(FK)].length;
     if (total !== recognized) findings.push(path + ': parsed ' + recognized + '/' + total + ' FK constraints.');
   }
-  for (const fk of fks) {
+  for (const fk of fks.values()) {
     const source = tables.get(fk.table), destination = tables.get(fk.parent);
     if (!source || !destination) {
       findings.push(fk.path + ': ' + fk.name + ': FK table not found.');
@@ -57,10 +64,14 @@ export function auditMigrationSources(sources) {
     const targetText = TEXTUAL.has(destinationType);
     if (sourceText !== targetText) {
       findings.push(fk.path + ': ' + fk.name + ': incompatible FK column categories.');
-    } else if (sourceText && (source.charset !== destination.charset || source.collation !== destination.collation)) {
-      findings.push(fk.path + ': ' + fk.name + ': ' + fk.table + '.' + fk.column + ' (' + source.collation +
-        ') -> ' + fk.parent + '.' + fk.target + ' (' + destination.collation + '): incompatible FK charset/collation.');
+    } else if (sourceText) {
+      const sourceEffective = source.columnOverrides.get(fk.column) ?? source;
+      const targetEffective = destination.columnOverrides.get(fk.target) ?? destination;
+      if (sourceEffective.charset !== targetEffective.charset || sourceEffective.collation !== targetEffective.collation) {
+        findings.push(fk.path + ': ' + fk.name + ': ' + fk.table + '.' + fk.column + ' (' + sourceEffective.collation +
+          ') -> ' + fk.parent + '.' + fk.target + ' (' + targetEffective.collation + '): incompatible FK charset/collation.');
+      }
     }
   }
-  return { tables: tables.size, foreignKeys: fks.length, findings };
+  return { tables: tables.size, foreignKeys: fks.size, findings };
 }

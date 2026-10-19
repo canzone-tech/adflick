@@ -31,3 +31,21 @@ test('missing parent fails closed', () => {
   const r = auditMigrationSources([migration('010', child('utf8mb4_unicode_ci'))]);
   assert.match(r.findings.join('\n'), /FK table not found/);
 });
+
+
+test('append-only FK bridge reconciles child and parent ID collation without touching table defaults', () => {
+  const bridge = [
+    'ALTER TABLE \x60Incident\x60 DROP FOREIGN KEY \x60Incident_org_fkey\x60;',
+    'ALTER TABLE \x60Incident\x60 MODIFY COLUMN \x60organizationId\x60 VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;',
+    'ALTER TABLE \x60Organization\x60 MODIFY COLUMN \x60id\x60 VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;',
+    'ALTER TABLE \x60Incident\x60 ADD CONSTRAINT \x60Incident_org_fkey\x60 FOREIGN KEY (\x60organizationId\x60) REFERENCES \x60Organization\x60(\x60id\x60);'
+  ].join('\n');
+  const result = auditMigrationSources([migration('001', parent('utf8mb4_0900_ai_ci')),
+    migration('002', child('utf8mb4_0900_ai_ci')), migration('009z', bridge),
+    migration('010', 'CREATE TABLE \x60NotificationOutbox\x60 (' +
+      '\x60id\x60 VARCHAR(30) NOT NULL, \x60organizationId\x60 VARCHAR(30) NOT NULL, ' +
+      'CONSTRAINT \x60NotificationOutbox_org_fkey\x60 FOREIGN KEY (\x60organizationId\x60) REFERENCES \x60Organization\x60(\x60id\x60)' +
+      ') DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;')]);
+  assert.equal(result.foreignKeys, 2);
+  assert.deepEqual(result.findings, []);
+});
