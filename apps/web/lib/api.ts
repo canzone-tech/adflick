@@ -1,45 +1,18 @@
 export type ApiError = { status: number; message: string };
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1').replace(/\/$/, '');
-const ACCESS_KEY = 'adflick_access_token';
-const REFRESH_KEY = 'adflick_refresh_token';
 
-export function getStoredTokens() {
-  if (typeof window === 'undefined') return { accessToken: '', refreshToken: '' };
-  return {
-    accessToken: window.localStorage.getItem(ACCESS_KEY) || '',
-    refreshToken: window.localStorage.getItem(REFRESH_KEY) || '',
-  };
-}
-
-export function storeTokens(accessToken: string, refreshToken?: string) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(ACCESS_KEY, accessToken);
-  if (refreshToken) window.localStorage.setItem(REFRESH_KEY, refreshToken);
-}
-
-export function clearStoredTokens() {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(ACCESS_KEY);
-  window.localStorage.removeItem(REFRESH_KEY);
-}
-
-async function refreshAccessToken(): Promise<string | null> {
-  const { refreshToken } = getStoredTokens();
-  if (!refreshToken) return null;
+async function refreshAccessSession(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+      cache: 'no-store',
     });
-    if (!response.ok) { clearStoredTokens(); return null; }
-    const payload = await response.json() as { accessToken?: string; refreshToken?: string };
-    if (!payload.accessToken || !payload.refreshToken) { clearStoredTokens(); return null; }
-    storeTokens(payload.accessToken, payload.refreshToken);
-    return payload.accessToken;
+    return response.ok;
   } catch {
-    return null;
+    return false;
   }
 }
 
@@ -47,15 +20,11 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const { accessToken } = getStoredTokens();
-  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
-  let response = await fetch(`${API_BASE}${path.startsWith('/') ? path : `/${path}`}`, { ...init, headers, cache: 'no-store' });
-  if (response.status === 401) {
-    const nextToken = await refreshAccessToken();
-    if (nextToken) {
-      headers.set('Authorization', `Bearer ${nextToken}`);
-      response = await fetch(`${API_BASE}${path.startsWith('/') ? path : `/${path}`}`, { ...init, headers, cache: 'no-store' });
-    }
+  const requestInit: RequestInit = { ...init, headers, credentials: 'include', cache: 'no-store' };
+  let response = await fetch(`${API_BASE}${path.startsWith('/') ? path : `/${path}`}`, requestInit);
+  const isAuthEndpoint = /^\/auth\/(login|refresh|logout)$/.test(path);
+  if (response.status === 401 && !isAuthEndpoint && await refreshAccessSession()) {
+    response = await fetch(`${API_BASE}${path.startsWith('/') ? path : `/${path}`}`, requestInit);
   }
   const payload = await response.json().catch(() => null) as { message?: string | string[] } | T | null;
   if (!response.ok) {

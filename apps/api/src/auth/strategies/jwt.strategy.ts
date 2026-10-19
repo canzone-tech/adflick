@@ -1,8 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthenticatedUser } from '../decorators/current-user.decorator';
+import { ACCESS_COOKIE_NAME } from '../auth.cookies';
 
 interface AccessPayload {
   sub: string;
@@ -21,7 +23,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new Error('JWT_ACCESS_SECRET must be set to at least 32 characters before starting the API.');
     }
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (request: Request) => request.cookies?.[ACCESS_COOKIE_NAME] ?? null,
+      ]),
       ignoreExpiration: false,
       secretOrKey: secret,
       algorithms: ['HS256'],

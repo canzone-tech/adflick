@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiRequest, clearStoredTokens, errorMessage, getStoredTokens } from '../../lib/api';
+import { apiRequest, errorMessage } from '../../lib/api';
 import '../login/login.css';
 
 type Identity = { id: string; displayName: string; email: string; organizationId: string | null; roles: string[] };
@@ -16,7 +16,6 @@ export default function AccountPage() {
     let mounted = true;
     void (async () => {
       try {
-        if (!getStoredTokens().refreshToken) throw new Error('No session found. Please sign in.');
         const me = await apiRequest<Identity>('/auth/me');
         if (mounted) { setIdentity(me); setMessage('Authenticated API session confirmed.'); }
       } catch (e) {
@@ -31,8 +30,7 @@ export default function AccountPage() {
     setSigningOut(true);
     setMessage('Revoking the current server-side session…');
     try {
-      await apiRequest('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: getStoredTokens().refreshToken }) });
-      clearStoredTokens();
+      await apiRequest('/auth/logout', { method: 'POST' });
       router.replace('/login');
     } catch (e) {
       setMessage('Logout could not be confirmed by the API: ' + errorMessage(e));
@@ -53,7 +51,7 @@ export default function AccountPage() {
         </button>
       </> : <p><Link href="/login">Go to sign in</Link></p>}
       <div className="login-notice" role="status">{message}</div>
-      <small>Development-only session. Production requires secure HttpOnly cookies/CSRF review.</small>
+      <small>Session credentials use Secure, HttpOnly cookies. The API rejects untrusted cross-origin state-changing requests.</small>
     </section>
   </main>;
 }
