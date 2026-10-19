@@ -116,6 +116,7 @@ async function main() {
         process.env.ADFLICK_LOCAL_DEV_CI !== '1') throw new Error('Persistent auth browser test is CI only.');
     const { PrismaClient } = await import('@prisma/client');
     const { createFirstAdmin } = await import('../prisma/first-admin.mjs');
+    process.env.DATABASE_URL = mysql.url;
     const prisma = new PrismaClient();
     try {
       const userEmail = 'uat+' + randomBytes(5).toString('hex') + '@adflick.example.test';
