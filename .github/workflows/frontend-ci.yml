@@ -20,3 +20,15 @@ jobs:
           node-version: '24'
       - name: Production frontend install, quality gates and compiled route smoke
         run: npm run verify:frontend
+      - name: Browser UAT through isolated compiled API and web plus fresh MySQL
+        env:
+          ADFLICK_BROWSER_UAT: "1"
+        run: npm run local:uat
+      - name: Upload real-browser UAT evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adflick-browser-uat
+          path: .adflick-uat/
+          if-no-files-found: warn
+          retention-days: 14

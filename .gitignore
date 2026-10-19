@@ -11,3 +11,6 @@ coverage/
 # Database backups can contain production data. Never commit them.
 backups/
 .env.production
+
+# Local/CI browser UAT evidence screenshots and generated reports.
+.adflick-uat/

@@ -31,7 +31,7 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
   }));
   const port = Number(process.env.API_PORT ?? 4000);
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, process.env.API_HOST ?? '0.0.0.0');
   app.get(SchedulerService).start();
   console.log(`ADFLICK API listening on http://localhost:${port}/api/v1`);
 }
