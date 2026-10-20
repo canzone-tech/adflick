@@ -15,7 +15,7 @@ CREATE TABLE `MfaEnrollment` (
   INDEX `MfaEnrollment_enabled_enrollmentExpiresAt_idx`(`enabled`, `enrollmentExpiresAt`),
   PRIMARY KEY (`id`),
   CONSTRAINT `MfaEnrollment_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `MfaRecoveryCode` (
   `id` VARCHAR(30) NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE `MfaRecoveryCode` (
   INDEX `MfaRecoveryCode_enrollmentId_usedAt_idx`(`enrollmentId`, `usedAt`),
   PRIMARY KEY (`id`),
   CONSTRAINT `MfaRecoveryCode_enrollmentId_fkey` FOREIGN KEY (`enrollmentId`) REFERENCES `MfaEnrollment`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `MfaChallenge` (
   `id` VARCHAR(64) NOT NULL,
@@ -44,4 +44,4 @@ CREATE TABLE `MfaChallenge` (
   PRIMARY KEY (`id`),
   CONSTRAINT `MfaChallenge_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `MfaChallenge_sessionId_fkey` FOREIGN KEY (`sessionId`) REFERENCES `RefreshSession`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
