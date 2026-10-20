@@ -13,8 +13,9 @@ describe('PlaybackService duplicate ingestion safety', () => {
     assetId: 'asset-a', authorizationId: 'grant-a', authorizationToken: 'token-a',
   };
   const prisma = {
+    $transaction: jest.fn(),
     screen: { findUnique: jest.fn(), update: jest.fn() },
-    playbackEvent: { findUnique: jest.fn(), create: jest.fn() },
+    playbackEvent: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     playbackAuthorization: { findFirst: jest.fn(), updateMany: jest.fn() },
     mediaAsset: { findFirst: jest.fn() },
     campaign: { findFirst: jest.fn() },
@@ -27,6 +28,11 @@ describe('PlaybackService duplicate ingestion safety', () => {
     prisma.screen.update.mockResolvedValue({});
     prisma.playbackEvent.findUnique.mockResolvedValue(null);
     prisma.playbackAuthorization.findFirst.mockResolvedValue(null);
+    prisma.$transaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => callback({
+      playbackEvent: prisma.playbackEvent,
+      playbackAuthorization: prisma.playbackAuthorization,
+      $executeRaw: jest.fn(),
+    }));
   });
 
   it('marks a previously persisted event as duplicate and never reward eligible', async () => {
@@ -41,6 +47,7 @@ describe('PlaybackService duplicate ingestion safety', () => {
       countedForEligibility: false,
     });
     expect(prisma.playbackEvent.create).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('handles the database unique-key race as a duplicate and not an eligible play', async () => {
@@ -53,6 +60,7 @@ describe('PlaybackService duplicate ingestion safety', () => {
       countedForEligibility: false,
     });
     expect(prisma.playbackEvent.create).toHaveBeenCalledTimes(1);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(prisma.screen.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: screen.id },
     }));
