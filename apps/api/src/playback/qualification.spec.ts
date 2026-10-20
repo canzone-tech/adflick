@@ -20,8 +20,7 @@ describe('Batch 103 playback qualification', () => {
   });
 
   it('rejects events for a disabled device', () => {
-    expect(qualifyPlayback({ ...base, deviceEnabled: false }).reasonCodes)
-      .toContain('DEVICE_NOT_ELIGIBLE');
+    expect(qualifyPlayback({ ...base, deviceEnabled: false }).reasonCodes).toContain('DEVICE_NOT_ELIGIBLE');
   });
 
   it('rejects unapproved campaigns', () => {
@@ -29,8 +28,7 @@ describe('Batch 103 playback qualification', () => {
   });
 
   it('rejects playback below configured completion threshold', () => {
-    expect(qualifyPlayback({ ...base, observedDurationMs: 10_000 }).reasonCodes)
-      .toContain('COMPLETION_BELOW_THRESHOLD');
+    expect(qualifyPlayback({ ...base, observedDurationMs: 10_000 }).reasonCodes).toContain('COMPLETION_BELOW_THRESHOLD');
   });
 
   it('flags anomalous timing for review', () => {
@@ -42,6 +40,6 @@ describe('Batch 103 playback qualification', () => {
       duplicatePayloadConflict: false, sequenceGapCount: 0, eventsInLastMinute: 1,
       expectedEventsPerMinute: 10, clockDriftMs: 0, distinctOwnersUsingDevice: 1,
       revokedCredential: true,
-    })[0].code).toBe('REVOKED_DEVICE_CREDENTIAL');
+    })[0]!.code).toBe('REVOKED_DEVICE_CREDENTIAL');
   });
 });
