@@ -15,6 +15,7 @@ describe('Playback authorization single-consumption race', () => {
     startedAt, completedAt, durationMs: 13_000, expectedDurationMs: 13_000,
   });
   const prisma = {
+    $transaction: jest.fn(),
     screen: { findUnique: jest.fn(), update: jest.fn() },
     playbackEvent: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     playbackAuthorization: { findFirst: jest.fn(), updateMany: jest.fn() },
@@ -32,12 +33,18 @@ describe('Playback authorization single-consumption race', () => {
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 0 });
     prisma.mediaAsset.findFirst.mockResolvedValue({ id: 'asset-a', durationMs: 13_000 });
+    prisma.$transaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => callback({
+      playbackEvent: prisma.playbackEvent,
+      playbackAuthorization: prisma.playbackAuthorization,
+      $executeRaw: jest.fn().mockResolvedValue(1),
+    }));
   });
 
   it('counts no more than one completed event against the same one-use authorization', async () => {
     const service = new PlaybackService(prisma as any);
     const result = await service.ingestBatch(screen.id, secret, [makeEvent('event-a'), makeEvent('event-b')] as any);
 
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(prisma.playbackAuthorization.updateMany).toHaveBeenCalledTimes(2);
     expect(result.results.filter((r) => r.countedForEligibility)).toHaveLength(1);
     expect(result.results.filter((r) => r.reason === 'PLAYBACK_AUTHORIZATION_ALREADY_CONSUMED')).toHaveLength(1);
