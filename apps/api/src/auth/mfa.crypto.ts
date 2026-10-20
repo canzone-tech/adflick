@@ -8,7 +8,7 @@ export function generateBase32Secret(): string {
   let bits = '';
   for (const byte of bytes) bits += byte.toString(2).padStart(8, '0');
   let output = '';
-  for (let i = 0; i < bits.length; i += 5) output += BASE32_ALPHABET[Number.parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)];
+  for (let i = 0; i < bits.length; i += 5) output += BASE32_ALPHABET[Number.parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)]!;
   return output;
 }
 
@@ -29,7 +29,7 @@ function totpForStep(secret: string, step: number): string {
   const counter = Buffer.alloc(8);
   counter.writeBigUInt64BE(BigInt(step));
   const digest = createHmac('sha1', decodeBase32(secret)).update(counter).digest();
-  const offset = digest[digest.length - 1] & 0x0f;
+  const offset = digest[digest.length - 1]! & 0x0f;
   return String((digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
 }
 
