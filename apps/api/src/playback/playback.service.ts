@@ -1,7 +1,7 @@
 import {
   ForbiddenException, Injectable,
 } from '@nestjs/common';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Prisma, AssetStatus, PlaybackEventStatus, PlaybackEventType, ScreenStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -89,6 +89,25 @@ export class PlaybackService {
     return { ok: true, reason: 'VALIDATION_RULES_PASSED' };
   }
 
+  private async enqueueOutbox(tx: Prisma.TransactionClient, input: {
+    organizationId: string; screenId: string; playbackEventId: string; eventId: string;
+  }) {
+    const id = randomUUID().replace(/-/g, '').slice(0, 30);
+    const payload = JSON.stringify({
+      playbackEventId: input.playbackEventId,
+      eventId: input.eventId,
+      organizationId: input.organizationId,
+      screenId: input.screenId,
+    });
+    await tx.$executeRaw`
+      INSERT INTO PlaybackOutbox
+        (id, organizationId, screenId, playbackEventId, eventId, topic, payload, createdAt, attempts)
+      VALUES
+        (${id}, ${input.organizationId}, ${input.screenId}, ${input.playbackEventId}, ${input.eventId}, 'playback.event.accepted', ${payload}, CURRENT_TIMESTAMP(3), 0)
+      ON DUPLICATE KEY UPDATE playbackEventId = playbackEventId
+    `;
+  }
+
   async ingestBatch(screenId: string, secret: string, events: PlaybackEventDto[]) {
     const screen = await this.device(screenId, secret);
     const results: Array<{eventId:string;status:string;reason?:string;countedForEligibility:boolean}> = [];
@@ -109,39 +128,63 @@ export class PlaybackService {
       const status = validation.ok ? PlaybackEventStatus.ACCEPTED : PlaybackEventStatus.REJECTED;
       const seq = event.sequenceNumber && /^\d+$/.test(event.sequenceNumber) ? BigInt(event.sequenceNumber) : undefined;
       try {
-        const saved = await this.prisma.playbackEvent.create({
-          data: {
-            organizationId: screen.organizationId, screenId, assetId: event.assetId,
-            campaignId: event.campaignId, playlistId: event.playlistId, authorizationId: event.authorizationId,
-            eventId: event.eventId, eventType: event.eventType, status, validationReason: validation.reason,
-            startedAt: event.startedAt ? new Date(event.startedAt) : undefined,
-            completedAt: event.completedAt ? new Date(event.completedAt) : undefined,
-            clientReportedAt: event.clientReportedAt ? new Date(event.clientReportedAt) : undefined,
-            durationMs: event.durationMs, expectedDurationMs: event.expectedDurationMs,
-            sequenceNumber: seq, metadataJson: event.metadata as Prisma.InputJsonValue | undefined,
-          },
-          select: { id: true },
-        });
-        let finalStatus = status;
-        let finalReason = validation.reason;
-        let eligible = validation.ok && event.eventType === PlaybackEventType.PLAY_COMPLETED;
-        const terminalPlaybackEvent = new Set<PlaybackEventType>([PlaybackEventType.PLAY_COMPLETED, PlaybackEventType.PLAY_INTERRUPTED, PlaybackEventType.PLAY_ERROR]).has(event.eventType);
-        if (validation.ok && terminalPlaybackEvent && event.authorizationId) {
-          const consumed = await this.prisma.playbackAuthorization.updateMany({
-            where: { id: event.authorizationId, screenId, assetId: event.assetId, campaignId: event.campaignId ?? null, playlistId: event.playlistId ?? null, consumedAt: null, expiresAt: { gt: new Date() } },
-            data: { consumedAt: new Date() },
+        const row = await this.prisma.$transaction(async (tx) => {
+          const raced = await tx.playbackEvent.findUnique({
+            where: { screenId_eventId: { screenId, eventId: event.eventId } },
+            select: { id: true, status: true, validationReason: true },
           });
-          if (consumed.count !== 1) {
-            finalStatus = PlaybackEventStatus.REJECTED;
-            finalReason = 'PLAYBACK_AUTHORIZATION_ALREADY_CONSUMED';
-            eligible = false;
-            await this.prisma.playbackEvent.update({ where: { id: saved.id }, data: { status: finalStatus, validationReason: finalReason } });
+          if (raced) {
+            return { eventId: event.eventId, status: 'DUPLICATE', reason: 'EVENT_ID_ALREADY_RECEIVED', countedForEligibility: false };
           }
-        }
-        results.push({ eventId: event.eventId, status: finalStatus, reason: finalReason, countedForEligibility: eligible });
+
+          const saved = await tx.playbackEvent.create({
+            data: {
+              organizationId: screen.organizationId, screenId, assetId: event.assetId,
+              campaignId: event.campaignId, playlistId: event.playlistId, authorizationId: event.authorizationId,
+              eventId: event.eventId, eventType: event.eventType, status, validationReason: validation.reason,
+              startedAt: event.startedAt ? new Date(event.startedAt) : undefined,
+              completedAt: event.completedAt ? new Date(event.completedAt) : undefined,
+              clientReportedAt: event.clientReportedAt ? new Date(event.clientReportedAt) : undefined,
+              durationMs: event.durationMs, expectedDurationMs: event.expectedDurationMs,
+              sequenceNumber: seq, metadataJson: event.metadata as Prisma.InputJsonValue | undefined,
+            },
+            select: { id: true },
+          });
+
+          let finalStatus = status;
+          let finalReason = validation.reason;
+          let eligible = validation.ok && event.eventType === PlaybackEventType.PLAY_COMPLETED;
+          const terminalPlaybackEvent = new Set<PlaybackEventType>([PlaybackEventType.PLAY_COMPLETED, PlaybackEventType.PLAY_INTERRUPTED, PlaybackEventType.PLAY_ERROR]).has(event.eventType);
+          if (validation.ok && terminalPlaybackEvent && event.authorizationId) {
+            const consumed = await tx.playbackAuthorization.updateMany({
+              where: { id: event.authorizationId, screenId, assetId: event.assetId, campaignId: event.campaignId ?? null, playlistId: event.playlistId ?? null, consumedAt: null, expiresAt: { gt: new Date() } },
+              data: { consumedAt: new Date() },
+            });
+            if (consumed.count !== 1) {
+              finalStatus = PlaybackEventStatus.REJECTED;
+              finalReason = 'PLAYBACK_AUTHORIZATION_ALREADY_CONSUMED';
+              eligible = false;
+              await tx.playbackEvent.update({ where: { id: saved.id }, data: { status: finalStatus, validationReason: finalReason } });
+            }
+          }
+          if (finalStatus === PlaybackEventStatus.ACCEPTED) {
+            await this.enqueueOutbox(tx, {
+              organizationId: screen.organizationId,
+              screenId,
+              playbackEventId: saved.id,
+              eventId: event.eventId,
+            });
+          }
+          return { eventId: event.eventId, status: finalStatus, reason: finalReason, countedForEligibility: eligible };
+        });
+        results.push(row);
       } catch (err: any) {
         if (err?.code === 'P2002') {
-          results.push({ eventId: event.eventId, status: 'DUPLICATE', reason: 'EVENT_ID_ALREADY_RECEIVED', countedForEligibility: false });
+          const committed = await this.prisma.playbackEvent.findUnique({
+            where: { screenId_eventId: { screenId, eventId: event.eventId } },
+            select: { id: true },
+          });
+          results.push({ eventId: event.eventId, status: 'DUPLICATE', reason: committed ? 'EVENT_ID_ALREADY_RECEIVED' : 'IDEMPOTENCY_RACE_REQUIRES_RETRY', countedForEligibility: false });
         } else throw err;
       }
     }
