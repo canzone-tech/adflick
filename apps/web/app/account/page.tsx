@@ -97,11 +97,11 @@ export default function AccountPage() {
   async function confirmEnrollment() {
     setBusy(true);
     try {
-      await apiRequest('/auth/mfa/enroll/confirm', { method: 'POST', body: JSON.stringify({ code: enrollCode }) });
+      const result = await apiRequest<{ success: boolean; message: string }>('/auth/mfa/enroll/confirm', { method: 'POST', body: JSON.stringify({ code: enrollCode }) });
       setEnrollPassword('');
       setEnrollCode('');
-      setMfaMessage('MFA enabled. This browser session is step-up verified. Keep the recovery codes offline.');
-      await refreshMfa();
+      setMfa((current) => current ? { ...current, enabled: true, enrollmentPending: false, stepUpVerifiedUntil: null } : current);
+      setMfaMessage(result.message || 'MFA enabled. This browser session is step-up verified. Keep the recovery codes offline.');
     } catch (e) {
       setMfaMessage(errorMessage(e));
     } finally { setBusy(false); }
