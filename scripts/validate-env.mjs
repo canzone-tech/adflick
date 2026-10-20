@@ -18,10 +18,19 @@ if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('mysql://')
 if (process.env.JWT_ACCESS_SECRET && process.env.JWT_REFRESH_SECRET && process.env.JWT_ACCESS_SECRET === process.env.JWT_REFRESH_SECRET) {
   errors.push('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values.');
 }
+if (process.env.MFA_ENCRYPTION_KEY) {
+  try {
+    if (Buffer.from(process.env.MFA_ENCRYPTION_KEY.trim(), 'base64url').length !== 32) errors.push('MFA_ENCRYPTION_KEY must decode to exactly 32 bytes.');
+  } catch {
+    errors.push('MFA_ENCRYPTION_KEY must be valid base64url.');
+  }
+}
 if (production) {
   for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']) {
     if (process.env[key] && process.env[key].length < 32) errors.push(`${key} must be at least 32 characters in production.`);
   }
+  if (!process.env.MFA_ENCRYPTION_KEY?.trim()) errors.push('MFA_ENCRYPTION_KEY is required in production.');
+  else if (/change_me|replace_with|example|placeholder|secret$/i.test(process.env.MFA_ENCRYPTION_KEY)) errors.push('MFA_ENCRYPTION_KEY appears to contain a placeholder value.');
 }
 if (production) {
   if (process.env.WEB_ORIGIN?.includes('localhost')) errors.push('WEB_ORIGIN must not include localhost in production.');

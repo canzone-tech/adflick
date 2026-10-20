@@ -253,6 +253,8 @@ model User {
   createdPlaylists Playlist[] @relation("PlaylistCreator")
   auditEvents    AuditEvent[] @relation("AuditActor")
   refreshSessions RefreshSession[]
+  mfaEnrollment  MfaEnrollment?
+  mfaChallenges  MfaChallenge[]
   rewardCalculationsCreated RewardCalculation[] @relation("RewardCalculationCreator")
   financeApprovalsCreated FinanceApproval[] @relation("FinanceApprovalCreator")
   financeApprovalsDecided FinanceApproval[] @relation("FinanceApprovalDecider")
@@ -396,8 +398,10 @@ model RefreshSession {
   replacedById String?  @db.VarChar(30)
   userAgent    String?  @db.VarChar(512)
   ipAddress    String?  @db.VarChar(45)
+  mfaVerifiedAt DateTime?
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mfaChallenges MfaChallenge[]
 
   @@index([userId, expiresAt])
   @@index([revokedAt, expiresAt])
@@ -751,7 +755,7 @@ model PayoutBatch {
   currency              String           @default("INR") @db.Char(3)
   totalAmountPaise      Int              @default(0)
   itemCount             Int              @default(0)
-  createdById           String           @db.VarChar(30)
+  createdById            String           @db.VarChar(30)
   approvedById          String?          @db.VarChar(30)
   approvalNote          String?          @db.VarChar(500)
   providerName          String?          @db.VarChar(100)
@@ -777,7 +781,7 @@ model PayoutItem {
   status                PayoutItemStatus @default(PENDING)
   ownerIdentityVerified Boolean         @default(false)
   kycReviewed           Boolean         @default(false)
-  fraudReviewed         Boolean         @default(false)
+  fraudReviewed        Boolean         @default(false)
   taxReviewCompleted    Boolean         @default(false)
   providerReference     String?         @db.VarChar(160)
   reconciliationNote    String?         @db.VarChar(500)
@@ -795,7 +799,7 @@ model PayoutItem {
 model FinanceDispute {
   id                    String              @id @default(cuid()) @db.VarChar(30)
   organizationId        String              @db.VarChar(30)
-  ledgerEntryId          String              @db.VarChar(30)
+  ledgerEntryId         String              @db.VarChar(30)
   openedById             String              @db.VarChar(30)
   assignedToId           String?             @db.VarChar(30)
   status                 FinanceDisputeStatus @default(OPEN)
@@ -891,4 +895,48 @@ model ProviderWebhookEvent {
   @@unique([providerName, providerEventId])
   @@index([status, receivedAt])
   @@index([payloadSha256])
+}
+
+model MfaEnrollment {
+  id                  String   @id @default(cuid()) @db.VarChar(30)
+  userId              String   @unique @db.VarChar(30)
+  secretCiphertext    String   @db.VarChar(512)
+  enabled             Boolean  @default(false)
+  enrollmentExpiresAt DateTime?
+  lastAcceptedStep    BigInt?
+  version             Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recoveryCodes       MfaRecoveryCode[]
+
+  @@index([enabled, enrollmentExpiresAt])
+}
+
+model MfaRecoveryCode {
+  id           String        @id @default(cuid()) @db.VarChar(30)
+  enrollmentId String        @db.VarChar(30)
+  codeHash     String        @db.Char(64)
+  usedAt       DateTime?
+  createdAt    DateTime      @default(now())
+  enrollment   MfaEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, codeHash])
+  @@index([enrollmentId, usedAt])
+}
+
+model MfaChallenge {
+  id           String         @id @db.VarChar(64)
+  userId       String         @db.VarChar(30)
+  sessionId    String         @db.VarChar(30)
+  challengeHash String        @unique @db.Char(64)
+  expiresAt    DateTime
+  attempts     Int            @default(0)
+  consumedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session      RefreshSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([sessionId, consumedAt])
 }

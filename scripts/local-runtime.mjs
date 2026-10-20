@@ -1,7 +1,8 @@
 // ADFLICK localhost-only development runtime. Does not use Docker Compose or shared databases.
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import net from 'node:net';
 import process from 'node:process';
 import { startDisposableMysql } from './verify-local-mysql.mjs';
@@ -14,6 +15,22 @@ if (process.versions.node.split('.')[0] !== '24') throw new Error('ADFLICK local
 if (process.env.NODE_ENV === 'production') throw new Error('Refusing to start local runtime in NODE_ENV=production.');
 if (!existsSync('node_modules/.bin/prisma') || !existsSync('node_modules/.bin/next')) {
   throw new Error('Dependencies not installed. The authoritative first-time gate is npm run verify.');
+}
+
+function localMfaEncryptionKey(persistent: boolean): string {
+  if (process.env.MFA_ENCRYPTION_KEY?.trim()) return process.env.MFA_ENCRYPTION_KEY.trim();
+  if (!persistent) return randomBytes(32).toString('base64url');
+  const directory = '.adflick-local';
+  const file = join(directory, 'mfa-encryption.key');
+  mkdirSync(directory, { recursive: true });
+  if (existsSync(file)) {
+    const existing = readFileSync(file, 'utf8').trim();
+    if (Buffer.from(existing, 'base64url').length !== 32) throw new Error('Stored local MFA encryption key is invalid; refusing to continue.');
+    return existing;
+  }
+  const created = randomBytes(32).toString('base64url');
+  writeFileSync(file, created + '\n', { mode: 0o600 });
+  return created;
 }
 
 const live = new Set();
@@ -99,6 +116,7 @@ async function main() {
     DATABASE_URL: mysql.url,
     JWT_ACCESS_SECRET: randomBytes(32).toString('hex'),
     JWT_REFRESH_SECRET: randomBytes(32).toString('hex'),
+    MFA_ENCRYPTION_KEY: localMfaEncryptionKey(persistentDevelopment),
     WEB_ORIGIN: webUrl,
     NEXT_PUBLIC_API_BASE_URL: apiUrl,
     SCHEDULER_ENABLED: 'false',

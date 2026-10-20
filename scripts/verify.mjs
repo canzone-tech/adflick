@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 
 // Node 24's native dotenv loader works before npm ci; never require uninstalled packages.
 if (existsSync('.env')) process.loadEnvFile('.env');
@@ -14,6 +15,7 @@ if (nodeMajor !== 24) {
   process.exit(1);
 }
 const environment = { ...process.env, SCHEDULER_ENABLED: 'false', ALERT_SCAN_ENABLED: 'false', NOTIFICATION_OUTBOX_ENABLED: 'false' };
+if (!environment.MFA_ENCRYPTION_KEY) environment.MFA_ENCRYPTION_KEY = randomBytes(32).toString('base64url');
 // Hard bounds prevent hanging local/CI verification and make timeout failures explicit.
 const parsedTimeout = Number(process.env.ADFLICK_VERIFY_STEP_TIMEOUT_SECONDS ?? 300);
 if (!Number.isInteger(parsedTimeout) || parsedTimeout < 30 || parsedTimeout > 900) {
@@ -76,8 +78,9 @@ try {
     environment.DATABASE_URL = disposableMysql.url;
     environment.ADFLICK_VERIFY_TEST_DATABASE = '1';
     environment.NODE_ENV = 'test';
-    environment.JWT_ACCESS_SECRET = 'local-only-' + (await import('node:crypto')).randomBytes(32).toString('hex');
-    environment.JWT_REFRESH_SECRET = 'local-only-' + (await import('node:crypto')).randomBytes(32).toString('hex');
+    environment.JWT_ACCESS_SECRET = 'local-only-' + randomBytes(32).toString('hex');
+    environment.JWT_REFRESH_SECRET = 'local-only-' + randomBytes(32).toString('hex');
+    environment.MFA_ENCRYPTION_KEY = randomBytes(32).toString('base64url');
   }
   if (!existsSync('package-lock.json')) throw new Error('Root package-lock.json is missing.');
   execute('Deterministic dependency install', npm, ['ci', '--no-audit', '--no-fund']);

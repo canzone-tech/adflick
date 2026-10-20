@@ -151,6 +151,13 @@ export class AuthService {
     return { ...user, roles: user.roleAssignments.map((x) => x.role), roleAssignments: undefined };
   }
 
+  async verifyCurrentPassword(userId: string, currentPassword: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+    if (!user?.passwordHash || !(await argon2.verify(user.passwordHash, currentPassword).catch(() => false))) {
+      throw new UnauthorizedException('Current password is incorrect.');
+    }
+  }
+
   async changePassword(actor: AuthenticatedUser, currentPassword: string, newPassword: string) {
     if (newPassword.length < 12 || newPassword.length > 128) {
       throw new BadRequestException('New password must be between 12 and 128 characters.');
