@@ -1,8 +1,9 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
-  TooManyRequestsException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -40,18 +41,9 @@ type RequestMeta = { ipAddress?: string };
 
 @Injectable()
 export class MfaService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly auth: AuthService,
-  ) {}
+  constructor(private readonly prisma: PrismaService, private readonly auth: AuthService) {}
 
-  private async audit(
-    actor: AuthenticatedUser,
-    action: string,
-    meta: RequestMeta,
-    severity: 'INFO' | 'WARNING' | 'CRITICAL' = 'INFO',
-    metadataJson?: Prisma.InputJsonValue,
-  ): Promise<void> {
+  private async audit(actor: AuthenticatedUser, action: string, meta: RequestMeta, severity: 'INFO' | 'WARNING' | 'CRITICAL' = 'INFO', metadataJson?: Prisma.InputJsonValue): Promise<void> {
     await this.prisma.auditEvent.create({
       data: {
         actorUserId: actor.sub,
@@ -87,7 +79,6 @@ export class MfaService {
     await this.auth.verifyCurrentPassword(actor.sub, currentPassword);
     const existing = await this.prisma.mfaEnrollment.findUnique({ where: { userId: actor.sub }, select: { enabled: true } });
     if (existing?.enabled) throw new BadRequestException('MFA is already enabled. Use rotation instead.');
-
     const secret = generateBase32Secret();
     const recoveryCodes = generateRecoveryCodes(MFA_RECOVERY_CODE_COUNT);
     const now = new Date();
@@ -100,9 +91,7 @@ export class MfaService {
       });
       await tx.mfaRecoveryCode.deleteMany({ where: { enrollmentId: enrollment.id } });
       await tx.mfaRecoveryCode.createMany({ data: recoveryCodes.map((code) => ({ enrollmentId: enrollment.id, codeHash: hashRecoveryCode(code) })) });
-      await tx.auditEvent.create({
-        data: { actorUserId: actor.sub, organizationId: actor.organizationId, action: 'AUTH_MFA_ENROLLMENT_STARTED', entityType: 'UserMfa', entityId: actor.sub, ipAddress: meta.ipAddress?.slice(0, 45) },
-      });
+      await tx.auditEvent.create({ data: { actorUserId: actor.sub, organizationId: actor.organizationId, action: 'AUTH_MFA_ENROLLMENT_STARTED', entityType: 'UserMfa', entityId: actor.sub, ipAddress: meta.ipAddress?.slice(0, 45) } });
     });
     const identity = await this.auth.me(actor);
     return { enabled: false, secret, otpauthUri: buildOtpAuthUri(identity.email, secret), recoveryCodes, enrollmentExpiresAt, message: 'Store the authenticator secret and recovery codes securely. Recovery codes are shown only once.' };
@@ -114,15 +103,13 @@ export class MfaService {
     const now = new Date();
     if (!enrollment.enrollmentExpiresAt || enrollment.enrollmentExpiresAt <= now) throw new BadRequestException('MFA enrollment has expired. Start enrollment again.');
     const verification = verifyTotp(decryptSecret(enrollment.secretCiphertext), code, now.getTime());
-    if (!verification.valid || verification.matchedStep === undefined) {
+    const matchedStepNumber = verification.matchedStep;
+    if (!verification.valid || matchedStepNumber === undefined) {
       await this.audit(actor, 'AUTH_MFA_ENROLLMENT_FAILED', meta, 'WARNING');
       throw new UnauthorizedException('Invalid MFA code.');
     }
     await this.prisma.$transaction(async (tx) => {
-      const changed = await tx.mfaEnrollment.updateMany({
-        where: { id: enrollment.id, enabled: false, version: enrollment.version },
-        data: { enabled: true, enrollmentExpiresAt: null, lastAcceptedStep: BigInt(verification.matchedStep), version: { increment: 1 } },
-      });
+      const changed = await tx.mfaEnrollment.updateMany({ where: { id: enrollment.id, enabled: false, version: enrollment.version }, data: { enabled: true, enrollmentExpiresAt: null, lastAcceptedStep: BigInt(matchedStepNumber), version: { increment: 1 } } });
       if (changed.count !== 1) throw new UnauthorizedException('MFA enrollment changed concurrently. Start again.');
       const sessionChanged = await tx.refreshSession.updateMany({ where: { id: actor.sessionId, userId: actor.sub, revokedAt: null, expiresAt: { gt: now } }, data: { mfaVerifiedAt: now } });
       if (sessionChanged.count !== 1) throw new UnauthorizedException('Session is expired or revoked.');
@@ -138,7 +125,7 @@ export class MfaService {
     const now = new Date();
     if (!session || session.userId !== actor.sub || session.revokedAt || session.expiresAt <= now) throw new UnauthorizedException('Session is expired or revoked.');
     const recentCount = await this.prisma.mfaChallenge.count({ where: { sessionId: actor.sessionId, createdAt: { gt: new Date(now.getTime() - 60_000) } } });
-    if (recentCount >= 5) throw new TooManyRequestsException('Too many MFA challenges. Try again shortly.');
+    if (recentCount >= 5) throw new HttpException('Too many MFA challenges. Try again shortly.', HttpStatus.TOO_MANY_REQUESTS);
     const challengeId = randomBytes(24).toString('base64url');
     const expiresAt = new Date(now.getTime() + MFA_CHALLENGE_TTL_SECONDS * 1000);
     await this.prisma.$transaction(async (tx) => {
@@ -155,12 +142,13 @@ export class MfaService {
     const enrollment = await this.prisma.mfaEnrollment.findUnique({ where: { userId: actor.sub }, select: { id: true, secretCiphertext: true, enabled: true, version: true } });
     if (!enrollment?.enabled) throw new UnauthorizedException('MFA is not enabled.');
     const verification = verifyTotp(decryptSecret(enrollment.secretCiphertext), code, now.getTime());
-    if (!verification.valid || verification.matchedStep === undefined) {
+    const matchedStepNumber = verification.matchedStep;
+    if (!verification.valid || matchedStepNumber === undefined) {
       const incremented = await this.prisma.mfaChallenge.updateMany({ where: { id: challenge.id, consumedAt: null, expiresAt: { gt: now }, attempts: { lt: MFA_CHALLENGE_MAX_ATTEMPTS } }, data: { attempts: { increment: 1 } } });
       if (incremented.count === 1) await this.audit(actor, 'AUTH_MFA_STEP_UP_FAILED', meta, 'WARNING');
       throw new UnauthorizedException('Invalid MFA code.');
     }
-    const matchedStep = BigInt(verification.matchedStep);
+    const matchedStep = BigInt(matchedStepNumber);
     await this.prisma.$transaction(async (tx) => {
       const consumed = await tx.mfaChallenge.updateMany({ where: { id: challenge.id, userId: actor.sub, sessionId: actor.sessionId, consumedAt: null, expiresAt: { gt: now }, attempts: { lt: MFA_CHALLENGE_MAX_ATTEMPTS } }, data: { consumedAt: now } });
       if (consumed.count !== 1) throw new UnauthorizedException('MFA challenge has already been used.');
@@ -179,18 +167,16 @@ export class MfaService {
     if (!enrollment?.enabled) throw new BadRequestException('MFA is not enabled.');
     const now = new Date();
     const verification = verifyTotp(decryptSecret(enrollment.secretCiphertext), code, now.getTime());
-    if (!verification.valid || verification.matchedStep === undefined) {
+    const matchedStepNumber = verification.matchedStep;
+    if (!verification.valid || matchedStepNumber === undefined) {
       await this.audit(actor, 'AUTH_MFA_ROTATION_FAILED', meta, 'WARNING');
       throw new UnauthorizedException('Invalid MFA code.');
     }
-    const matchedStep = BigInt(verification.matchedStep);
+    const matchedStep = BigInt(matchedStepNumber);
     const secret = generateBase32Secret();
     const recoveryCodes = generateRecoveryCodes(MFA_RECOVERY_CODE_COUNT);
     await this.prisma.$transaction(async (tx) => {
-      const changed = await tx.mfaEnrollment.updateMany({
-        where: { id: enrollment.id, enabled: true, version: enrollment.version, OR: [{ lastAcceptedStep: null }, { lastAcceptedStep: { lt: matchedStep } }] },
-        data: { secretCiphertext: encryptSecret(secret), lastAcceptedStep: null, version: { increment: 1 } },
-      });
+      const changed = await tx.mfaEnrollment.updateMany({ where: { id: enrollment.id, enabled: true, version: enrollment.version, OR: [{ lastAcceptedStep: null }, { lastAcceptedStep: { lt: matchedStep } }] }, data: { secretCiphertext: encryptSecret(secret), lastAcceptedStep: null, version: { increment: 1 } } });
       if (changed.count !== 1) throw new UnauthorizedException('MFA code was already used or the enrollment changed. Retry with a fresh code.');
       await tx.mfaRecoveryCode.deleteMany({ where: { enrollmentId: enrollment.id } });
       await tx.mfaRecoveryCode.createMany({ data: recoveryCodes.map((recoveryCode) => ({ enrollmentId: enrollment.id, codeHash: hashRecoveryCode(recoveryCode) })) });

@@ -1,20 +1,33 @@
-export type MinorUnits = bigint;
+import { Decimal } from '@prisma/client/runtime/library';
 
-export function parseMinorUnits(value: string, fractionDigits = 2): MinorUnits {
-  if (!Number.isInteger(fractionDigits) || fractionDigits < 0 || fractionDigits > 6) throw new Error('fractionDigits must be an integer from 0 to 6');
-  const match = /^(\d+)(?:\.(\d+))?$/.exec(value.trim());
-  if (!match) throw new Error('Invalid non-negative decimal amount');
-  const fraction = match[2] ?? '';
-  if (fraction.length > fractionDigits) throw new Error('Too many fractional digits');
-  const scale = 10n ** BigInt(fractionDigits);
-  const padded = (fraction + '0'.repeat(fractionDigits)).slice(0, fractionDigits);
-  return BigInt(match[1]) * scale + BigInt(padded || '0');
+export type Money = { amountPaise: bigint; currency: 'INR' };
+
+export function parseMoney(value: string | number | bigint): Money {
+  const raw = String(value).trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(raw)) throw new Error('Invalid INR amount.');
+  const [rupeesRaw, fractionRaw = ''] = raw.split('.');
+  const rupees = BigInt(rupeesRaw || '0');
+  const fraction = BigInt((fractionRaw + '00').slice(0, 2));
+  return { amountPaise: rupees * 100n + fraction, currency: 'INR' };
 }
 
-export function assertPositiveMinorUnits(amount: bigint): void {
-  if (amount <= 0n) throw new Error('Amount must be greater than zero');
+export function decimalToMoney(value: Decimal | string | number): Money {
+  const raw = String(value).trim();
+  const match = raw.match(/^(\d+)(?:\.(\d{1,2}))?$/);
+  if (!match) throw new Error('Invalid decimal money value.');
+  const rupeesRaw = match[1];
+  const fractionRaw = match[2] ?? '';
+  return { amountPaise: BigInt(rupeesRaw) * 100n + BigInt((fractionRaw + '00').slice(0, 2)), currency: 'INR' };
 }
 
-export function assertNonNegativeMinorUnits(amount: bigint): void {
-  if (amount < 0n) throw new Error('Amount cannot be negative');
+export function addMoney(left: Money, right: Money): Money {
+  if (left.currency !== right.currency) throw new Error('Currency mismatch.');
+  return { amountPaise: left.amountPaise + right.amountPaise, currency: left.currency };
+}
+
+export function subtractMoney(left: Money, right: Money): Money {
+  if (left.currency !== right.currency) throw new Error('Currency mismatch.');
+  const amountPaise = left.amountPaise - right.amountPaise;
+  if (amountPaise < 0n) throw new Error('Money amount cannot become negative.');
+  return { amountPaise, currency: left.currency };
 }
