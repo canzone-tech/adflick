@@ -8,7 +8,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import * as argon2 from 'argon2';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { generateTotp } from '../src/auth/mfa.crypto';
+import { encryptSecret, generateBase32Secret, generateTotp } from '../src/auth/mfa.crypto';
 
 const enabled = process.env.RUN_MYSQL_SECURITY_E2E === '1';
 const suite = enabled ? describe : describe.skip;
@@ -80,12 +80,10 @@ suite('MySQL-backed security HTTP acceptance (disposable database only)', () => 
   }, 30_000);
 
   it('returns 401 for protected route without a bearer token', async () => { await request(app.getHttpServer()).get('/api/v1/access/admin-check').expect(401); });
-
   it('allows an organization admin with a valid active database session', async () => {
     const response = await request(app.getHttpServer()).get('/api/v1/access/admin-check').set('Authorization', `Bearer ${adminToken}`).expect(200);
     expect(response.body).toMatchObject({ success: true, userId: adminUser.id });
   });
-
   it('rejects an advertiser at an organization-admin-only route', async () => { await request(app.getHttpServer()).get('/api/v1/access/admin-check').set('Authorization', `Bearer ${advertiserToken}`).expect(403); });
 
   it('does not expose Organization B records in Organization A collection endpoints', async () => {
@@ -103,6 +101,12 @@ suite('MySQL-backed security HTTP acceptance (disposable database only)', () => 
 
   it('rejects cross-tenant mutations and verifies Organization B rows remain unchanged', async () => {
     const headers = { Authorization: `Bearer ${adminToken}` };
+    const tenantTestSecret = generateBase32Secret();
+    const activeSession = await prisma.refreshSession.findFirst({ where: { userId: adminUser.id, revokedAt: null }, select: { id: true } });
+    expect(activeSession).not.toBeNull();
+    await prisma.mfaEnrollment.create({ data: { userId: adminUser.id, secretCiphertext: encryptSecret(tenantTestSecret), enabled: true, version: 1 } });
+    await prisma.refreshSession.update({ where: { id: activeSession!.id }, data: { mfaVerifiedAt: new Date() } });
+
     await request(app.getHttpServer()).patch(`/api/v1/campaigns/${foreignCampaign.id}`).set(headers).send({ name: 'Unauthorized campaign mutation' }).expect(404);
     await request(app.getHttpServer()).post(`/api/v1/cms/layouts/${foreignLayout.id}/publish`).set(headers).expect(404);
     await request(app.getHttpServer()).patch(`/api/v1/fleet/screens/${foreignScreen.id}/status`).set(headers).send({ status: 'SUSPENDED' }).expect(404);
@@ -113,6 +117,8 @@ suite('MySQL-backed security HTTP acceptance (disposable database only)', () => 
     expect(await prisma.screen.findUnique({ where: { id: foreignScreen.id }, select: { status: true } })).toEqual({ status: 'ONLINE' });
     expect(await prisma.incident.findUnique({ where: { id: foreignIncident.id }, select: { status: true } })).toEqual({ status: 'OPEN' });
     expect(await prisma.payoutBatch.findUnique({ where: { id: foreignPayoutBatch.id }, select: { status: true } })).toEqual({ status: 'DRAFT' });
+    await prisma.mfaEnrollment.deleteMany({ where: { userId: adminUser.id } });
+    await prisma.refreshSession.updateMany({ where: { userId: adminUser.id, revokedAt: null }, data: { mfaVerifiedAt: null } });
   });
 
   it('enforces MFA enrollment, single-use step-up, replay protection, rotation and recovery for privileged mutations', async () => {
@@ -146,7 +152,7 @@ suite('MySQL-backed security HTTP acceptance (disposable database only)', () => 
     expect(recovered.body.secret).not.toBe(rotatedSecret);
     await request(app.getHttpServer()).post('/api/v1/auth/mfa/recover').set('Authorization', `Bearer ${recoveryToken}`).send({ currentPassword: adminPassword, recoveryCode }).expect(401);
     expect(await prisma.refreshSession.count({ where: { userId: adminUser.id, revokedAt: null } })).toBe(1);
-    await request(app.getHttpServer()).post('/api/v1/auth/logout').set('Authorization', `Bearer ${recoveryToken}`).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/logout').set('Authorization', `Bearer ${recoveryToken}`).expect(201);
     await request(app.getHttpServer()).post('/api/v1/campaigns').set('Authorization', `Bearer ${recoveryToken}`).send({}).expect(401);
   });
 
