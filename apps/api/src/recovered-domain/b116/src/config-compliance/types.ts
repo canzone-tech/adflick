@@ -1,0 +1,5 @@
+export type ComplianceStatus = "IN_SYNC" | "DRIFTED" | "UNKNOWN" | "INCOMPATIBLE" | "RECONCILIATION_PENDING" | "RECONCILIATION_FAILED";
+export interface ComplianceDevice { tenantId: string; deviceId: string; status: ComplianceStatus; desiredRevision?: number; reportedRevision?: number; desiredHash?: string; reportedHash?: string; lastReportedAt?: Date; online: boolean; playerVersion?: string; deviceModel?: string; groupIds: string[]; }
+export interface ComplianceSummary { total: number; compliant: number; drifted: number; unknown: number; incompatible: number; pending: number; failed: number; offline: number; compliancePercent: number | null; }
+export interface RemediationCandidate { deviceId: string; status: ComplianceStatus; online: boolean; desiredRevision: number; currentDesiredRevision: number; compatible: boolean; expectedHash: string; }
+export interface RemediationPlan { dryRun: boolean; total: number; eligibleDeviceIds: string[]; skipped: Array<{ deviceId: string; reason: string }>; batchCount: number; batchSize: number; }
