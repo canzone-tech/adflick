@@ -63,7 +63,7 @@ describe("Batch 130 work orders and operations", () => {
       { id: "c", tenantId: "tenant-a", dueAt: "2026-10-20T12:00:00Z", status: "VERIFIED" },
     ], "2026-10-21T11:00:00Z");
     expect(proposals.map(p => p.kind)).toEqual(["UPCOMING", "UNASSIGNED"]);
-    expect(proposals[0].idempotencyKey).toBe("maintenance-reminder:tenant-a:a:UPCOMING:2026-10-21T12:00:00Z");
+    expect(proposals[0]!.idempotencyKey).toBe("maintenance-reminder:tenant-a:a:UPCOMING:2026-10-21T12:00:00Z");
   });
   it("summarizes planned work-order status and overdue state without claiming observed downtime", () => {
     const summary = summarizeMaintenanceWorkOrders([
