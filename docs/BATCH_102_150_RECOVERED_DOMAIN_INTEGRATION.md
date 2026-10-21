@@ -8,10 +8,11 @@ The supplied Batches 102–150 archives were inspected in isolation before integ
 
 - **Batch 102:** canonical playback reconciliation implemented: event persistence, one-use authorization consumption, idempotency race handling, and accepted-playback durable outbox enqueue occur inside one Prisma transaction. A dedicated outbox migration was added without duplicating the canonical `PlaybackEvent` model.
 - **Batches 103–113:** recovered pure TypeScript policy/decision modules and Jest acceptance tests are integrated under `apps/api/src/recovered-domain/bNN/`.
-- **Batches 114–116:** source-backed delivery retry/offline-recovery, device configuration hashing/drift policy, and configuration compliance/remediation policy helpers plus Jest acceptance tests are now integrated under `apps/api/src/recovered-domain/b114`, `b115`, and `b116`. Their canonical DB/API wiring remains pending.
+- **Batches 114–116:** source-backed delivery retry/offline-recovery, device configuration hashing/drift policy, and configuration compliance/remediation policy helpers plus Jest acceptance tests are integrated under `apps/api/src/recovered-domain/b114`, `b115`, and `b116`. Their canonical DB/API wiring remains pending.
 - **Batches 117–118:** recovered pure TypeScript fleet-health/player-diagnostics policy modules and Jest acceptance tests are integrated under `apps/api/src/recovered-domain/b117` and `b118`.
 - **Batches 119–124:** source-backed player release/update governance, rollout health/maker-checker policy, post-update verification/retry, release trust/key-rotation readiness, device enrollment/credential rotation, and high-risk device-command authorization helpers plus Jest acceptance tests are integrated under `apps/api/src/recovered-domain/b119` through `b124`. Canonical API/Prisma/queue wiring and real cryptographic/device UAT remain pending.
-- **Batches 125–150:** source is inventoried and inspected; canonical integration remains pending except for the focused privileged-MFA security gate implemented from the Batch 141–150 security acceptance requirements.
+- **Batch 125:** command lifecycle transitions, event-sequence idempotency guard, and bounded dry-run bulk-command eligibility preview plus Jest acceptance tests are integrated under `apps/api/src/recovered-domain/b125`. Canonical API/Prisma/outbox/Socket.IO/cursor replay and dashboard UI integration remain pending.
+- **Batches 126–150:** source is inventoried and inspected; canonical integration remains pending except for the focused privileged-MFA security gate implemented from the Batch 141–150 security acceptance requirements.
 
 Tests are normalized to the repository's Jest runner; no new test framework dependency is introduced. Prisma fragments are retained as source-recovery evidence but are **not** blindly appended. Several fragments conflict with the canonical schema (for example Batch 102 targets `Device`/`Creative` and duplicates `PlaybackEvent`, while the canonical application uses `Screen`/`MediaAsset` and an existing `PlaybackEvent`).
 
@@ -25,7 +26,7 @@ Batches 051–101 do not have their original source archives in the current work
 
 The Smart TV/player implementation is also not complete merely because protocol and release-governance source exists. A real Flutter/Dart player and the declared device acceptance matrix still require implementation and test evidence.
 
-Privileged MFA is implemented in the canonical API/UI path, including protected enrollment secrets, recovery/rotation, single-use step-up challenges, rate limiting, session-bound expiry/revocation and audit evidence. The previously reported exact-SHA CI/browser/local verification gate is green on the prior release candidate; any new commit must pass the three CI gates again before release evidence can be considered current.
+Privileged MFA is implemented in the canonical API/UI path, including protected enrollment secrets, recovery/rotation, single-use step-up challenges, rate limiting, session-bound expiry/revocation and audit evidence. The latest exact-SHA Backend CI, Frontend CI, Release Evidence, and user-confirmed root local verification gate were green on commit `f72cdd364a531a4fbe992a0fa4e1a4737afddb61`; any new commit must pass all three CI gates again before release evidence can be considered current.
 
 ## Acceptance position
 
