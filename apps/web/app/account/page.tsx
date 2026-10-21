@@ -74,7 +74,7 @@ export default function AccountPage() {
     setMessage('Revoking the current server-side session…');
     try {
       await apiRequest('/auth/logout', { method: 'POST' });
-      router.replace('/login');
+      window.location.assign('/login');
     } catch (e) {
       setMessage('Logout could not be confirmed by the API: ' + errorMessage(e));
     } finally { setSigningOut(false); }
