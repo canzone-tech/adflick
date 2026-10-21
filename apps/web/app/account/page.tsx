@@ -126,7 +126,7 @@ export default function AccountPage() {
       setMfaMessage('Privileged step-up verified for this session.');
       await refreshMfa();
     } catch (e) {
-      setMfaMessage(errorMessage(e));
+      setMfaMessage(errorMessage(e).replace('MFA code was already used', 'MFA code has already been used'));
     } finally { setBusy(false); }
   }
 
