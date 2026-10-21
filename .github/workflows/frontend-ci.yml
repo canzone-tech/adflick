@@ -13,6 +13,7 @@ jobs:
     timeout-minutes: 25
     env:
       NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:4000/api/v1
+      NODE_OPTIONS: --import=./scripts/uat-stable-clock.mjs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
