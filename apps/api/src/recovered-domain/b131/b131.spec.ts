@@ -30,7 +30,7 @@ describe("Batch 131 maintenance analytics", () => {
   it("rejects negative inventory and duplicate movement keys", () => {
     const rows: StockMovement[] = [{ tenantId: "t1", partId: "p1", movementType: "CONSUMPTION", quantity: 1, idempotencyKey: "c1" }];
     expect(() => calculateInventory("p1", rows, 0)).toThrow();
-    expect(() => calculateInventory("p1", [...rows, rows[0]], 0)).toThrow("Duplicate idempotency key.");
+    expect(() => calculateInventory("p1", [...rows, rows[0]!], 0)).toThrow("Duplicate idempotency key.");
   });
   it("validates cost arithmetic and explicit currency", () => {
     const cost: CostEntry = { tenantId: "t1", workOrderId: "wo1", category: "PART", quantity: 2,
