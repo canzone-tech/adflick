@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiRequest, errorMessage } from '../../lib/api';
 import '../login/login.css';
 
@@ -10,7 +9,6 @@ type MfaStatus = { enabled: boolean; enrollmentPending: boolean; privileged: boo
 type MfaSetup = { secret: string; otpauthUri: string; recoveryCodes: string[]; enrollmentExpiresAt?: string; message: string };
 
 export default function AccountPage() {
-  const router = useRouter();
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [mfa, setMfa] = useState<MfaStatus | null>(null);
   const [message, setMessage] = useState('Checking your authenticated session…');
@@ -170,6 +168,9 @@ export default function AccountPage() {
         <p>Role: {identity.roles.join(', ')}</p>
         <p>Organization ID: {identity.organizationId || 'not assigned'}</p>
         <p><Link href="/health">Open authenticated player health</Link></p>
+        <button disabled={signingOut} onClick={() => void logout()} aria-label="Sign out of ADFLICK" className="account-logout">
+          {signingOut ? 'Signing out…' : 'Sign out securely'}
+        </button>
 
         <section className="mfa-panel" aria-labelledby="mfa-heading">
           <div className="mfa-heading-row"><div><span className="login-eyebrow">PRIVILEGED SECURITY</span><h2 id="mfa-heading">Multi-factor authentication</h2></div><span data-testid="mfa-status" className={mfa?.enabled ? 'mfa-badge enabled' : 'mfa-badge'}>{mfaLoading ? 'Checking…' : mfa?.enabled ? 'Enabled' : 'Not enabled'}</span></div>
@@ -199,10 +200,6 @@ export default function AccountPage() {
           </div></details>}
           {mfaMessage && <div className="login-notice" role="status">{mfaMessage}</div>}
         </section>
-
-        <button disabled={signingOut} onClick={() => void logout()} aria-label="Sign out of ADFLICK" className="account-logout">
-          {signingOut ? 'Signing out…' : 'Sign out securely'}
-        </button>
       </> : <p><Link href="/login">Go to sign in</Link></p>}
       <div className="login-notice" role="status">{message}</div>
       <small>Session credentials use Secure, HttpOnly cookies. The API rejects untrusted cross-origin state-changing requests.</small>
