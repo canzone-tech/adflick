@@ -13,7 +13,6 @@ jobs:
     timeout-minutes: 25
     env:
       NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:4000/api/v1
-      NODE_OPTIONS: --import=./scripts/uat-stable-clock.mjs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,10 +23,12 @@ jobs:
       - name: Browser UAT through isolated compiled API and web plus fresh MySQL
         env:
           ADFLICK_BROWSER_UAT: "1"
+          NODE_OPTIONS: --import=./scripts/uat-stable-clock.mjs
         run: npm run local:uat
       - name: Persistent MySQL development first-admin real-browser UAT
         env:
           ADFLICK_LOCAL_DEV_CI: "1"
+          NODE_OPTIONS: --import=./scripts/uat-stable-clock.mjs
         run: npm run local:dev:uat
       - name: Upload real-browser UAT evidence
         if: always()
