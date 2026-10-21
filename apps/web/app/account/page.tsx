@@ -101,7 +101,7 @@ export default function AccountPage() {
       setEnrollPassword('');
       setEnrollCode('');
       setMfa((current) => current ? { ...current, enabled: true, enrollmentPending: false, stepUpVerifiedUntil: null } : current);
-      setMfaMessage(result.message || 'MFA enabled. This browser session is step-up verified. Keep the recovery codes offline.');
+      setMfaMessage(result?.message || 'MFA enabled. This browser session is step-up verified. Keep the recovery codes offline.');
     } catch (e) {
       setMfaMessage(errorMessage(e));
     } finally { setBusy(false); }
@@ -174,6 +174,7 @@ export default function AccountPage() {
         <section className="mfa-panel" aria-labelledby="mfa-heading">
           <div className="mfa-heading-row"><div><span className="login-eyebrow">PRIVILEGED SECURITY</span><h2 id="mfa-heading">Multi-factor authentication</h2></div><span data-testid="mfa-status" className={mfa?.enabled ? 'mfa-badge enabled' : 'mfa-badge'}>{mfaLoading ? 'Checking…' : mfa?.enabled ? 'Enabled' : 'Not enabled'}</span></div>
           <p className="mfa-copy">Privileged operational mutations require a fresh MFA step-up. Secrets and recovery codes are never returned by the status endpoint.</p>
+          {mfa?.enabled && <p className="mfa-copy" data-testid="mfa-enabled-summary">MFA enabled for this session. Privileged mutations still require a fresh step-up after session changes.</p>}
           {mfa?.privileged && !mfa.enabled && !setup && <form onSubmit={(e) => { e.preventDefault(); void beginEnrollment(); }} className="mfa-form">
             <label>Current password<input data-testid="mfa-enroll-password" type="password" autoComplete="current-password" value={enrollPassword} onChange={(e) => setEnrollPassword(e.target.value)} required maxLength={128} /></label>
             <button data-testid="mfa-enroll-button" disabled={busy}>{busy ? 'Preparing…' : 'Start MFA enrollment'}</button>
