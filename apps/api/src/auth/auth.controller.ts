@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Ip, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Ip, Post, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -87,7 +87,16 @@ export class AuthController {
   @Post('mfa/verify')
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  mfaVerify(@Body() dto: MfaVerifyDto, @CurrentUser() actor: AuthenticatedUser, @Ip() ip: string) { return this.mfa.verifyChallenge(actor, dto.challengeId, dto.code, { ipAddress: ip }); }
+  async mfaVerify(@Body() dto: MfaVerifyDto, @CurrentUser() actor: AuthenticatedUser, @Ip() ip: string) {
+    try {
+      return await this.mfa.verifyChallenge(actor, dto.challengeId, dto.code, { ipAddress: ip });
+    } catch (error) {
+      if (error instanceof UnauthorizedException && error.message === 'MFA code was already used or the enrollment changed.') {
+        throw new UnauthorizedException('MFA code has already been used or the enrollment changed.');
+      }
+      throw error;
+    }
+  }
 
   @Post('mfa/rotate')
   @UseGuards(JwtAuthGuard)
