@@ -8,7 +8,7 @@ The supplied Batches 102–150 archives were inspected in isolation before integ
 
 - **Batch 102:** canonical playback reconciliation implemented: event persistence, one-use authorization consumption, idempotency race handling, and accepted-playback durable outbox enqueue occur inside one Prisma transaction. A dedicated outbox migration was added without duplicating the canonical `PlaybackEvent` model.
 - **Batches 103–113:** recovered pure TypeScript policy/decision modules and Jest acceptance tests are integrated under `apps/api/src/recovered-domain/bNN/`.
-- **Batches 114–116:** source inspected; canonical integration is still pending.
+- **Batches 114–116:** source-backed delivery retry/offline-recovery, device configuration hashing/drift policy, and configuration compliance/remediation policy helpers plus Jest acceptance tests are now integrated under `apps/api/src/recovered-domain/b114`, `b115`, and `b116`. Their canonical DB/API wiring remains pending.
 - **Batches 117–118:** recovered pure TypeScript fleet-health/player-diagnostics policy modules and Jest acceptance tests are integrated under `apps/api/src/recovered-domain/b117` and `b118`.
 - **Batches 119–150:** source is inventoried and inspected; canonical integration remains pending except for the focused privileged-MFA security gate implemented from the Batch 141–150 security acceptance requirements.
 
@@ -24,7 +24,7 @@ Batches 051–101 do not have their original source archives in the current work
 
 The Smart TV/player implementation is also not complete merely because protocol and release-governance source exists. A real Flutter/Dart player and the declared device acceptance matrix still require implementation and test evidence.
 
-Privileged MFA is now implemented in the canonical API/UI path, including protected enrollment secrets, recovery/rotation, single-use step-up challenges, rate limiting, session-bound expiry/revocation and audit evidence. Issue #7 remains open until exact CI, browser UAT and owner-confirmed local verification evidence are green.
+Privileged MFA is implemented in the canonical API/UI path, including protected enrollment secrets, recovery/rotation, single-use step-up challenges, rate limiting, session-bound expiry/revocation and audit evidence. The previously reported exact-SHA CI/browser/local verification gate is green on the prior release candidate; any new commit must pass the three CI gates again before release evidence can be considered current.
 
 ## Acceptance position
 
