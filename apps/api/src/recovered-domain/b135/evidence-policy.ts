@@ -15,9 +15,10 @@ function hasUnsafeFileName(fileName: string): boolean {
 
 export function validateEvidence(items: EvidenceItem[], policy: EvidencePolicy): string[] {
   const errors: string[] = [];
-  if (!Number.isSafeInteger(policy.maxFiles) || policy.maxFiles < 0) errors.push("Evidence file-count policy is invalid.");
+  const validMaxFiles = Number.isSafeInteger(policy.maxFiles) && policy.maxFiles >= 0;
+  if (!validMaxFiles) errors.push("Evidence file-count policy is invalid.");
   if (!Number.isSafeInteger(policy.maxFileBytes) || policy.maxFileBytes <= 0) errors.push("Evidence file-size policy is invalid.");
-  if (items.length > policy.maxFiles) errors.push(`Maximum ${policy.maxFiles} evidence files allowed.`);
+  if (validMaxFiles && items.length > policy.maxFiles) errors.push(`Maximum ${policy.maxFiles} evidence files allowed.`);
 
   const allowedMimeTypes = new Set(policy.allowedMimeTypes.map((mimeType) => mimeType.trim().toLowerCase()).filter(Boolean));
   const seen = new Set<string>();
