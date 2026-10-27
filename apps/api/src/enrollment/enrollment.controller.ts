@@ -19,6 +19,33 @@ const STAFF = [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.AUDIT
 export class EnrollmentController {
   constructor(private readonly enrollment: EnrollmentService) {}
 
+  @Get('recipient')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
+  @Throttle({ default: { limit: 12, ttl: 60_000 } })
+  recipient(@CurrentUser() actor: AuthenticatedUser, @Query('email') email: string) {
+    return this.enrollment.findEligibleRecipient(actor, email);
+  }
+
+  @Get('progress')
+  @Roles(UserRole.MEMBER)
+  progress(@CurrentUser() actor: AuthenticatedUser) {
+    return this.enrollment.progress(actor);
+  }
+
+  @Get('eligible/:memberCode')
+  @Roles(UserRole.MEMBER)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  eligible(@CurrentUser() actor: AuthenticatedUser, @Param('memberCode') memberCode: string) {
+    return this.enrollment.eligible(actor, memberCode);
+  }
+
+  @Post('preflight')
+  @Roles(UserRole.MEMBER)
+  @Throttle({ default: { limit: 12, ttl: 60_000 } })
+  preflight(@CurrentUser() actor: AuthenticatedUser, @Body() dto: EnrollExistingMemberDto) {
+    return this.enrollment.preflight(actor, dto);
+  }
+
   @Get('packages')
   @Roles(...STAFF)
   packages(@CurrentUser() user: AuthenticatedUser) { return this.enrollment.packages(user); }
@@ -34,6 +61,12 @@ export class EnrollmentController {
   @Roles(UserRole.SUPER_ADMIN)
   approvePackage(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: ApprovalReferenceDto) {
     return this.enrollment.approvePackage(user, id, dto.approvalReference);
+  }
+
+  @Get('consents')
+  @Roles(...STAFF)
+  listConsents(@CurrentUser() actor: AuthenticatedUser) {
+    return this.enrollment.listConsents(actor);
   }
 
   @Post('consents')

@@ -27,3 +27,14 @@ Feature switches do **not** constitute approval. Product/legal/finance signoffs,
 New `apps/api/test/enrollment.mysql.e2e-spec.ts` runs through the same disposable MySQL test gate as member genealogy; validates maker–checker, tenant scoping, policy gates, one-time issuance, concurrent redemption and unique binary slot, revoke, expiry, legal-version/hash mismatch, audit and transactional rollback. Tests are real DB/API calls, not pure policy-only mocks.
 
 SRS AT-01..AT-05 remain **PARTIAL**: atomic enrollment of an **existing authenticated MEMBER** is not full first-time registration, because publicly verified email/phone OTP, KYC, complete consent/legal review, root bootstrap and lifecycle policy approval are not implemented. Never present PENDING_ACTIVATION as active, paid or reward-qualified. MySQL is authoritative. Historic migrations untouched; this is an additive migration only.
+
+## Member-facing and admin-facing integration (next bounded slice)
+
+- `GET /member-enrollment/progress` (MEMBER only): server derives actual profile status, verified unconsumed email OTP, issued recipient-bound PIN presence, current approved consent and operator gate. No raw PIN, OTP, wallet value or income claims.
+- `GET /member-enrollment/eligible/:memberCode` (MEMBER only): exact active tenant-local sponsor or placement-parent lookup with root-connectivity verification and provisional LEFT/RIGHT occupancy booleans. No email/name/phone exposed. No listing/foreign tenant enumeration or slot reservation.
+- `POST /member-enrollment/preflight` (MEMBER only): checks the actual recipient-bound PIN, current approved consent/hash, verified OTP, sponsor/parent root connection and free requested slot. It **does not consume**, guarantee or reserve anything. `POST /enroll` revalidates and commits under MySQL serializable transaction; 409 is a legitimate race outcome.
+- `GET /member-enrollment/recipient?email=` (ORGANIZATION_ADMIN or SUPER_ADMIN): exact-email lookup for active organization MEMBER user **without** a profile, to support authorized PIN issuance. Returns only minimal identity and no credentials or PIN.
+- `GET /member-enrollment/consents` (admin/auditor): tenant-local consent versions/status/digests (no recipient PII), allowing server-side independent maker-checker approval from the web console.
+- `/member-onboarding` is a real email-OTP/PIN/consent/sponsor/placement UX plus owned, bounded genealogy after successful pending enrollment. `/member-operations` manages real package/consent drafts, independent approvals, PIN recipients, issuance and revocation. Both share canonical responsive sidebar/topbar and display real API errors, no demo records.
+
+**SMS phone OTP is not implemented because provider, lawful templates, consent and costs require separate approval.** This unit does not claim SRS-complete activation and does not authorize production deployments.

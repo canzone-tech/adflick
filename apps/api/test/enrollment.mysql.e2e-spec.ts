@@ -195,6 +195,56 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['alpha']!}})).toBe(0);
   });
 
+  it('scopes sponsor eligibility and staff recipient lookup to real tenant members', async () => {
+    await request(app.getHttpServer()).get('/api/v1/member-enrollment/progress').expect(401);
+    await http('maker').get('/member-enrollment/progress').expect(403);
+    await http('foreignStaff').get('/member-enrollment/recipient?email=x@example.test').expect(403);
+    const email = (await prisma.user.findUniqueOrThrow({
+      where: { id: account['alpha']! }, select: { email: true },
+    })).email;
+    const found = await http('maker').get('/member-enrollment/recipient?email='+encodeURIComponent(email)).expect(200);
+    expect(found.body).toMatchObject({ id: account['alpha'], email });
+    expect(found.body).not.toHaveProperty('passwordHash');
+    await http('foreignStaff').get('/member-enrollment/pins').expect(403);
+    await http('maker').get('/member-enrollment/recipient?email=invalid').expect(400);
+    await http('maker').get('/member-enrollment/recipient?email=no-such-user@example.test').expect(404);
+    const candidate = await http('alpha').get('/member-enrollment/eligible/'+rootCode).expect(200);
+    expect(candidate.body).toMatchObject({
+      memberCode: rootCode, eligible: true, provisional: true,
+      leftAvailable: true, rightAvailable: true,
+    });
+    expect(JSON.stringify(candidate.body)).not.toContain('@example.test');
+    await http('alpha').get('/member-enrollment/eligible/'+foreignCode).expect(404);
+    await http('alpha').get('/member-enrollment/eligible/invalid').expect(404);
+    await http('maker').get('/member-enrollment/eligible/'+rootCode).expect(403);
+  });
+
+  it('preflight checks real PIN/OTP/consent and free LEFT slot without mutating records', async () => {
+    const before = await http('alpha').get('/member-enrollment/progress').expect(200);
+    expect(before.body).toMatchObject({
+      membership: null, hasIssuedPin: true, emailOtpVerified: true,
+      enrollmentEnabled: true, mobileOtpProviderEnabled: false,
+    });
+    expect(before.body.consent).toMatchObject({
+      version: consentVersion, documentSha256: consentHash,
+    });
+    expect(JSON.stringify(before.body)).not.toContain(issued['alpha']!.pin);
+    const checked = await http('alpha').post('/member-enrollment/preflight', enrollment('alpha')).expect(201);
+    expect(checked.body).toMatchObject({
+      sponsorMemberCode: rootCode, placementParentMemberCode: rootCode,
+      provisional: true, placementAvailable: true, pinAssigned: true,
+    });
+    await http('alpha').post('/member-enrollment/preflight', enrollment('alpha',{sponsorMemberCode: foreignCode})).expect(404);
+    await http('alpha').post('/member-enrollment/preflight', enrollment('alpha',{pin: ((issued['alpha']!.pin.startsWith('Z') ? 'Y' : 'Z') + issued['alpha']!.pin.slice(1))})).expect(409);
+    await http('alpha').post('/member-enrollment/preflight', enrollment('alpha',{consentAccepted: false})).expect(400);
+    expect(await prisma.memberProfile.count({
+      where:{organizationId:org,userId:account['alpha']!},
+    })).toBe(0);
+    expect((await prisma.enrollmentPin.findUniqueOrThrow({
+      where: { id: issued['alpha']!.id },
+    })).status).toBe('ISSUED');
+  });
+
   it('enrolls an authenticated existing member atomically as PENDING_ACTIVATION, never pays', async () => {
     const res = await http('alpha').post('/member-enrollment/enroll', enrollment('alpha')).expect(201);
     expect(res.body.status).toBe('PENDING_ACTIVATION');
@@ -209,6 +259,14 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     expect(member.enrollmentPin?.id).toBe(issued['alpha']!.id);
     expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha']!.id}})).status).toBe('REDEEMED');
     await http('alpha').post('/member-enrollment/enroll', enrollment('alpha')).expect(409);
+    const progress = await http('alpha').get('/member-enrollment/progress').expect(200);
+    expect(progress.body.membership).toMatchObject({status:'PENDING_ACTIVATION'});
+    expect(progress.body.hasIssuedPin).toBe(false);
+    expect(progress.body.emailOtpVerified).toBe(false);
+    await http('alpha').post('/member-enrollment/preflight', enrollment('alpha')).expect(409);
+    const placement = await http('gamma').get('/member-enrollment/eligible/'+rootCode).expect(200);
+    expect(placement.body).toMatchObject({leftAvailable:false,rightAvailable:true});
+
     const mine = await http('alpha').get('/members/me').expect(200);
     expect(mine.body.status).toBe('PENDING_ACTIVATION');
     expect(await prisma.auditEvent.count({where:{organizationId:org,action:'MEMBER_EPIN_ENROLLMENT_PENDING',entityId:member.id}})).toBe(1);

@@ -21,6 +21,8 @@ export const WORKSPACE_LINKS = [
   { href: '/incidents', label: 'Incidents', symbol: '⚑', section: 'Devices' },
   { href: '/finance', label: 'Reward Finance', symbol: '₹', section: 'Finance' },
   { href: '/finance/payouts', label: 'Reconciliation', symbol: '≡', section: 'Finance' },
+  { href: '/member-onboarding', label: 'My Membership', symbol: '◈', section: 'Membership' },
+  { href: '/member-operations', label: 'Member Operations', symbol: '⊞', section: 'Membership' },
   { href: '/communications', label: 'Email / OTP Settings', symbol: '✉', section: 'Account' },
   { href: '/email-verification', label: 'Verify Email', symbol: '◇', section: 'Account' },
   { href: '/account', label: 'Account & MFA', symbol: '◎', section: 'Account' },

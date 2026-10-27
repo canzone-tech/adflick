@@ -95,6 +95,16 @@ export class EnrollmentService {
     });
   }
 
+  async listConsents(actor: AuthenticatedUser) {
+    const organizationId = this.organization(actor);
+    return this.prisma.memberConsentDocument.findMany({
+      where: { organizationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+      select: { id: true, version: true, status: true, documentSha256: true,
+        createdAt: true, approvedAt: true },
+    });
+  }
+
   async createConsent(actor: AuthenticatedUser, dto: CreateMemberConsentDto) {
     this.enabled('ADFLICK_MEMBER_CONFIG_ENABLED');
     const organizationId = this.organization(actor);
@@ -208,6 +218,184 @@ export class EnrollmentService {
       await tx.auditEvent.create({ data: this.audit(organizationId, actor, 'MEMBER_EPIN_REVOKED', 'EnrollmentPin', id, { reason: reason.trim() }) });
       return { id, status: EnrollmentPinStatus.REVOKED };
     });
+  }
+
+  /** Exact-email lookup for authorized PIN issuers; no global member directory leak. */
+  async findEligibleRecipient(actor: AuthenticatedUser, email: string) {
+    const organizationId = this.organization(actor);
+    if (!email || email.length > 254 || !/^[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+$/.test(email)) {
+      throw new BadRequestException('Enter a valid existing member account email.');
+    }
+    const user = await this.prisma.user.findFirst({
+      where: {
+        organizationId, email: email.trim().toLowerCase(), status: UserStatus.ACTIVE,
+        roleAssignments: { some: { role: UserRole.MEMBER } },
+        memberProfile: { is: null },
+      },
+      select: { id: true, email: true, displayName: true },
+    });
+    if (!user) throw new NotFoundException('Eligible recipient not found.');
+    return user;
+  }
+
+  /** Real MySQL-backed member progress; no claim of activation or remuneration. */
+  async progress(actor: AuthenticatedUser) {
+    const organizationId = this.organization(actor);
+    const now = new Date();
+    const [profile, verifiedOtp, issuedPin, consent] = await Promise.all([
+      this.prisma.memberProfile.findFirst({
+        where: { organizationId, userId: actor.sub },
+        select: { memberCode: true, status: true, activatedAt: true },
+      }),
+      this.prisma.memberEmailOtp.findFirst({
+        where: { organizationId, userId: actor.sub, purpose: 'MEMBER_ENROLLMENT',
+          status: MemberEmailOtpStatus.VERIFIED, verifiedAt: { not: null },
+          expiresAt: { gt: now } },
+        select: { expiresAt: true },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+      this.prisma.enrollmentPin.findFirst({
+        where: { organizationId, recipientUserId: actor.sub,
+          status: EnrollmentPinStatus.ISSUED, expiresAt: { gt: now },
+          package: { status: MemberPackageStatus.ENABLED } },
+        select: { expiresAt: true, package: { select: { code: true, name: true } } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+      this.prisma.memberConsentDocument.findFirst({
+        where: { organizationId, status: MemberConsentDocumentStatus.APPROVED },
+        orderBy: [{ approvedAt: 'desc' }, { id: 'desc' }],
+        select: { version: true, documentSha256: true, documentText: true },
+      }),
+    ]);
+    return {
+      membership: profile ?? null, emailOtpVerified: !!verifiedOtp,
+      emailOtpExpiresAt: verifiedOtp?.expiresAt ?? null,
+      hasIssuedPin: !!issuedPin,
+      pinExpiresAt: issuedPin?.expiresAt ?? null,
+      pinPackage: issuedPin?.package ?? null,
+      consent,
+      enrollmentEnabled: process.env.ADFLICK_MEMBER_ENROLLMENT_ENABLED === 'true',
+      mobileOtpProviderEnabled: false,
+      reminder: 'Email verification and a pending genealogy record do not activate membership, KYC, compensation or payments.',
+    };
+  }
+
+  /**
+   * Active, tenant-local genealogy eligibility. Never return names, email,
+   * phone, referrer trees or other members' personal information.
+   */
+  async eligible(actor: AuthenticatedUser, code: string) {
+    const organizationId = this.organization(actor);
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(code)) {
+      throw new NotFoundException('Eligible member not found.');
+    }
+    const profile = await this.prisma.memberProfile.findUnique({
+      where: { organizationId_memberCode: { organizationId, memberCode: code } },
+      select: { id: true, memberCode: true, status: true },
+    });
+    if (!profile || profile.status !== 'ACTIVE') {
+      throw new NotFoundException('Eligible member not found.');
+    }
+    const root = await this.prisma.binaryTreeRoot.findUnique({
+      where: { organizationId }, select: { memberId: true },
+    });
+    if (!root || !(await this.isRootConnected(organizationId, profile.id, root.memberId))) {
+      throw new NotFoundException('Eligible member not found.');
+    }
+    const slots = await this.prisma.placementNode.findMany({
+      where: { organizationId, parentMemberId: profile.id },
+      select: { side: true },
+    });
+    return {
+      memberCode: profile.memberCode,
+      eligible: true,
+      leftAvailable: !slots.some(slot => slot.side === BinarySide.LEFT),
+      rightAvailable: !slots.some(slot => slot.side === BinarySide.RIGHT),
+      provisional: true,
+      note: 'Slot availability is a read-only snapshot, not a reservation. Final MySQL transaction decides.',
+    };
+  }
+
+  private async isRootConnected(organizationId: string, startMemberId: string, rootMemberId: string) {
+    const seen = new Set<string>();
+    let cursor = startMemberId;
+    for (let i = 0; i < 512; i++) {
+      if (cursor === rootMemberId) return true;
+      if (seen.has(cursor)) return false;
+      seen.add(cursor);
+      const edge = await this.prisma.placementNode.findFirst({
+        where: { organizationId, memberId: cursor },
+        select: { parentMemberId: true },
+      });
+      if (!edge) return false;
+      cursor = edge.parentMemberId;
+    }
+    return false;
+  }
+
+  /** No locks or mutations; the final serializable enrollment is authoritative. */
+  async preflight(actor: AuthenticatedUser, dto: EnrollExistingMemberDto) {
+    this.enabled('ADFLICK_MEMBER_ENROLLMENT_ENABLED');
+    const organizationId = this.organization(actor);
+    const now = new Date();
+    const [user, profile, pin, sponsor, parent, consent, currentConsent, otp] = await Promise.all([
+      this.prisma.user.findFirst({
+        where: { id: actor.sub, organizationId, status: UserStatus.ACTIVE,
+          roleAssignments: { some: { role: UserRole.MEMBER } } },
+        select: { id: true },
+      }),
+      this.prisma.memberProfile.findFirst({
+        where: { organizationId, userId: actor.sub },
+        select: { id: true },
+      }),
+      this.prisma.enrollmentPin.findUnique({
+        where: { tokenHash: this.pinHash(dto.pin) },
+        select: { organizationId: true, recipientUserId: true, status: true,
+          expiresAt: true, package: { select: { status: true } } },
+      }),
+      this.eligible(actor, dto.sponsorMemberCode),
+      this.eligible(actor, dto.placementParentMemberCode),
+      this.prisma.memberConsentDocument.findUnique({
+        where: { organizationId_version: { organizationId, version: dto.consentVersion } },
+        select: { id: true, status: true, documentSha256: true },
+      }),
+      this.prisma.memberConsentDocument.findFirst({
+        where: { organizationId, status: MemberConsentDocumentStatus.APPROVED },
+        orderBy: [{ approvedAt: 'desc' }, { id: 'desc' }], select: { id: true },
+      }),
+      this.prisma.memberEmailOtp.findFirst({
+        where: { organizationId, userId: actor.sub, purpose: 'MEMBER_ENROLLMENT',
+          status: MemberEmailOtpStatus.VERIFIED, verifiedAt: { not: null },
+          expiresAt: { gt: now } },
+        select: { id: true },
+      }),
+    ]);
+    if (!user || profile) throw new ConflictException('Account is not eligible for a second enrollment.');
+    if (!pin || pin.organizationId !== organizationId || pin.recipientUserId !== actor.sub ||
+        pin.status !== EnrollmentPinStatus.ISSUED || pin.expiresAt <= now ||
+        pin.package.status !== MemberPackageStatus.ENABLED) {
+      throw new ConflictException('PIN is not valid, available or assigned to this account.');
+    }
+    if (!consent || !currentConsent || consent.id !== currentConsent.id ||
+        consent.status !== MemberConsentDocumentStatus.APPROVED ||
+        consent.documentSha256.toLowerCase() !== dto.consentDocumentSha256.toLowerCase() ||
+        !dto.consentAccepted) {
+      throw new BadRequestException('Current approved consent must be accepted.');
+    }
+    if (!otp) throw new ConflictException('A verified email OTP is required.');
+    const sideAvailable = dto.side === BinarySide.LEFT ? parent.leftAvailable : parent.rightAvailable;
+    if (!sideAvailable) throw new ConflictException('Requested binary side is already occupied.');
+    return {
+      provisional: true,
+      sponsorMemberCode: sponsor.memberCode,
+      placementParentMemberCode: parent.memberCode,
+      side: dto.side,
+      pinAssigned: true,
+      emailOtpVerified: true,
+      consentApproved: true,
+      placementAvailable: true,
+      message: 'Preflight passed. No placement or PIN has been reserved. Submit enrollment to commit atomically.',
+    };
   }
 
   /** Existing authenticated account only. Public email/OTP registration is separately blocked. */

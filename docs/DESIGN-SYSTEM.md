@@ -22,3 +22,7 @@
 ## Current implementation boundary
 
 This shared shell corrects **navigation and layout consistency** only. Existing campaign/fleet/CMS/delivery/playback/scheduler preview-only screens still need genuine MySQL-backed functionality and must not be described as complete. SRS v1.0 member/admin/public UX will use the same design system after its functional requirements are implemented. Production stays blocked.
+
+## Member and financial operations layout extension
+
+The two real API-backed member pages `/member-onboarding` and `/member-operations` are children of the same `AppChrome`, not duplicate sidebar/topbar implementations. The member page shows owned genealogy and provisional binary slot selection; the admin page uses real versioned policy/consent/PIN records, no fabricated balance or payouts. Browser route checks include both pages at shared shell breakpoints. Member/administrator visibility is enforced by JWT/RBAC server-side; menu visibility is not authorization. Default-OFF operator switches cannot be changed from these views.

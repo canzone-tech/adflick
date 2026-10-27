@@ -88,3 +88,8 @@ Read-only e-PIN listings, draft non-financial packages, versioned consent, maker
 ## 2026-10-27 onward: public verified-account bootstrap
 
 Client SRS §5.3 and Appendix B.1 require e-PIN, sponsor, **mobile OTP**, consent and atomic member creation. The additive `public-signup/` slice provides only tenant-gated, approved-consent, SMTP **email-verified account creation** with Argon2 credential, MEMBER role and audit. It intentionally **does not create MemberProfile, redeem PIN, assign genealogy, verify a phone or activate payments**. Business/legal/provider decisions for mobile OTP and full registration remain pending; AT-01–05 and AT-19 are not product PASS. See `docs/PUBLIC-REGISTRATION-SLICE.md`.
+
+
+## Member operations UI and provisional sponsor/placement preflight
+
+The member-onboarding unit uses authenticated `GET /api/v1/member-enrollment/progress`, `GET /eligible/:memberCode` and `POST /preflight` as **read-only, tenant-bound checks** before the existing serializable `POST /enroll`. Read-only checks never reserve PINs or LEFT/RIGHT slots. The actual MySQL transaction and one-use OTP/PIN constraints determine success. `GET /recipient?email=` enables authorized exact-email PIN recipient lookup, and `GET /consents` provides actual versioned staff records. Real browser routes `/member-onboarding` and `/member-operations` share AppChrome and use current authenticated API data only. This is **partial** SRS §6–§8 implementation; SMS/provider UAT, public mobile verification, placement corrections, financial policies and AT-01…05 full acceptance are still pending.
