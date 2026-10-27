@@ -63,7 +63,7 @@ CREATE TABLE `AccountConsentRecord` (
   `documentId` VARCHAR(30) NOT NULL,
   `acceptedAt` DATETIME(3) NOT NULL,
   UNIQUE INDEX `AccountConsentRecord_userId_key`(`userId`),
-  UNIQUE INDEX `AccountConsentRecord_organizationId_userId_key`(`organizationId`,`userId`),
+  UNIQUE INDEX `AccountConsentRecord_userId_organizationId_key`(`userId`,`organizationId`),
   INDEX `AccountConsentRecord_organizationId_documentId_idx`(`organizationId`,`documentId`),
   PRIMARY KEY (`id`),
   CONSTRAINT `AccountConsentRecord_organizationId_fkey`

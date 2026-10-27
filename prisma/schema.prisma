@@ -1268,6 +1268,6 @@ model AccountConsentRecord {
   user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
   document MemberConsentDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Restrict)
 
-  @@unique([organizationId, userId])
+  @@unique([userId, organizationId])
   @@index([organizationId, documentId])
 }
