@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsISO8601, IsNotEmpty, IsString, IsUUID, Matches, MaxLength, MinLength, Equals } from 'class-validator';
+import { IsBoolean, IsEnum, IsISO8601, IsNotEmpty, IsString, Matches, MaxLength, MinLength, Equals } from 'class-validator';
 import { BinarySide } from '@prisma/client';
 
 export class CreateMemberPackageDto {
