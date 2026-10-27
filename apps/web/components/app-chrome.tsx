@@ -33,7 +33,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
   const navRef = useRef<HTMLElement>(null);
 
   // The login page is public. No operations chrome is shown around the login form.
-  if (pathname === '/login') return <>{children}</>;
+  if (pathname === '/login' || pathname === '/join') return <>{children}</>;
   return <WorkspaceShell
     pathname={pathname}
     mobileOpen={mobileOpen}

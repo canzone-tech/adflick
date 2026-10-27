@@ -17,6 +17,7 @@ const layout = read('apps/web/app/layout.tsx');
 const globals = read('apps/web/app/globals.css');
 if (globals.includes('.screen-card{') || globals.includes('.sidebar{') || globals.includes('.topbar{')) throw new Error('Retired homepage CSS must not leak into other workspace pages.');
 const browser = read('scripts/browser-uat.mjs');
+if (!shell.includes("pathname === '/login' || pathname === '/join'")) throw new Error('Public Join Now must remain outside operations chrome.');
 if (!layout.includes('<AppChrome>{children}</AppChrome>') || !layout.includes("import './app-chrome.css'")) {
   throw new Error('All operations pages must receive the central AppChrome in root layout.');
 }
@@ -27,14 +28,14 @@ for (const route of ['/','/cms','/campaigns','/delivery','/scheduler','/fleet','
 for (const control of ['aria-current','aria-expanded','aria-controls','app-skip-link','app-menu-toggle','app-backdrop','handleDrawerKeyDown','Escape']) {
   if (!shell.includes(control)) throw new Error('Missing accessible shell control: '+control);
 }
-for (const test of ['Emulation.setDeviceMetricsOverride', 'app-topbar', 'app-sidebar', '320, 390, 768, 1280', "path === '/login'"]) {
+for (const test of ['Emulation.setDeviceMetricsOverride', 'app-topbar', 'app-sidebar', '320, 390, 768, 1280', "['/login','/join'].includes(path)"]) {
   if (!browser.includes(test)) throw new Error('Missing real-browser shell regression: '+test);
 }
 const pages = [
   'page.tsx','cms/page.tsx','campaigns/page.tsx','delivery/page.tsx','scheduler/page.tsx',
   'fleet/page.tsx','playback/page.tsx','health/page.tsx','incidents/page.tsx',
   'finance/page.tsx','finance/payouts/page.tsx','account/page.tsx',
-  'communications/page.tsx','email-verification/page.tsx',
+  'communications/page.tsx','email-verification/page.tsx','join/page.tsx',
 ];
 for (const page of pages) {
   const content = read('apps/web/app/'+page);

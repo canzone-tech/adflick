@@ -11,6 +11,7 @@ type Policy = {
   resendSeconds: number; maxAttempts: number; version: number;
   smtpReady: boolean; platformEnabled: boolean; smsEnabled: boolean;
 };
+type JoinPolicy = { enabled:boolean;version:number;platformEnabled:boolean;otpEnabled:boolean;smtpReady:boolean;memberActivationEnabled:false };
 const defaultPolicy: Policy = {
   emailEnabled: false, digits: 6, ttlSeconds: 300,
   resendSeconds: 60, maxAttempts: 5, version: 0,
@@ -19,6 +20,7 @@ const defaultPolicy: Policy = {
 export default function CommunicationsPage() {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [policy, setPolicy] = useState<Policy>(defaultPolicy);
+  const [joinPolicy, setJoinPolicy] = useState<JoinPolicy|null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -28,8 +30,9 @@ export default function CommunicationsPage() {
     void Promise.all([
       apiRequest<Identity>('/auth/me'),
       apiRequest<Policy>('/member-enrollment/otp/policy'),
-    ]).then(([user, data]) => {
-      if (alive) { setIdentity(user); setPolicy(data); }
+      apiRequest<JoinPolicy>('/admin/public-signup/policy'),
+    ]).then(([user, data, joining]) => {
+      if (alive) { setIdentity(user); setPolicy(data); setJoinPolicy(joining); }
     }).catch((e: unknown) => {
       if (alive) setError(errorMessage(e));
     }).finally(() => { if (alive) setLoaded(true); });
@@ -51,6 +54,19 @@ export default function CommunicationsPage() {
     } catch (e) {
       setError(errorMessage(e));
     } finally { setBusy(false); }
+  }
+  async function saveJoin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!joinPolicy) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const changed = await apiRequest<JoinPolicy>('/admin/public-signup/policy', {
+        method: 'PUT', body: JSON.stringify({ enabled: joinPolicy.enabled, expectedVersion: joinPolicy.version }),
+      });
+      setJoinPolicy(changed);
+      setMessage('Public account-creation policy saved and audited. Other operator gates remain independent.');
+    } catch (e) { setError(errorMessage(e)); }
+    finally { setBusy(false); }
   }
   function change(key: 'digits'|'ttlSeconds'|'resendSeconds'|'maxAttempts', value: string) {
     setPolicy(old => ({...old,[key]:Number(value)}));
@@ -112,5 +128,29 @@ export default function CommunicationsPage() {
         <p className="communication-hint">Master switches and SMTP provider are managed outside this form. Enabling the organization policy alone does not authorize paid enrollment or payouts.</p>
       </form>
     </div>}
+    {loaded && identity && joinPolicy && <form className="communication-panel" onSubmit={e=>void saveJoin(e)}
+      aria-labelledby="join-policy-title" style={{marginTop:20}}>
+      <p className="communication-kicker">PUBLIC REGISTRATION · SEPARATE REVIEW</p>
+      <h2 id="join-policy-title">Join Now email-account access</h2>
+      <p>Organization-scoped policy only. Email verification creates a login account, not active membership.
+        The SRS mobile OTP, sponsor/e-PIN placement and activation remain separately gated.</p>
+      <label className="communication-toggle">
+        <input type="checkbox" checked={joinPolicy.enabled}
+          disabled={!canEdit||busy||!joinPolicy.smtpReady||!joinPolicy.otpEnabled}
+          onChange={e=>setJoinPolicy(x=>x?{...x,enabled:e.target.checked}:x)}/>
+        <span>Allow this organization to accept public email account requests</span>
+      </label>
+      <dl className="communication-kv">
+        <div><dt>Global public signup</dt><dd>{joinPolicy.platformEnabled?'Operator enabled':'Operator disabled'}</dd></div>
+        <div><dt>SMTP ready</dt><dd>{joinPolicy.smtpReady?'Configured':'Unavailable'}</dd></div>
+        <div><dt>Email OTP master</dt><dd>{joinPolicy.otpEnabled?'Enabled':'Disabled'}</dd></div>
+        <div><dt>Membership activation</dt><dd>Not enabled by public signup</dd></div>
+      </dl>
+      <p className="communication-hint">Policy version {joinPolicy.version}. Admin JWT and current MFA step-up required.
+        The independent ADFLICK_PUBLIC_SIGNUP_POLICY_ENABLED operator gate may reject edits.</p>
+      {canEdit&&<button type="submit" className="communication-primary" disabled={busy}>
+        {busy?'Saving to API…':'Save public signup policy'}</button>}
+      <p className="communication-hint">Public route: <Link href="/join">Join Now</Link>. Disabled tenants are intentionally not available.</p>
+    </form>}
   </main>;
 }

@@ -241,6 +241,10 @@ model Organization {
   memberOtpPolicy MemberOtpPolicy?
   emailOtps MemberEmailOtp[]
   emailOtpThrottles MemberEmailOtpThrottle[]
+  publicSignupPolicy PublicSignupPolicy?
+  publicSignupIntents PublicSignupIntent[]
+  publicSignupThrottles PublicSignupThrottle[]
+  accountConsents AccountConsentRecord[]
 
   @@index([isActive, createdAt])
 }
@@ -272,6 +276,7 @@ model User {
   enrollmentPinsRecipient EnrollmentPin[] @relation("EnrollmentPinRecipient")
   emailOtps MemberEmailOtp[]
   emailOtpThrottles MemberEmailOtpThrottle[]
+  accountConsent AccountConsentRecord?
 
   @@unique([id, organizationId])
   @@index([organizationId, status])
@@ -1114,6 +1119,8 @@ model MemberConsentDocument {
   updatedAt DateTime @updatedAt
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   consents MemberConsentRecord[]
+  signupIntents PublicSignupIntent[]
+  accountConsents AccountConsentRecord[]
 
   @@unique([organizationId, id])
   @@unique([organizationId, version])
@@ -1195,4 +1202,72 @@ model MemberEmailOtpThrottle {
   user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
 
   @@id([organizationId, userId, purpose])
+}
+
+
+/** Public signup is an email-verified account bootstrap, NEVER member activation. */
+enum PublicSignupStatus {
+  QUEUED
+  SENT
+  CONSUMED
+  FAILED
+}
+
+model PublicSignupPolicy {
+  organizationId String @id @db.VarChar(30)
+  enabled Boolean @default(false)
+  version Int @default(1)
+  updatedByUserId String @db.VarChar(30)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+model PublicSignupIntent {
+  id String @id @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  email String @db.VarChar(254)
+  emailHash String @db.Char(64)
+  displayName String @db.VarChar(160)
+  passwordHash String @db.VarChar(255)
+  consentDocumentId String @db.VarChar(30)
+  codeHash String @db.Char(64)
+  status PublicSignupStatus @default(QUEUED)
+  attempts Int @default(0)
+  maxAttempts Int @default(5)
+  expiresAt DateTime
+  sentAt DateTime?
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  consentDocument MemberConsentDocument @relation(fields: [organizationId, consentDocumentId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, emailHash, status], map: "SignupIntent_org_email_status_idx")
+  @@index([organizationId, expiresAt])
+}
+
+model PublicSignupThrottle {
+  organizationId String @db.VarChar(30)
+  emailHash String @db.Char(64)
+  nextAllowedAt DateTime
+  windowStart DateTime
+  requestCount Int @default(1)
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@id([organizationId, emailHash])
+}
+
+model AccountConsentRecord {
+  id String @id @default(cuid()) @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  userId String @unique @db.VarChar(30)
+  documentId String @db.VarChar(30)
+  acceptedAt DateTime
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  document MemberConsentDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId, documentId])
 }

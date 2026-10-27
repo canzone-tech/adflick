@@ -73,6 +73,16 @@ if (production && process.env.ADFLICK_SMTP_INSECURE_LOOPBACK_TEST === 'true') {
   errors.push('Insecure loopback SMTP transport is forbidden in production.');
 }
 
+if (process.env.ADFLICK_PUBLIC_SIGNUP_ENABLED === 'true') {
+  const secret = process.env.ADFLICK_PUBLIC_SIGNUP_HMAC_SECRET ?? '';
+  if (secret.length < 32) errors.push('ADFLICK_PUBLIC_SIGNUP_HMAC_SECRET must be >=32 characters for public signup.');
+  for (const source of ['JWT_ACCESS_SECRET','JWT_REFRESH_SECRET','ADFLICK_MEMBER_OTP_HASH_PEPPER','ADFLICK_EPIN_HASH_PEPPER']) {
+    if (secret && secret === process.env[source]) errors.push('Public signup key must differ from '+source+'.');
+  }
+  if (process.env.ADFLICK_SMTP_ENABLED !== 'true') errors.push('Public signup requires SMTP delivery enabled.');
+  if (process.env.ADFLICK_MEMBER_EMAIL_OTP_ENABLED !== 'true') errors.push('Public signup requires email OTP master enabled.');
+}
+
 for (const warning of warnings) console.warn(`WARN: ${warning}`);
 if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);

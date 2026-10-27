@@ -39,14 +39,14 @@ async function run() {
   const results = [];
   for (const path of routes) { const state = await navigate(path); await screenshot(path === '/' ? 'home' : path.slice(1).replaceAll('/', '-')); results.push({ path, ...state }); }
   // Shared operations chrome: one instance on every workspace route; login is public.
-  for (const path of ['/', '/cms', '/fleet', '/campaigns', '/delivery', '/scheduler', '/playback', '/health', '/incidents', '/finance', '/finance/payouts', '/account', '/communications', '/email-verification', '/login']) {
+  for (const path of ['/', '/cms', '/fleet', '/campaigns', '/delivery', '/scheduler', '/playback', '/health', '/incidents', '/finance', '/finance/payouts', '/account', '/communications', '/email-verification', '/login', '/join']) {
     await navigate(path);
-    await until(path === '/login'
+    await until(['/login','/join'].includes(path)
       ? "document.querySelectorAll('[data-testid=app-shell]').length === 0"
       : "document.querySelectorAll('[data-testid=app-sidebar]').length === 1 && document.querySelectorAll('[data-testid=app-topbar]').length === 1",
       path + ' shared chrome');
     const state = await evaluate("(() => ({shells: document.querySelectorAll('[data-testid=app-shell]').length, sidebars: document.querySelectorAll('[data-testid=app-sidebar]').length, topbars: document.querySelectorAll('[data-testid=app-topbar]').length, active: document.querySelector('[data-testid=app-sidebar] a[aria-current=page]')?.getAttribute('href') }))()");
-    if (path === '/login') {
+    if (['/login','/join'].includes(path)) {
       if (state.shells || state.sidebars || state.topbars) throw new Error('Public login must not render operations chrome.');
     } else if (state.shells !== 1 || state.sidebars !== 1 || state.topbars !== 1 || state.active !== path) {
       throw new Error('Inconsistent application shell/navigation on '+path+': '+JSON.stringify(state));

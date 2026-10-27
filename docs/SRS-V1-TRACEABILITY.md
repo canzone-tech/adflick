@@ -83,3 +83,8 @@ The new read-only P1 member genealogy slice (Prisma models, migration, JWT/RBAC 
 ## Enrollment slice — evidence boundary
 
 Read-only e-PIN listings, draft non-financial packages, versioned consent, maker-checker approval, recipient-bound HMAC e-PIN issuance/revocation and authenticated **pending** enrollment are implemented behind default-deny runtime flags. Existing-user only (no public account creation/OTP), SRS AT-01..05 **not fully accepted**. [Detailed contract](SRS-V1-ENROLLMENT.md).
+
+
+## 2026-10-27 onward: public verified-account bootstrap
+
+Client SRS §5.3 and Appendix B.1 require e-PIN, sponsor, **mobile OTP**, consent and atomic member creation. The additive `public-signup/` slice provides only tenant-gated, approved-consent, SMTP **email-verified account creation** with Argon2 credential, MEMBER role and audit. It intentionally **does not create MemberProfile, redeem PIN, assign genealogy, verify a phone or activate payments**. Business/legal/provider decisions for mobile OTP and full registration remain pending; AT-01–05 and AT-19 are not product PASS. See `docs/PUBLIC-REGISTRATION-SLICE.md`.
