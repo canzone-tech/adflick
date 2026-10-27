@@ -29,6 +29,44 @@ async function run() {
   const routes = ['/', '/cms', '/fleet', '/campaigns', '/delivery', '/scheduler', '/playback', '/health', '/incidents', '/finance', '/finance/payouts', '/login'];
   const results = [];
   for (const path of routes) { const state = await navigate(path); await screenshot(path === '/' ? 'home' : path.slice(1).replaceAll('/', '-')); results.push({ path, ...state }); }
+  // Shared operations chrome: one instance on every workspace route; login is public.
+  for (const path of ['/', '/cms', '/fleet', '/campaigns', '/delivery', '/scheduler', '/playback', '/health', '/incidents', '/finance', '/finance/payouts', '/account', '/login']) {
+    await navigate(path);
+    await until(path === '/login'
+      ? "document.querySelectorAll('[data-testid=app-shell]').length === 0"
+      : "document.querySelectorAll('[data-testid=app-sidebar]').length === 1 && document.querySelectorAll('[data-testid=app-topbar]').length === 1",
+      path + ' shared chrome');
+    const state = await evaluate("(() => ({shells: document.querySelectorAll('[data-testid=app-shell]').length, sidebars: document.querySelectorAll('[data-testid=app-sidebar]').length, topbars: document.querySelectorAll('[data-testid=app-topbar]').length, active: document.querySelector('[data-testid=app-sidebar] a[aria-current=page]')?.getAttribute('href') }))()");
+    if (path === '/login') {
+      if (state.shells || state.sidebars || state.topbars) throw new Error('Public login must not render operations chrome.');
+    } else if (state.shells !== 1 || state.sidebars !== 1 || state.topbars !== 1 || state.active !== path) {
+      throw new Error('Inconsistent application shell/navigation on '+path+': '+JSON.stringify(state));
+    }
+  }
+
+  // Physical browser viewport smoke for required compact layout breakpoints.
+  for (const width of [320, 390, 768, 1280]) {
+    await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
+    await navigate('/');
+    const metrics = await evaluate("(() => {const header=document.querySelector('[data-testid=app-topbar]');const work=document.querySelector('[data-testid=app-page-content]');const side=document.querySelector('[data-testid=app-sidebar]');const menu=document.querySelector('[data-testid=app-menu-toggle]');return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,header:header?.getBoundingClientRect().width,content:work?.getBoundingClientRect().width,sidebar:side?.getBoundingClientRect().width,menuVisible:menu?.getBoundingClientRect().width>0}})()");
+    if (metrics.width !== width || metrics.scrollWidth > width + 2 || metrics.header > width + 2 || metrics.content > width + 2) {
+      throw new Error('Viewport overflow in shared shell at '+width+'px: '+JSON.stringify(metrics));
+    }
+    if (metrics.menuVisible !== (width <= 860)) throw new Error('Wrong mobile menu breakpoint at '+width+'px.');
+    if (width === 320) {
+      await click('[data-testid=app-menu-toggle]');
+      await until("document.querySelector('[data-testid=app-menu-toggle]')?.getAttribute('aria-expanded')==='true' && getComputedStyle(document.querySelector('[data-testid=app-sidebar]')).visibility==='visible'", 'mobile drawer opened');
+      await command('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+      await until("document.querySelector('[data-testid=app-menu-toggle]')?.getAttribute('aria-expanded')==='false'", 'Escape closes mobile drawer');
+      await click('[data-testid=app-menu-toggle]');
+      await click('[data-testid=app-sidebar] a[href="/fleet"]');
+      await until("location.pathname === '/fleet' && document.querySelector('[data-testid=app-menu-toggle]')?.getAttribute('aria-expanded')==='false'", 'mobile navigation and drawer close');
+      const fleetMetrics = await evaluate("({width:innerWidth,scrollWidth:document.documentElement.scrollWidth})");
+      if (fleetMetrics.scrollWidth > width + 2) throw new Error('Fleet page overflows 320px screen.');
+    }
+    if (width === 390) await screenshot('workspace-mobile-390');
+  }
+  await command('Emulation.clearDeviceMetricsOverride');
   await navigate('/'); await click('a[href="/cms"]'); await until("location.pathname === '/cms'", 'real sidebar click');
   await navigate('/login'); await click('form button');
   if (!await evaluate("location.pathname==='/login' && Boolean(document.querySelector('input[type=email]:invalid'))")) throw new Error('Required login form validation not enforced.');

@@ -22,7 +22,7 @@
     "test:api": "npm run test -w apps/api",
     "typecheck:api": "npx tsc --noEmit -p apps/api/tsconfig.json",
     "typecheck:web": "npx tsc --noEmit -p apps/web/tsconfig.json",
-    "check:source": "node scripts/check-source.mjs && node scripts/check-batch16.mjs && node scripts/check-batch17.mjs && node scripts/check-batch18.mjs && node scripts/check-batch19.mjs && node scripts/check-batch20.mjs && node scripts/check-batch21.mjs && node scripts/check-batch22.mjs && node scripts/check-batch23.mjs && node scripts/check-batch24.mjs && node scripts/check-batch25.mjs && node scripts/check-batch26.mjs && node scripts/check-batch27.mjs && node scripts/check-batch28.mjs && node scripts/check-batch29.mjs && node scripts/check-batch30.mjs && node scripts/check-batch31.mjs && node scripts/check-batch32.mjs && node scripts/check-batch33.mjs && node scripts/check-batch34.mjs && node scripts/check-batch35.mjs && node scripts/check-batch36.mjs && node scripts/check-batch37.mjs && node scripts/check-batch38.mjs && node scripts/check-batch39.mjs && node scripts/check-batch40.mjs && node scripts/check-batch41.mjs && node scripts/check-batch42.mjs && node scripts/check-batch43.mjs && node scripts/check-batch44.mjs && node scripts/check-batch45.mjs && node scripts/check-batch46.mjs && node scripts/check-batch47.mjs && node scripts/check-batch48.mjs && node scripts/check-batch49.mjs && node scripts/check-batch50.mjs && node scripts/check-batch-history.mjs",
+    "check:source": "node scripts/check-source.mjs && node scripts/check-batch16.mjs && node scripts/check-batch17.mjs && node scripts/check-batch18.mjs && node scripts/check-batch19.mjs && node scripts/check-batch20.mjs && node scripts/check-batch21.mjs && node scripts/check-batch22.mjs && node scripts/check-batch23.mjs && node scripts/check-batch24.mjs && node scripts/check-batch25.mjs && node scripts/check-batch26.mjs && node scripts/check-batch27.mjs && node scripts/check-batch28.mjs && node scripts/check-batch29.mjs && node scripts/check-batch30.mjs && node scripts/check-batch31.mjs && node scripts/check-batch32.mjs && node scripts/check-batch33.mjs && node scripts/check-batch34.mjs && node scripts/check-batch35.mjs && node scripts/check-batch36.mjs && node scripts/check-batch37.mjs && node scripts/check-batch38.mjs && node scripts/check-batch39.mjs && node scripts/check-batch40.mjs && node scripts/check-batch41.mjs && node scripts/check-batch42.mjs && node scripts/check-batch43.mjs && node scripts/check-batch44.mjs && node scripts/check-batch45.mjs && node scripts/check-batch46.mjs && node scripts/check-batch47.mjs && node scripts/check-batch48.mjs && node scripts/check-batch49.mjs && node scripts/check-batch50.mjs && node scripts/check-batch-history.mjs && npm run check:ui",
     "validate:env": "node scripts/validate-env.mjs",
     "verify:release": "npm run check:source && npm run validate:env && npx prisma validate && npm run typecheck:api && npm run typecheck:web && npm run lint && npm run test:api && npm run build:api && npm run build:web",
     "test:e2e:security": "npm run test:e2e:security -w apps/api",
@@ -40,7 +40,8 @@
     "local:dev:admin": "node scripts/local-dev-admin.mjs",
     "local:dev:test": "node --test scripts/first-admin.test.mjs scripts/read-hidden-password.test.mjs",
     "local:dev:integration": "node scripts/local-dev-integration.mjs",
-    "local:dev:uat": "node scripts/local-runtime.mjs --persistent-dev-uat"
+    "local:dev:uat": "node scripts/local-runtime.mjs --persistent-dev-uat",
+    "check:ui": "node scripts/check-ui-shell.mjs"
   },
   "devDependencies": {
     "prisma": "^6.16.2",
