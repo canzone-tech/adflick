@@ -982,6 +982,7 @@ model MemberProfile {
   placedChildren PlacementNode[]        @relation("PlacementParent")
   treeRoot       BinaryTreeRoot?        @relation("TreeRootMember")
 
+  @@unique([userId, organizationId])
   @@unique([organizationId, id])
   @@unique([organizationId, memberCode])
   @@index([organizationId, status, createdAt])
@@ -995,6 +996,7 @@ model SponsorRelationship {
   member          MemberProfile @relation("SponsoredMember", fields: [organizationId, memberId], references: [organizationId, id], onDelete: Restrict)
   sponsor         MemberProfile @relation("SponsorParent", fields: [organizationId, sponsorMemberId], references: [organizationId, id], onDelete: Restrict)
 
+  @@unique([organizationId, memberId])
   @@index([organizationId, sponsorMemberId])
 }
 
@@ -1005,6 +1007,8 @@ model BinaryTreeRoot {
   createdAt      DateTime      @default(now())
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   member         MemberProfile @relation("TreeRootMember", fields: [organizationId, memberId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, memberId])
 }
 
 model PlacementNode {
@@ -1017,6 +1021,7 @@ model PlacementNode {
   parent          MemberProfile @relation("PlacementParent", fields: [organizationId, parentMemberId], references: [organizationId, id], onDelete: Restrict)
 
   // Concurrent LEFT/RIGHT collisions cannot both commit in MySQL.
+  @@unique([organizationId, memberId])
   @@unique([parentMemberId, side])
   @@index([organizationId, parentMemberId, side])
 }

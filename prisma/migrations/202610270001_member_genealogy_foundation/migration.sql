@@ -25,6 +25,7 @@ CREATE TABLE `MemberProfile` (
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updatedAt` DATETIME(3) NOT NULL,
   UNIQUE INDEX `MemberProfile_userId_key`(`userId`),
+  UNIQUE INDEX `MemberProfile_userId_organizationId_key`(`userId`,`organizationId`),
   UNIQUE INDEX `MemberProfile_organizationId_id_key`(`organizationId`,`id`),
   UNIQUE INDEX `MemberProfile_organizationId_memberCode_key`(`organizationId`,`memberCode`),
   INDEX `MemberProfile_organizationId_status_createdAt_idx`(`organizationId`,`status`,`createdAt`),
@@ -42,6 +43,7 @@ CREATE TABLE `SponsorRelationship` (
   `organizationId` VARCHAR(30) NOT NULL,
   `sponsorMemberId` VARCHAR(30) NOT NULL,
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  UNIQUE INDEX `SponsorRelationship_organizationId_memberId_key`(`organizationId`,`memberId`),
   INDEX `SponsorRelationship_organizationId_sponsorMemberId_idx`(`organizationId`,`sponsorMemberId`),
   PRIMARY KEY (`memberId`),
   CONSTRAINT `SponsorRelationship_not_self` CHECK (`memberId` <> `sponsorMemberId`),
@@ -58,6 +60,7 @@ CREATE TABLE `BinaryTreeRoot` (
   `memberId` VARCHAR(30) NOT NULL,
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   UNIQUE INDEX `BinaryTreeRoot_memberId_key`(`memberId`),
+  UNIQUE INDEX `BinaryTreeRoot_organizationId_memberId_key`(`organizationId`,`memberId`),
   PRIMARY KEY (`organizationId`),
   CONSTRAINT `BinaryTreeRoot_organizationId_fkey`
     FOREIGN KEY (`organizationId`) REFERENCES `Organization`(`id`)
@@ -74,6 +77,7 @@ CREATE TABLE `PlacementNode` (
   `side` ENUM('LEFT','RIGHT') NOT NULL,
   `placedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   UNIQUE INDEX `PlacementNode_parentMemberId_side_key`(`parentMemberId`,`side`),
+  UNIQUE INDEX `PlacementNode_organizationId_memberId_key`(`organizationId`,`memberId`),
   INDEX `PlacementNode_organizationId_parentMemberId_side_idx`(`organizationId`,`parentMemberId`,`side`),
   PRIMARY KEY (`memberId`),
   CONSTRAINT `PlacementNode_not_self` CHECK (`memberId` <> `parentMemberId`),
