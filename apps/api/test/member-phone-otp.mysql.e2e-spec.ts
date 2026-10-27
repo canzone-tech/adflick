@@ -160,7 +160,7 @@ suite('real HTTP JSON SMS gateway + disposable MySQL phone OTP lifecycle',()=>{
     const firstSend=await post('resend','/request',{phone:'+919876543212',smsConsentAccepted:true}).expect(201);
     const initial=received[received.length-1]!;
     expect(initial.reference).toBe(firstSend.body.challengeId);
-    const validCode=initial.message.match(/OTP (\\d{6})/)?.[1];
+    const validCode=initial.message.match(/OTP (\d{6})/)?.[1];
     await post('resend','/verify',{challengeId:initial.reference,code:validCode}).expect(201);
     const owner=await db.memberPhoneOtp.findUniqueOrThrow({
       where:{id:initial.reference},select:{userId:true},
