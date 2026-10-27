@@ -113,6 +113,21 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
         expiresAt:new Date(Date.now()+20*60_000),
       }});
     }
+    // Verified phone proof fixture is isolated to disposable MySQL.
+    // Live provider HTTP and AES/HMAC are separately acceptance-tested.
+    for (const name of ['alpha','beta','gamma']) {
+      await prisma.memberPhoneOtp.create({data:{
+        id:'ph_'+randomBytes(12).toString('hex'),
+        organizationId:org, userId:account[name]!,
+        phoneCiphertext:randomBytes(64).toString('base64url'),
+        phoneHash:createHash('sha256').update('test-'+name).digest('hex'),
+        phoneLast4:'1234',
+        codeHash:createHash('sha256').update(randomBytes(16)).digest('hex'),
+        maxAttempts:5,status:'VERIFIED',verifiedAt:new Date(),
+        expiresAt:new Date(Date.now()+20*60_000),
+        smsConsentAcceptedAt:new Date(),
+      }});
+    }
     await prisma.binaryTreeRoot.createMany({data:[
       {organizationId:org,memberId:r.id},{organizationId:foreignOrg,memberId:f.id},
     ]});
@@ -121,6 +136,9 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
   afterAll(async () => {
     try {
       if (prisma && orgIds.length) {
+        await prisma.verifiedMemberPhone.deleteMany({where:{organizationId:{in:orgIds}}});
+        await prisma.memberPhoneOtp.deleteMany({where:{organizationId:{in:orgIds}}});
+        await prisma.memberPhoneOtpThrottle.deleteMany({where:{organizationId:{in:orgIds}}});
         await prisma.memberEmailOtp.deleteMany({where:{organizationId:{in:orgIds}}});
         await prisma.memberEmailOtpThrottle.deleteMany({where:{organizationId:{in:orgIds}}});
         await prisma.memberOtpPolicy.deleteMany({where:{organizationId:{in:orgIds}}});
@@ -222,7 +240,7 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
   it('preflight checks real PIN/OTP/consent and free LEFT slot without mutating records', async () => {
     const before = await http('alpha').get('/member-enrollment/progress').expect(200);
     expect(before.body).toMatchObject({
-      membership: null, hasIssuedPin: true, emailOtpVerified: true,
+      membership: null, hasIssuedPin: true, emailOtpVerified: true, phoneOtpVerified: true,
       enrollmentEnabled: true, mobileOtpProviderEnabled: false,
     });
     expect(before.body.consent).toMatchObject({
@@ -232,7 +250,7 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     const checked = await http('alpha').post('/member-enrollment/preflight', enrollment('alpha')).expect(201);
     expect(checked.body).toMatchObject({
       sponsorMemberCode: rootCode, placementParentMemberCode: rootCode,
-      provisional: true, placementAvailable: true, pinAssigned: true,
+      provisional: true, placementAvailable: true, pinAssigned: true, phoneOtpVerified: true,
     });
     await http('alpha').post('/member-enrollment/preflight', enrollment('alpha',{sponsorMemberCode: foreignCode})).expect(404);
     await http('alpha').post('/member-enrollment/preflight', enrollment('alpha',{pin: ((issued['alpha']!.pin.startsWith('Z') ? 'Y' : 'Z') + issued['alpha']!.pin.slice(1))})).expect(409);
@@ -263,6 +281,12 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     expect(progress.body.membership).toMatchObject({status:'PENDING_ACTIVATION'});
     expect(progress.body.hasIssuedPin).toBe(false);
     expect(progress.body.emailOtpVerified).toBe(false);
+    expect(progress.body.phoneOtpVerified).toBe(false);
+    const verifiedPhone = await prisma.verifiedMemberPhone.findFirstOrThrow({
+      where:{organizationId:org,userId:account['alpha']!},
+    });
+    expect(verifiedPhone.phoneCiphertext).not.toMatch(/^\\+/);
+    expect(verifiedPhone.phoneLast4).toBe('1234');
     await http('alpha').post('/member-enrollment/preflight', enrollment('alpha')).expect(409);
     const placement = await http('gamma').get('/member-enrollment/eligible/'+rootCode).expect(200);
     expect(placement.body).toMatchObject({leftAvailable:false,rightAvailable:true});

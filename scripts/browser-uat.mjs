@@ -39,7 +39,7 @@ async function run() {
   const results = [];
   for (const path of routes) { const state = await navigate(path); await screenshot(path === '/' ? 'home' : path.slice(1).replaceAll('/', '-')); results.push({ path, ...state }); }
   // Shared operations chrome: one instance on every workspace route; login is public.
-  for (const path of ['/', '/cms', '/fleet', '/campaigns', '/delivery', '/scheduler', '/playback', '/health', '/incidents', '/finance', '/finance/payouts', '/account', '/communications', '/email-verification', '/member-onboarding', '/member-operations', '/login', '/join']) {
+  for (const path of ['/', '/cms', '/fleet', '/campaigns', '/delivery', '/scheduler', '/playback', '/health', '/incidents', '/finance', '/finance/payouts', '/account', '/communications', '/email-verification', '/phone-verification', '/member-onboarding', '/member-operations', '/login', '/join']) {
     await navigate(path);
     await until(['/login','/join'].includes(path)
       ? "document.querySelectorAll('[data-testid=app-shell]').length === 0"

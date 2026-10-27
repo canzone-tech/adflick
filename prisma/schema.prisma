@@ -245,6 +245,9 @@ model Organization {
   publicSignupIntents PublicSignupIntent[]
   publicSignupThrottles PublicSignupThrottle[]
   accountConsents AccountConsentRecord[]
+  phoneOtps MemberPhoneOtp[]
+  phoneOtpThrottles MemberPhoneOtpThrottle[]
+  verifiedMemberPhones VerifiedMemberPhone[]
 
   @@index([isActive, createdAt])
 }
@@ -277,6 +280,9 @@ model User {
   emailOtps MemberEmailOtp[]
   emailOtpThrottles MemberEmailOtpThrottle[]
   accountConsent AccountConsentRecord?
+  phoneOtps MemberPhoneOtp[]
+  phoneOtpThrottle MemberPhoneOtpThrottle?
+  verifiedMemberPhone VerifiedMemberPhone?
 
   @@unique([id, organizationId])
   @@index([organizationId, status])
@@ -998,6 +1004,7 @@ model MemberProfile {
   treeRoot       BinaryTreeRoot?        @relation("TreeRootMember")
   enrollmentPin EnrollmentPin? @relation("EnrollmentPinRedemption")
   enrollmentConsent MemberConsentRecord?
+  verifiedPhone VerifiedMemberPhone?
 
   @@unique([userId, organizationId])
   @@unique([organizationId, id])
@@ -1270,4 +1277,73 @@ model AccountConsentRecord {
 
   @@unique([userId, organizationId])
   @@index([organizationId, documentId])
+}
+
+/** Phone ownership proof: distinct from email OTP and never identity/KYC verification. */
+enum MemberPhoneOtpStatus {
+  QUEUED
+  SENT
+  VERIFIED
+  CONSUMED
+  FAILED
+}
+
+model MemberPhoneOtp {
+  id String @id @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  userId String @db.VarChar(30)
+  phoneCiphertext String @db.VarChar(256)
+  phoneHash String @db.Char(64)
+  phoneLast4 String @db.Char(4)
+  codeHash String @db.Char(64)
+  status MemberPhoneOtpStatus @default(QUEUED)
+  attempts Int @default(0)
+  maxAttempts Int @default(5)
+  expiresAt DateTime
+  sentAt DateTime?
+  verifiedAt DateTime?
+  consumedAt DateTime?
+  smsConsentAcceptedAt DateTime
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  verifiedMemberPhone VerifiedMemberPhone?
+
+  @@index([organizationId, userId, createdAt], map: "MemberPhoneOtp_org_user_created_idx")
+  @@index([organizationId, phoneHash, createdAt], map: "MemberPhoneOtp_org_phone_created_idx")
+}
+
+model MemberPhoneOtpThrottle {
+  organizationId String @db.VarChar(30)
+  userId String @db.VarChar(30)
+  nextAllowedAt DateTime
+  windowStart DateTime
+  requestCount Int @default(1)
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@id([organizationId, userId])
+  @@unique([userId, organizationId])
+}
+
+model VerifiedMemberPhone {
+  id String @id @default(cuid()) @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  userId String @unique @db.VarChar(30)
+  memberId String @unique @db.VarChar(30)
+  challengeId String @unique @db.VarChar(30)
+  phoneCiphertext String @db.VarChar(256)
+  phoneHash String @db.Char(64)
+  phoneLast4 String @db.Char(4)
+  verifiedAt DateTime
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  member MemberProfile @relation(fields: [organizationId, memberId], references: [organizationId, id], onDelete: Restrict)
+  challenge MemberPhoneOtp @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, organizationId])
+  @@unique([organizationId, memberId])
+  @@index([organizationId, phoneHash])
 }

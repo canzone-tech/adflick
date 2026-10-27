@@ -12,7 +12,8 @@ type Consent = {version:string;documentSha256:string;documentText:string};
 type Progress = {
   membership:Member|null;emailOtpVerified:boolean;emailOtpExpiresAt:string|null;
   hasIssuedPin:boolean;pinExpiresAt:string|null;pinPackage:{code:string;name:string}|null;
-  consent:Consent|null;enrollmentEnabled:boolean;mobileOtpProviderEnabled:false;reminder:string;
+  consent:Consent|null;enrollmentEnabled:boolean;phoneOtpVerified:boolean;
+  phoneOtpExpiresAt:string|null;mobileOtpProviderEnabled:boolean;reminder:string;
 };
 type Candidate = {memberCode:string;eligible:true;leftAvailable:boolean;rightAvailable:boolean;provisional:true;note:string};
 type Preflight = {provisional:true;pinAssigned:true;emailOtpVerified:true;consentApproved:true;placementAvailable:true;message:string};
@@ -126,6 +127,8 @@ export default function MemberOnboardingPage() {
       <section className="member-onboard-summary" aria-label="Membership checks">
         <div><small>Email OTP</small><strong>{progress.emailOtpVerified?'Verified':'Verification needed'}</strong>
           {!progress.emailOtpVerified&&<Link href="/email-verification">Verify email</Link>}</div>
+        <div><small>Phone OTP</small><strong>{progress.phoneOtpVerified?'Verified':'Verification needed'}</strong>
+          {!progress.phoneOtpVerified&&<Link href="/phone-verification">Verify mobile</Link>}</div>
         <div><small>Assigned e-PIN</small><strong>{progress.hasIssuedPin?'Available':'Not assigned'}</strong>
           {progress.pinPackage&&<span>{progress.pinPackage.name}</span>}</div>
         <div><small>Approved consent</small><strong>{progress.consent?progress.consent.version:'Not available'}</strong></div>
@@ -203,10 +206,11 @@ export default function MemberOnboardingPage() {
             </label>
           </section>:<p role="alert">Enrollment is unavailable until independently approved consent is published.</p>}
           {!progress.emailOtpVerified&&<p role="status">First <Link href="/email-verification">verify email OTP</Link>. This is separate from login email proof.</p>}
+          {!progress.phoneOtpVerified&&<p role="status">A verified <Link href="/phone-verification">mobile OTP</Link> is also mandatory. Without approved SMS gateway, enrollment cannot proceed.</p>}}
           {!progress.enrollmentEnabled&&<p role="status">Enrollment is currently disabled by operator policy. This form cannot bypass that gate.</p>}
           <div className="member-onboard-actions">
             <button className="member-onboard-primary" type="submit"
-              disabled={busy||!sponsor||!parent||!hasSlot||!consentAccepted||!progress.emailOtpVerified||!progress.enrollmentEnabled||!progress.consent||!progress.hasIssuedPin}>
+              disabled={busy||!sponsor||!parent||!hasSlot||!consentAccepted||!progress.emailOtpVerified||!progress.phoneOtpVerified||!progress.enrollmentEnabled||!progress.consent||!progress.hasIssuedPin}>
               {busy?'Checking current server state…':'Verify PIN, OTP & placement'}
             </button>
             {preflight?.provisional&&<button className="member-onboard-final" type="button" disabled={busy} onClick={()=>void enroll()}>
@@ -216,7 +220,7 @@ export default function MemberOnboardingPage() {
           {preflight?.provisional&&<p className="member-onboard-note" role="status">Preflight confirmed. No PIN or placement has been reserved; submitting may still return a conflict.</p>}
         </form>
       </section>}
-      <p className="member-onboard-note">{progress.reminder} SMS/mobile OTP provider verification is not implemented; full SRS acceptance and monetary operations remain blocked.</p>
+      <p className="member-onboard-note">{progress.reminder} Mobile verification is backed by a provider-neutral SMS gateway adapter; live provider sign-off, KYC, full SRS acceptance and monetary operations remain blocked.</p>
     </>}
   </main>;
 }

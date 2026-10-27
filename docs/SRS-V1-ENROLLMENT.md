@@ -38,3 +38,7 @@ SRS AT-01..AT-05 remain **PARTIAL**: atomic enrollment of an **existing authenti
 - `/member-onboarding` is a real email-OTP/PIN/consent/sponsor/placement UX plus owned, bounded genealogy after successful pending enrollment. `/member-operations` manages real package/consent drafts, independent approvals, PIN recipients, issuance and revocation. Both share canonical responsive sidebar/topbar and display real API errors, no demo records.
 
 **SMS phone OTP is not implemented because provider, lawful templates, consent and costs require separate approval.** This unit does not claim SRS-complete activation and does not authorize production deployments.
+
+## Verified mobile OTP proof — mandatory in enrollment
+
+A second, independent SMS challenge is now required in both `POST /member-enrollment/preflight` and serializable `POST /enroll`. Successful pending enrollment consumes an unexpired VERIFIED phone challenge and creates `VerifiedMemberPhone` containing AES-256-GCM encrypted phone, HMAC reference hash, masked last four digits and verification timestamp. A slot or PIN conflict rolls all these writes back together. Without an independently approved SMS gateway/template and operator enablement, no real phone OTP can be sent; this is intentionally a block on new real enrollment (not optional fallback to email). Earlier browser/e-PIN screens stay connected and consistently share `AppChrome`. The phone proof means number ownership only, NOT KYC, activation or provider certification.

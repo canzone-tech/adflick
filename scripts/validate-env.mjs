@@ -83,6 +83,54 @@ if (process.env.ADFLICK_PUBLIC_SIGNUP_ENABLED === 'true') {
   if (process.env.ADFLICK_MEMBER_EMAIL_OTP_ENABLED !== 'true') errors.push('Public signup requires email OTP master enabled.');
 }
 
+
+const smsActive = process.env.ADFLICK_SMS_ENABLED === 'true' ||
+  process.env.ADFLICK_MEMBER_PHONE_OTP_ENABLED === 'true';
+if (smsActive) {
+  if (process.env.ADFLICK_SMS_ENABLED !== 'true' ||
+      process.env.ADFLICK_MEMBER_PHONE_OTP_ENABLED !== 'true' ||
+      process.env.ADFLICK_SMS_PROVIDER_APPROVED !== 'true') {
+    errors.push('SMS/phone OTP requires both operator switches and independently approved provider.');
+  }
+  const gateway = process.env.ADFLICK_SMS_GATEWAY_URL ?? '';
+  try {
+    const url = new URL(gateway);
+    const testLoopback = !production && process.env.NODE_ENV === 'test' &&
+      process.env.ADFLICK_SMS_INSECURE_LOOPBACK_TEST === 'true' &&
+      ['127.0.0.1','localhost','[::1]'].includes(url.hostname);
+    if (url.protocol !== 'https:' && !(testLoopback && url.protocol === 'http:'))
+      errors.push('SMS gateway must be HTTPS (except loopback test-only).');
+    if (url.username || url.password || url.hash)
+      errors.push('SMS gateway URL must not contain credentials or a fragment.');
+  } catch { errors.push('ADFLICK_SMS_GATEWAY_URL must be a valid configured endpoint.'); }
+  if ((process.env.ADFLICK_SMS_GATEWAY_BEARER_TOKEN ?? '').length < 24)
+    errors.push('SMS gateway token must be configured as protected secret.');
+  if (!/^[A-Za-z0-9]{3,16}$/.test(process.env.ADFLICK_SMS_SENDER_ID ?? ''))
+    errors.push('ADFLICK_SMS_SENDER_ID must match an approved sender identifier.');
+  const template = process.env.ADFLICK_SMS_OTP_TEMPLATE ?? '';
+  if (!template.includes('{code}') || !template.includes('{minutes}') ||
+      template.length < 16 || template.length > 500) errors.push('Approved SMS template with {code}/{minutes} required.');
+  const pepper = process.env.ADFLICK_MEMBER_PHONE_OTP_HASH_PEPPER ?? '';
+  if (pepper.length < 32) errors.push('Phone OTP signing secret must be 32+ characters.');
+  for (const key of ['JWT_ACCESS_SECRET','JWT_REFRESH_SECRET','ADFLICK_EPIN_HASH_PEPPER','ADFLICK_MEMBER_OTP_HASH_PEPPER']) {
+    if (pepper && pepper === process.env[key]) errors.push('Phone OTP signing secret must differ from '+key+'.');
+  }
+  if (Buffer.from(process.env.ADFLICK_MEMBER_PHONE_DATA_KEY ?? '', 'base64url').length !== 32)
+    errors.push('Phone AES-256-GCM key must decode to 32 bytes.');
+  for (const [name, minimum, maximum, fallback] of [
+    ['ADFLICK_MEMBER_PHONE_OTP_TTL_SECONDS',120,900,300],
+    ['ADFLICK_MEMBER_PHONE_OTP_RESEND_SECONDS',30,300,60],
+    ['ADFLICK_MEMBER_PHONE_OTP_MAX_ATTEMPTS',3,8,5],
+    ['ADFLICK_MEMBER_PHONE_OTP_HOURLY_CAP',1,20,10],
+  ]) {
+    const value=Number(process.env[name] ?? fallback);
+    if (!Number.isInteger(value) || value < minimum || value > maximum)
+      errors.push(name+' is outside permitted safety limits.');
+  }
+}
+if (production && process.env.ADFLICK_SMS_INSECURE_LOOPBACK_TEST === 'true')
+  errors.push('Insecure loopback SMS provider is forbidden in production.');
+
 for (const warning of warnings) console.warn(`WARN: ${warning}`);
 if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);

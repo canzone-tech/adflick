@@ -26,3 +26,7 @@ This shared shell corrects **navigation and layout consistency** only. Existing 
 ## Member and financial operations layout extension
 
 The two real API-backed member pages `/member-onboarding` and `/member-operations` are children of the same `AppChrome`, not duplicate sidebar/topbar implementations. The member page shows owned genealogy and provisional binary slot selection; the admin page uses real versioned policy/consent/PIN records, no fabricated balance or payouts. Browser route checks include both pages at shared shell breakpoints. Member/administrator visibility is enforced by JWT/RBAC server-side; menu visibility is not authorization. Default-OFF operator switches cannot be changed from these views.
+
+## Phone verification route consistency
+
+`/phone-verification` and the mobile verification status panels are part of the same `AppChrome` used by `/member-onboarding` and `/communications`. No duplicated page-level topbar/sidebar. The phone field requires E.164 plus explicit transactional SMS consent. Error, loading, resend countdown, provider-disabled state and verified masked digits are rendered from real authenticated API state. CSS uses existing `communication.css`, and Chrome regression/smoke routes are extended.

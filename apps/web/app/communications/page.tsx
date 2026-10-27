@@ -11,6 +11,7 @@ type Policy = {
   resendSeconds: number; maxAttempts: number; version: number;
   smtpReady: boolean; platformEnabled: boolean; smsEnabled: boolean;
 };
+type SmsStatus={enabled:boolean;providerReady:boolean;ready:boolean;mobileVerifiedIsNotKyc:boolean;note:string};
 type JoinPolicy = { enabled:boolean;version:number;platformEnabled:boolean;otpEnabled:boolean;smtpReady:boolean;memberActivationEnabled:false };
 const defaultPolicy: Policy = {
   emailEnabled: false, digits: 6, ttlSeconds: 300,
@@ -21,6 +22,7 @@ export default function CommunicationsPage() {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [policy, setPolicy] = useState<Policy>(defaultPolicy);
   const [joinPolicy, setJoinPolicy] = useState<JoinPolicy|null>(null);
+  const [smsStatus, setSmsStatus] = useState<SmsStatus|null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,8 +33,9 @@ export default function CommunicationsPage() {
       apiRequest<Identity>('/auth/me'),
       apiRequest<Policy>('/member-enrollment/otp/policy'),
       apiRequest<JoinPolicy>('/admin/public-signup/policy'),
-    ]).then(([user, data, joining]) => {
-      if (alive) { setIdentity(user); setPolicy(data); setJoinPolicy(joining); }
+      apiRequest<SmsStatus>('/member-enrollment/phone/configuration'),
+    ]).then(([user, data, joining, mobile]) => {
+      if (alive) { setIdentity(user); setPolicy(data); setJoinPolicy(joining); setSmsStatus(mobile); }
     }).catch((e: unknown) => {
       if (alive) setError(errorMessage(e));
     }).finally(() => { if (alive) setLoaded(true); });
@@ -90,7 +93,7 @@ export default function CommunicationsPage() {
           <div><dt>Transport security</dt><dd>TLS 465 or mandatory STARTTLS 587</dd></div>
           <div><dt>SMTP credentials</dt><dd>Private server secrets only</dd></div>
           <div><dt>Platform master switch</dt><dd>{policy.platformEnabled ? 'Enabled by operator' : 'Disabled'}</dd></div>
-          <div><dt>SMS OTP</dt><dd>Unavailable until provider approval</dd></div>
+          <div><dt>SMS OTP</dt><dd>{smsStatus?.ready?'Configured (requires provider UAT)':'Disabled or unapproved'}</dd></div>
         </dl>
         <p className="communication-hint">Operator config: ADFLICK_SMTP_HOST, PORT, SECURE, USERNAME, PASSWORD, FROM_EMAIL and feature gates. Secrets are intentionally never returned by the API.</p>
       </section>
@@ -128,6 +131,19 @@ export default function CommunicationsPage() {
         <p className="communication-hint">Master switches and SMTP provider are managed outside this form. Enabling the organization policy alone does not authorize paid enrollment or payouts.</p>
       </form>
     </div>}
+    {loaded&&identity&&smsStatus&&<section className="communication-panel" aria-labelledby="sms-policy-title" style={{marginTop:20}}>
+      <p className="communication-kicker">MOBILE VERIFICATION / PROVIDER STATUS</p>
+      <h2 id="sms-policy-title">SMS gateway &amp; phone OTP</h2>
+      <p className={smsStatus.ready?'communication-indicator ok':'communication-indicator'}>
+        {smsStatus.ready?'Approved configuration present':'Not configured or provider approval missing'}
+      </p>
+      <dl className="communication-kv">
+        <div><dt>SMS transport</dt><dd>{smsStatus.providerReady?'Adapter configured':'Disabled'}</dd></div>
+        <div><dt>Phone OTP master</dt><dd>{smsStatus.enabled?'Enabled':'Disabled'}</dd></div>
+        <div><dt>Identity/KYC</dt><dd>Separate approval required</dd></div>
+      </dl>
+      <p className="communication-hint">{smsStatus.note} Gateway credentials, sender, legal template and encryption/HMAC keys are strictly server-side. A configured adapter is not provider certification.</p>
+    </section>}
     {loaded && identity && joinPolicy && <form className="communication-panel" onSubmit={e=>void saveJoin(e)}
       aria-labelledby="join-policy-title" style={{marginTop:20}}>
       <p className="communication-kicker">PUBLIC REGISTRATION · SEPARATE REVIEW</p>

@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import {
-  BinarySide, EnrollmentPinStatus, MemberConsentDocumentStatus, MemberEmailOtpStatus,
+  BinarySide, EnrollmentPinStatus, MemberConsentDocumentStatus, MemberEmailOtpStatus, MemberPhoneOtpStatus,
   MemberPackageStatus, Prisma, UserRole, UserStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -242,7 +242,7 @@ export class EnrollmentService {
   async progress(actor: AuthenticatedUser) {
     const organizationId = this.organization(actor);
     const now = new Date();
-    const [profile, verifiedOtp, issuedPin, consent] = await Promise.all([
+    const [profile, verifiedOtp, issuedPin, consent, verifiedPhone] = await Promise.all([
       this.prisma.memberProfile.findFirst({
         where: { organizationId, userId: actor.sub },
         select: { memberCode: true, status: true, activatedAt: true },
@@ -266,6 +266,12 @@ export class EnrollmentService {
         orderBy: [{ approvedAt: 'desc' }, { id: 'desc' }],
         select: { version: true, documentSha256: true, documentText: true },
       }),
+      this.prisma.memberPhoneOtp.findFirst({
+        where: { organizationId, userId: actor.sub, status: MemberPhoneOtpStatus.VERIFIED,
+          verifiedAt: { not: null }, expiresAt: { gt: now } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: { expiresAt: true },
+      }),
     ]);
     return {
       membership: profile ?? null, emailOtpVerified: !!verifiedOtp,
@@ -275,7 +281,9 @@ export class EnrollmentService {
       pinPackage: issuedPin?.package ?? null,
       consent,
       enrollmentEnabled: process.env.ADFLICK_MEMBER_ENROLLMENT_ENABLED === 'true',
-      mobileOtpProviderEnabled: false,
+      phoneOtpVerified: !!verifiedPhone, phoneOtpExpiresAt: verifiedPhone?.expiresAt ?? null,
+      mobileOtpProviderEnabled: process.env.ADFLICK_MEMBER_PHONE_OTP_ENABLED === 'true' &&
+        process.env.ADFLICK_SMS_PROVIDER_APPROVED === 'true' && process.env.ADFLICK_SMS_ENABLED === 'true',
       reminder: 'Email verification and a pending genealogy record do not activate membership, KYC, compensation or payments.',
     };
   }
@@ -338,7 +346,7 @@ export class EnrollmentService {
     this.enabled('ADFLICK_MEMBER_ENROLLMENT_ENABLED');
     const organizationId = this.organization(actor);
     const now = new Date();
-    const [user, profile, pin, sponsor, parent, consent, currentConsent, otp] = await Promise.all([
+    const [user, profile, pin, sponsor, parent, consent, currentConsent, otp, phoneOtp] = await Promise.all([
       this.prisma.user.findFirst({
         where: { id: actor.sub, organizationId, status: UserStatus.ACTIVE,
           roleAssignments: { some: { role: UserRole.MEMBER } } },
@@ -369,6 +377,11 @@ export class EnrollmentService {
           expiresAt: { gt: now } },
         select: { id: true },
       }),
+      this.prisma.memberPhoneOtp.findFirst({
+        where: { organizationId, userId: actor.sub, status: MemberPhoneOtpStatus.VERIFIED,
+          verifiedAt: { not: null }, expiresAt: { gt: now } },
+        select: { id: true },
+      }),
     ]);
     if (!user || profile) throw new ConflictException('Account is not eligible for a second enrollment.');
     if (!pin || pin.organizationId !== organizationId || pin.recipientUserId !== actor.sub ||
@@ -383,6 +396,7 @@ export class EnrollmentService {
       throw new BadRequestException('Current approved consent must be accepted.');
     }
     if (!otp) throw new ConflictException('A verified email OTP is required.');
+    if (!phoneOtp) throw new ConflictException('A verified mobile phone OTP is required.');
     const sideAvailable = dto.side === BinarySide.LEFT ? parent.leftAvailable : parent.rightAvailable;
     if (!sideAvailable) throw new ConflictException('Requested binary side is already occupied.');
     return {
@@ -392,6 +406,7 @@ export class EnrollmentService {
       side: dto.side,
       pinAssigned: true,
       emailOtpVerified: true,
+      phoneOtpVerified: true,
       consentApproved: true,
       placementAvailable: true,
       message: 'Preflight passed. No placement or PIN has been reserved. Submit enrollment to commit atomically.',
@@ -487,6 +502,24 @@ export class EnrollmentService {
         });
         if (consumedOtp.count !== 1) throw new ConflictException('Email OTP has already been consumed.');
 
+        // A real verified SMS challenge is mandatory. This claim, just like
+        // email OTP and e-PIN, rolls back on every downstream transaction error.
+        const phoneOtp = await tx.memberPhoneOtp.findFirst({
+          where: { organizationId, userId: actor.sub,
+            status: MemberPhoneOtpStatus.VERIFIED,
+            expiresAt: { gt: now }, verifiedAt: { not: null } },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: { id: true, phoneCiphertext: true, phoneHash: true,
+            phoneLast4: true, verifiedAt: true },
+        });
+        if (!phoneOtp?.verifiedAt) throw new ConflictException('Verified mobile OTP is required.');
+        const consumedPhoneOtp = await tx.memberPhoneOtp.updateMany({
+          where: { id: phoneOtp.id, organizationId, userId: actor.sub,
+            status: MemberPhoneOtpStatus.VERIFIED, expiresAt: { gt: now } },
+          data: { status: MemberPhoneOtpStatus.CONSUMED, consumedAt: now },
+        });
+        if (consumedPhoneOtp.count !== 1) throw new ConflictException('Phone OTP has already been consumed.');
+
         // Atomic CAS prevents PIN replay. On any later failure (including occupied side)
         // MySQL rolls this claim and all member/consent/placement writes back together.
         const claimed = await tx.enrollmentPin.updateMany({
@@ -513,6 +546,12 @@ export class EnrollmentService {
         await tx.memberConsentRecord.create({ data: {
           organizationId, memberId: member.id, documentId: consent.id, acceptedAt: now,
         } });
+        await tx.verifiedMemberPhone.create({ data: {
+          organizationId, userId: actor.sub, memberId: member.id,
+          challengeId: phoneOtp.id, phoneCiphertext: phoneOtp.phoneCiphertext,
+          phoneHash: phoneOtp.phoneHash, phoneLast4: phoneOtp.phoneLast4,
+          verifiedAt: phoneOtp.verifiedAt,
+        } });
         await tx.enrollmentPin.update({
           where: { id: pin.id },
           data: { redeemedByMemberId: member.id },
@@ -520,9 +559,10 @@ export class EnrollmentService {
         await tx.auditEvent.create({ data: this.audit(organizationId, actor, 'MEMBER_EPIN_ENROLLMENT_PENDING', 'MemberProfile', member.id, {
           packageId: pin.packageId, enrollmentPinId: pin.id, consentDocumentId: consent.id,
           sponsorMemberId: sponsor.id, placementParentMemberId: parent.id, side: dto.side,
+          phoneOtpChallengeId: phoneOtp.id,
         }) });
         return { memberCode: member.memberCode, status: member.status, placementSide: dto.side,
-          message: 'Verified-email enrollment recorded; separate identity/KYC checks and activation remain pending.' };
+          message: 'Verified email and phone enrollment recorded; separate identity/KYC and activation approvals remain pending.' };
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 15_000 });
     } catch (e) { return this.convertCollision(e); }
   }

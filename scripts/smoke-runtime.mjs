@@ -44,7 +44,7 @@ async function main() {
       await probe(base + '/api/v1/auth/me', 401);
     } else {
       await ready(base + '/', child);
-      for (const page of ['/login', '/finance', '/fleet', '/cms', '/communications', '/email-verification', '/member-onboarding', '/member-operations', '/join']) {
+      for (const page of ['/login', '/finance', '/fleet', '/cms', '/communications', '/email-verification', '/phone-verification', '/member-onboarding', '/member-operations', '/join']) {
         const response = await probe(base + page, 200);
         if (!(response.headers.get('content-type') ?? '').includes('text/html')) throw new Error('Unexpected content-type for ' + page);
       }
