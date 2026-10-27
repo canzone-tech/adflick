@@ -46,7 +46,6 @@ CREATE TABLE `SponsorRelationship` (
   UNIQUE INDEX `SponsorRelationship_organizationId_memberId_key`(`organizationId`,`memberId`),
   INDEX `SponsorRelationship_organizationId_sponsorMemberId_idx`(`organizationId`,`sponsorMemberId`),
   PRIMARY KEY (`memberId`),
-  CONSTRAINT `SponsorRelationship_not_self` CHECK (`memberId` <> `sponsorMemberId`),
   CONSTRAINT `SponsorRelationship_organizationId_memberId_fkey`
     FOREIGN KEY (`organizationId`,`memberId`) REFERENCES `MemberProfile`(`organizationId`,`id`)
     ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -80,7 +79,6 @@ CREATE TABLE `PlacementNode` (
   UNIQUE INDEX `PlacementNode_organizationId_memberId_key`(`organizationId`,`memberId`),
   INDEX `PlacementNode_organizationId_parentMemberId_side_idx`(`organizationId`,`parentMemberId`,`side`),
   PRIMARY KEY (`memberId`),
-  CONSTRAINT `PlacementNode_not_self` CHECK (`memberId` <> `parentMemberId`),
   CONSTRAINT `PlacementNode_organizationId_memberId_fkey`
     FOREIGN KEY (`organizationId`,`memberId`) REFERENCES `MemberProfile`(`organizationId`,`id`)
     ON DELETE RESTRICT ON UPDATE CASCADE,

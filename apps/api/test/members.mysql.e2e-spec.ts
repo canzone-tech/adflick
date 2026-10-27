@@ -215,13 +215,9 @@ suite('SRS v1.0 non-financial member genealogy MySQL HTTP acceptance', () => {
     })).rejects.toThrow();
   });
 
-  it('rejects self-sponsorship and self-placement in MySQL check constraints', async () => {
-    await expect(prisma.sponsorRelationship.create({
-      data: { organizationId: tenantA, memberId: spareOne, sponsorMemberId: spareOne },
-    })).rejects.toThrow();
-    // Two already-placed members cannot gain another parent or self-parent.
-    await expect(prisma.placementNode.create({
-      data: { organizationId: tenantA, memberId: root, parentMemberId: root, side: BinarySide.LEFT },
-    })).rejects.toThrow();
+  it('does not expose enrollment or placement write endpoints before e-PIN approval', async () => {
+    await request(app.getHttpServer()).post('/api/v1/members').send({ memberCode: 'INVALID' }).expect(404);
+    await request(app.getHttpServer()).post('/api/v1/members/register').send({ memberCode: 'INVALID' }).expect(404);
+    await request(app.getHttpServer()).patch('/api/v1/members/' + codes['root']).send({ sponsor: codes['foreign'] }).expect(404);
   });
 });

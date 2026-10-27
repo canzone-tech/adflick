@@ -21,7 +21,7 @@
 
 ## Evidence and UAT limitations
 
-`apps/api/test/members.mysql.e2e-spec.ts` uses only isolated disposable MySQL with temporary `@example.test` fixtures, creating real tenant records solely within that database. Tests assert HTTP 401/403/404, tenant scoping, no PII, bounded depth/pagination, sponsor-versus-placement separation, actual MySQL duplicate-slot concurrent conflict, compound FK isolation and self-parent checks. `npm run verify` wires this to the backend MySQL gate.
+`apps/api/test/members.mysql.e2e-spec.ts` uses only isolated disposable MySQL with temporary `@example.test` fixtures, creating real tenant records solely within that database. Tests assert HTTP 401/403/404, tenant scoping, no PII, bounded depth/pagination, sponsor-versus-placement separation, actual MySQL duplicate-slot concurrent conflict, compound FK isolation and explicit absence of enrollment/placement mutations. `npm run verify` wires this to the backend MySQL gate.
 
 **AT-01–05 remain PENDING overall.** The database integrity slice of AT-05 is tested; atomic registration, OTP, e-PIN lifecycle, consent, cycle/correction rules and member UI are not complete. Neither exact-SHA CI nor local verification proves commercial or production acceptance.
 
