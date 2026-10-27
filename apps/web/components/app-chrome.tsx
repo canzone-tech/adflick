@@ -21,6 +21,8 @@ export const WORKSPACE_LINKS = [
   { href: '/incidents', label: 'Incidents', symbol: '⚑', section: 'Devices' },
   { href: '/finance', label: 'Reward Finance', symbol: '₹', section: 'Finance' },
   { href: '/finance/payouts', label: 'Reconciliation', symbol: '≡', section: 'Finance' },
+  { href: '/communications', label: 'Email / OTP Settings', symbol: '✉', section: 'Account' },
+  { href: '/email-verification', label: 'Verify Email', symbol: '◇', section: 'Account' },
   { href: '/account', label: 'Account & MFA', symbol: '◎', section: 'Account' },
 ] as const;
 

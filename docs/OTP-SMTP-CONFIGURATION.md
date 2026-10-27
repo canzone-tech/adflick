@@ -40,3 +40,9 @@ New MySQL models `MemberOtpPolicy`, `MemberEmailOtp` and `MemberEmailOtpThrottle
 ## Remaining product blockers
 
 No public Join Now/OTP signup, SMS OTP provider, email change verification, KYC or member activation provider, password reset mail, financial policies, legal consent signoff, physical SmartTV player and production recovery. Before enabling, review SMTP sender SPF/DKIM/DMARC, provider credentials and quotas, network egress, deliverability and independent real-mailbox UAT. Exact-SHA CI + local verify do not authorize production.
+
+## Authenticated web screens (central AppChrome)
+
+- `/communications`: Real Admin/Super Admin OTP policy form backed by `GET/PUT /otp/policy`; shows configuration-ready **only**, not confirmed inbox delivery. SMTP host/port/user/password/from identity remain protected environment settings outside browser. Privileged writes require MFA step-up, plus operator feature gate.
+- `/email-verification`: Real MEMBER email OTP request/verify page using authenticated API; restores an unexpired pending challenge on refresh, displays resend cooldown, expiry and errors, does not fabricate code or success. Does not activate membership or bypass e-PIN/consent.
+- Both routes use the same responsive sidebar/topbar as the rest of ADFLICK, with route/browser contract checks. An exposed menu is not an authorization grant; all data is server-side JWT/RBAC scoped.

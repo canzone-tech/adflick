@@ -68,6 +68,7 @@ async function run() {
       await command('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
       await until("document.querySelector('[data-testid=app-menu-toggle]')?.getAttribute('aria-expanded')==='false'", 'Escape closes mobile drawer');
       await click('[data-testid=app-menu-toggle]');
+      await until("(() => { const link=document.querySelector('[data-testid=app-sidebar] a[href=\\\"/fleet\\\"]'); if(!link)return false;const r=link.getBoundingClientRect();const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return document.querySelector('[data-testid=app-menu-toggle]')?.getAttribute('aria-expanded')==='true' && r.left >= 0 && r.right <= innerWidth && (hit===link || link.contains(hit)); })()", 'mobile drawer link is fully visible and interactive');
       await click('[data-testid=app-sidebar] a[href="/fleet"]');
       await until("location.pathname === '/fleet' && document.querySelector('[data-testid=app-menu-toggle]')?.getAttribute('aria-expanded')==='false'", 'mobile navigation and drawer close');
       const fleetMetrics = await evaluate("({width:innerWidth,scrollWidth:document.documentElement.scrollWidth})");

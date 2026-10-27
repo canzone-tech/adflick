@@ -20,7 +20,7 @@ const browser = read('scripts/browser-uat.mjs');
 if (!layout.includes('<AppChrome>{children}</AppChrome>') || !layout.includes("import './app-chrome.css'")) {
   throw new Error('All operations pages must receive the central AppChrome in root layout.');
 }
-for (const route of ['/','/cms','/campaigns','/delivery','/scheduler','/fleet','/playback','/health','/incidents','/finance','/finance/payouts','/account']) {
+for (const route of ['/','/cms','/campaigns','/delivery','/scheduler','/fleet','/playback','/health','/incidents','/finance','/finance/payouts','/account','/communications','/email-verification']) {
   if (!shell.includes("href: '"+route+"'")) throw new Error('Missing canonical navigation route '+route);
   if (!browser.includes("'"+route+"'")) throw new Error('Browser layout test must cover '+route);
 }
@@ -34,6 +34,7 @@ const pages = [
   'page.tsx','cms/page.tsx','campaigns/page.tsx','delivery/page.tsx','scheduler/page.tsx',
   'fleet/page.tsx','playback/page.tsx','health/page.tsx','incidents/page.tsx',
   'finance/page.tsx','finance/payouts/page.tsx','account/page.tsx',
+  'communications/page.tsx','email-verification/page.tsx',
 ];
 for (const page of pages) {
   const content = read('apps/web/app/'+page);

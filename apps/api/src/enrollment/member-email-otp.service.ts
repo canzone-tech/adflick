@@ -230,12 +230,27 @@ export class MemberEmailOtpService {
 
   async status(actor: AuthenticatedUser) {
     const organizationId = this.org(actor);
-    const challenge = await this.prisma.memberEmailOtp.findFirst({
-      where: { organizationId, userId: actor.sub, purpose,
-        status: MemberEmailOtpStatus.VERIFIED, expiresAt: { gt: new Date() } },
-      orderBy: { createdAt: 'desc' },
-      select: { expiresAt: true },
-    });
-    return { verified: !!challenge, expiresAt: challenge?.expiresAt ?? null, channel: 'EMAIL' };
+    const now = new Date();
+    const [verified, pending, throttle] = await Promise.all([
+      this.prisma.memberEmailOtp.findFirst({
+        where: { organizationId, userId: actor.sub, purpose,
+          status: MemberEmailOtpStatus.VERIFIED, expiresAt: { gt: now } },
+        orderBy: { createdAt: 'desc' },
+        select: { expiresAt: true },
+      }),
+      this.prisma.memberEmailOtp.findFirst({
+        where: { organizationId, userId: actor.sub, purpose,
+          status: MemberEmailOtpStatus.SENT, expiresAt: { gt: now } },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, expiresAt: true },
+      }),
+      this.prisma.memberEmailOtpThrottle.findUnique({
+        where: { organizationId_userId_purpose: { organizationId, userId: actor.sub, purpose } },
+        select: { nextAllowedAt: true },
+      }),
+    ]);
+    return { verified: !!verified, expiresAt: verified?.expiresAt ?? pending?.expiresAt ?? null,
+      pendingChallengeId: pending?.id ?? null, resendAfter: throttle?.nextAllowedAt ?? null,
+      channel: 'EMAIL' };
   }
 }
