@@ -10,6 +10,8 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { smsConfiguration } from '../src/enrollment/sms-gateway.service';
+import { MemberPhoneOtpService } from '../src/enrollment/member-phone-otp.service';
+import { AuthenticatedUser } from '../src/auth/decorators/current-user.decorator';
 
 const suite=process.env.RUN_MYSQL_MEMBERS_E2E==='1'?describe:describe.skip;
 const keys=[
@@ -157,23 +159,31 @@ suite('real HTTP JSON SMS gateway + disposable MySQL phone OTP lifecycle',()=>{
   });
 
   it('new SMS request invalidates older verified challenge; provider rejection never reports sent',async()=>{
-    const firstSend=await post('resend','/request',{phone:'+919876543212',smsConsentAccepted:true}).expect(201);
-    const initial=received[received.length-1]!;
-    expect(initial.reference).toBe(firstSend.body.challengeId);
-    const validCode=initial.message.match(/OTP (\d{6})/)?.[1];
-    await post('resend','/verify',{challengeId:initial.reference,code:validCode}).expect(201);
-    const owner=await db.memberPhoneOtp.findUniqueOrThrow({
-      where:{id:initial.reference},select:{userId:true},
+    // Exercise the real MySQL/gateway service directly: the HTTP 429 guard
+    // was already asserted above and must not be weakened for this scenario.
+    const owner=await db.user.findFirstOrThrow({
+      where:{organizationId:org,email:{startsWith:'sms-resend-'}},
+      select:{id:true,email:true},
     });
+    const actor:AuthenticatedUser={
+      sub:owner.id,email:owner.email,organizationId:org,roles:['MEMBER'],sessionId:'isolated-test',
+    };
+    const phoneService=app.get(MemberPhoneOtpService);
+    const firstSend=await phoneService.request(actor,{phone:'+919876543212',smsConsentAccepted:true});
+    const initial=received[received.length-1]!;
+    expect(initial.reference).toBe(firstSend.challengeId);
+    const validCode=initial.message.match(/OTP (\d{6})/)?.[1]??'';
+    await phoneService.verify(actor,{challengeId:initial.reference,code:validCode});
     await db.memberPhoneOtpThrottle.updateMany({
-      where:{organizationId:org,userId:owner.userId},
+      where:{organizationId:org,userId:owner.id},
       data:{nextAllowedAt:new Date(Date.now()-1000)},
     });
     rejectDelivery=true;
-    await post('resend','/request',{phone:'+919876543211',smsConsentAccepted:true}).expect(503);
+    await expect(phoneService.request(actor,{phone:'+919876543211',smsConsentAccepted:true}))
+      .rejects.toThrow('Approved SMS gateway did not accept OTP');
     expect((await db.memberPhoneOtp.findUniqueOrThrow({where:{id:initial.reference}})).status).toBe('FAILED');
     const latest=await db.memberPhoneOtp.findFirstOrThrow({
-      where:{organizationId:org,userId:owner.userId},orderBy:{createdAt:'desc'},
+      where:{organizationId:org,userId:owner.id},orderBy:{createdAt:'desc'},
     });
     expect(latest.status).toBe('FAILED');
     expect(latest.sentAt).toBeNull();
