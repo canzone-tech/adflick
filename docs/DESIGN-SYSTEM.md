@@ -30,3 +30,7 @@ The two real API-backed member pages `/member-onboarding` and `/member-operation
 ## Phone verification route consistency
 
 `/phone-verification` and the mobile verification status panels are part of the same `AppChrome` used by `/member-onboarding` and `/communications`. No duplicated page-level topbar/sidebar. The phone field requires E.164 plus explicit transactional SMS consent. Error, loading, resend countdown, provider-disabled state and verified masked digits are rendered from real authenticated API state. CSS uses existing `communication.css`, and Chrome regression/smoke routes are extended.
+
+## Member Dashboard navigation and record semantics
+
+`/member-dashboard` is a role-scoped child of the canonical `AppChrome` (same topbar, sidebar, mobile drawer, skip-navigation). Visual cards use existing neutral light tokens and responsive 3→1 metrics and 2→1 dashboard columns; no separate navigation shell. Referrals are **sponsor** relationships and the LEFT/RIGHT counts are bounded **placement** descendants; titles must not conflate them or imply payout eligibility. The frontend only renders real `/members/me/dashboard`, `/members/me/referrals` and `/members/me/team-summary` responses. Staff `/member-operations` shows `/members/overview` MySQL counters and remains strictly non-financial. The static UI guard, compiled route smoke and real Chrome cross-breakpoint check include `/member-dashboard`.

@@ -190,6 +190,85 @@ suite('SRS v1.0 non-financial member genealogy MySQL HTTP acceptance', () => {
     expect(JSON.stringify(tree.body)).not.toContain('email');
   });
 
+
+  it('member dashboard shows actual sponsor and direct placement without earning claims', async () => {
+    await request(app.getHttpServer()).get('/api/v1/members/me/dashboard').expect(401);
+    await get('/members/me/dashboard', tokens['adminA']!).expect(403);
+    const response = await get('/members/me/dashboard', tokens['root']!).expect(200);
+    expect(response.body).toMatchObject({
+      hasProfile: true, directReferrals: 2, financialEligibilityEstablished: false,
+      directPlacement: {
+        LEFT: { memberCode: codes['left'], status: 'PENDING_ACTIVATION' },
+        RIGHT: { memberCode: codes['right'], status: 'PENDING_ACTIVATION' },
+      },
+    });
+    expect(response.body.member).toMatchObject({
+      memberCode: codes['root'], isTreeRoot: true,
+      sponsorMemberCode: null, placementParentMemberCode: null,
+    });
+    expect(JSON.stringify(response.body)).not.toContain('@example.test');
+    const notYetEnrolled = await get('/members/me/dashboard', tokens['unboundForeign']!).expect(200);
+    expect(notYetEnrolled.body).toMatchObject({
+      hasProfile: false, member: null, directReferrals: 0,
+      financialEligibilityEstablished: false,
+    });
+    await get('/members/me/dashboard', tokens['foreign']!).expect(200)
+      .then(result => expect(JSON.stringify(result.body)).not.toContain(codes['root']));
+  });
+
+  it('returns bounded direct sponsored referrals, not unrelated placements or personal data', async () => {
+    await request(app.getHttpServer()).get('/api/v1/members/me/referrals').expect(401);
+    await get('/members/me/referrals', tokens['adminA']!).expect(403);
+    const first = await get('/members/me/referrals?take=1&skip=0', tokens['root']!).expect(200);
+    const second = await get('/members/me/referrals?take=1&skip=1', tokens['root']!).expect(200);
+    expect(first.body.total).toBe(2);
+    expect(first.body.items).toHaveLength(1);
+    expect(second.body.items).toHaveLength(1);
+    expect(new Set([...first.body.items,...second.body.items].map(
+      (row:{memberCode:string})=>row.memberCode,
+    ))).toEqual(new Set([codes['left'],codes['right']]));
+    expect(JSON.stringify(first.body)+JSON.stringify(second.body)).not.toContain('@example.test');
+    const leftOnly = await get('/members/me/referrals', tokens['left']!).expect(200);
+    expect(leftOnly.body.total).toBe(0);
+    const none = await get('/members/me/referrals', tokens['unboundForeign']!).expect(200);
+    expect(none.body).toMatchObject({hasProfile:false,total:0,items:[]});
+    await get('/members/me/referrals?take=101', tokens['root']!).expect(400);
+    await get('/members/me/referrals?skip=-1', tokens['root']!).expect(400);
+  });
+
+  it('counts only LEFT/RIGHT visible descendants within selected tree depth', async () => {
+    await get('/members/me/team-summary', tokens['adminA']!).expect(403);
+    const summary = await get('/members/me/team-summary?depth=1', tokens['root']!).expect(200);
+    expect(summary.body).toMatchObject({
+      hasProfile:true, memberCode:codes['root'], maxDepth:1,bounded:true,
+      totalVisibleDescendants:2,
+      left:{directMemberCode:codes['left'],visibleDescendants:1,pendingActivation:1,active:0,suspended:0},
+      right:{directMemberCode:codes['right'],visibleDescendants:1,pendingActivation:1,active:0,suspended:0},
+    });
+    expect(JSON.stringify(summary.body)).not.toContain('@example.test');
+    const self = await get('/members/me/team-summary?depth=4', tokens['left']!).expect(200);
+    expect(self.body.totalVisibleDescendants).toBe(0);
+    const empty = await get('/members/me/team-summary', tokens['unboundForeign']!).expect(200);
+    expect(empty.body).toMatchObject({hasProfile:false,totalVisibleDescendants:0,bounded:true});
+    await get('/members/me/team-summary?depth=5', tokens['root']!).expect(400);
+  });
+
+  it('staff receives tenant-only nonfinancial member, placement, PIN and consent overview', async () => {
+    await request(app.getHttpServer()).get('/api/v1/members/overview').expect(401);
+    await get('/members/overview', tokens['root']!).expect(403);
+    await get('/members/overview', tokens['advertiserB']!).expect(403);
+    const staff = await get('/members/overview', tokens['adminA']!).expect(200);
+    expect(staff.body).toMatchObject({
+      membership:{total:5,pendingActivation:5,active:0,suspended:0},
+      placement:{left:1,right:1},pins:{issued:0,redeemed:0,revoked:0},
+      approvedConsents:0,enabledPackages:0,financialBalancesIncluded:false,
+    });
+    const other = await get('/members/overview', tokens['adminB']!).expect(200);
+    expect(other.body.membership.total).toBe(1);
+    expect(other.body.placement).toMatchObject({left:0,right:0});
+    expect(JSON.stringify(staff.body)).not.toContain('@example.test');
+  });
+
   it('enforces one direct LEFT slot under genuine concurrent MySQL writes', async () => {
     const results = await Promise.allSettled([
       prisma.placementNode.create({ data: { organizationId: tenantA, memberId: spareOne, parentMemberId: left, side: BinarySide.LEFT } }),
@@ -201,6 +280,12 @@ suite('SRS v1.0 non-financial member genealogy MySQL HTTP acceptance', () => {
     // The other membership has no ghost placement row.
     const tree = await get('/members/' + codes['left'] + '/tree?depth=1', tokens['adminA']!).expect(200);
     expect(tree.body.nodes).toHaveLength(2);
+    const observed = await get('/members/me/team-summary?depth=2', tokens['root']!).expect(200);
+    expect(observed.body.totalVisibleDescendants).toBe(3);
+    expect(observed.body.left.visibleDescendants).toBe(2);
+    expect(observed.body.right.visibleDescendants).toBe(1);
+    const directReferrals = await get('/members/me/referrals', tokens['root']!).expect(200);
+    expect(directReferrals.body.total).toBe(2);
   });
 
   it('rejects cross-tenant sponsor, placement and member-user associations at FK layer', async () => {

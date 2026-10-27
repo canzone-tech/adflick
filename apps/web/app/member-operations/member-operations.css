@@ -28,3 +28,11 @@
 .member-admin-revoke{margin-top:17px;max-width:690px}
 @media(max-width:900px){.member-admin-columns{grid-template-columns:1fr}}
 @media(max-width:520px){.member-admin-card{padding:17px}}
+
+.member-admin-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+.member-admin-overview>div{display:grid;gap:8px;min-width:0;padding:15px;background:#faf9fe;border:1px solid var(--line);border-radius:10px}
+.member-admin-overview small{font-size:11px;color:var(--muted);line-height:1.4}
+.member-admin-overview strong{font:800 19px Manrope,sans-serif}
+@media(max-width:970px){.member-admin-overview{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.member-admin-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:340px){.member-admin-overview{grid-template-columns:1fr}}

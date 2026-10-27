@@ -19,9 +19,17 @@ type OneTime = {id:string;pin:string;expiresAt:string;status:string;notice:strin
 type PackageDraft = {id:string;status:string};
 type ConsentDraft = {id:string;status:string};
 type Approval = {id:string;status:string};
+type Overview = {
+  membership:{total:number;pendingActivation:number;active:number;suspended:number};
+  placement:{left:number;right:number};
+  pins:{issued:number;redeemed:number;revoked:number};
+  approvedConsents:number;enabledPackages:number;
+  financialBalancesIncluded:false;note:string;
+};
 
 export default function MemberOperationsPage() {
   const [identity,setIdentity] = useState<Identity|null>(null);
+  const [overview,setOverview] = useState<Overview|null>(null);
   const [packages,setPackages] = useState<Package[]>([]);
   const [consents,setConsents] = useState<Consent[]>([]);
   const [pins,setPins] = useState<IssuedPin[]>([]);
@@ -43,13 +51,14 @@ export default function MemberOperationsPage() {
   const [revocationReason,setRevocationReason] = useState('');
 
   async function refresh() {
-    const [packageRows,consentRows,pinRows] = await Promise.all([
+    const [packageRows,consentRows,pinRows,overviewData] = await Promise.all([
       apiRequest<Package[]>('/member-enrollment/packages'),
       apiRequest<Consent[]>('/member-enrollment/consents'),
       apiRequest<PinList>('/member-enrollment/pins?take=100&skip=0'),
+      apiRequest<Overview>('/members/overview'),
     ]);
     setPackages(packageRows);setConsents(consentRows);
-    setPins(pinRows.items);setPinTotal(pinRows.total);
+    setPins(pinRows.items);setPinTotal(pinRows.total);setOverview(overviewData);
   }
   useEffect(()=>{
     let alive=true;
@@ -144,6 +153,29 @@ export default function MemberOperationsPage() {
     {message&&<p className="communication-success" role="status">{message}</p>}
     {!loading&&identity&&!staff&&<p role="alert">Membership administration is restricted to authorized staff roles.</p>}
     {!loading&&staff&&<>
+      <section className="member-admin-card" aria-labelledby="member-admin-overview-title">
+        <p className="communication-kicker">ORGANIZATION / NON-FINANCIAL OVERVIEW</p>
+        <h2 id="member-admin-overview-title">Membership operations snapshot</h2>
+        <p>Counts come from real tenant-scoped MySQL records. These are not commission, paid activation or revenue figures.</p>
+        {overview?<div className="member-admin-overview">
+          {([
+            ['Members recorded',overview.membership.total],
+            ['Pending activation',overview.membership.pendingActivation],
+            ['Active profiles',overview.membership.active],
+            ['Suspended profiles',overview.membership.suspended],
+            ['LEFT placements',overview.placement.left],
+            ['RIGHT placements',overview.placement.right],
+            ['Issued e-PINs',overview.pins.issued],
+            ['Redeemed e-PINs',overview.pins.redeemed],
+            ['Revoked e-PINs',overview.pins.revoked],
+            ['Approved consent versions',overview.approvedConsents],
+            ['Enabled non-financial packages',overview.enabledPackages],
+          ] as const).map(([label,value])=><div key={label}>
+            <small>{label}</small><strong>{value}</strong>
+          </div>)}
+        </div>:<p role="status">Operations summary could not be loaded.</p>}
+        {overview&&<p className="member-admin-hint">{overview.note}</p>}
+      </section>
       <section className="member-admin-columns">
         <div className="member-admin-card">
           <h2>Enrollment packages</h2>
@@ -237,7 +269,7 @@ export default function MemberOperationsPage() {
             disabled={busy}/></label>}
         {pinTotal>pins.length&&<p className="member-admin-hint">Showing the latest {pins.length} records. Full audit evidence remains in MySQL.</p>}
       </section>
-      <p className="member-admin-hint">Financial compensation, paid joining, PIN transfer, SMS OTP and production activation remain blocked. <Link href="/communications">OTP configuration</Link> · <Link href="/account">MFA security</Link>.</p>
+      <p className="member-admin-hint">Financial compensation, paid joining, PIN transfer, live SMS provider certification and production activation remain blocked. <Link href="/communications">OTP configuration</Link> · <Link href="/account">MFA security</Link>.</p>
     </>}
   </main>;
 }

@@ -136,6 +136,7 @@ export default function MemberOnboardingPage() {
       </section>
       {progress.membership?<section className="member-onboard-card">
         <h2>Recorded membership</h2>
+        <p><Link href="/member-dashboard">View direct referrals and LEFT/RIGHT member dashboard</Link></p>
         <dl className="member-onboard-facts">
           <div><dt>Member code</dt><dd>{progress.membership.memberCode}</dd></div>
           <div><dt>Status</dt><dd>{progress.membership.status.replaceAll('_',' ')}</dd></div>

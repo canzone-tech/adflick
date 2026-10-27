@@ -20,6 +20,30 @@ export class MembersController {
     return this.members.list(actor, query);
   }
 
+  @Get('overview')
+  @Roles(...STAFF_ROLES)
+  overview(@CurrentUser() actor: AuthenticatedUser) {
+    return this.members.adminOverview(actor);
+  }
+
+  @Get('me/dashboard')
+  @Roles(UserRole.MEMBER)
+  myDashboard(@CurrentUser() actor: AuthenticatedUser) {
+    return this.members.myDashboard(actor);
+  }
+
+  @Get('me/referrals')
+  @Roles(UserRole.MEMBER)
+  myReferrals(@CurrentUser() actor: AuthenticatedUser, @Query() query: MemberListQueryDto) {
+    return this.members.myReferrals(actor, query);
+  }
+
+  @Get('me/team-summary')
+  @Roles(UserRole.MEMBER)
+  myTeamSummary(@CurrentUser() actor: AuthenticatedUser, @Query() query: MemberTreeQueryDto) {
+    return this.members.myTeamSummary(actor, query.depth);
+  }
+
   @Get('me')
   @Roles(UserRole.MEMBER)
   myProfile(@CurrentUser() actor: AuthenticatedUser) {

@@ -27,7 +27,8 @@
 - [x] **Partial public onboarding:** Join Now supports approved tenant/legal version, SMTP email verification and real MEMBER login credentials, behind tenant + operator default-OFF policies. SRS-required mobile OTP has a default-off provider-neutral gateway implementation with real HTTP/MySQL acceptance; real provider/legal UAT, full public PIN/sponsor flow and activation remain pending.
 - [ ] Complete SRS end-to-end Join Now/mobile OTP/e-PIN/sponsor/placement/activation only after provider/policy approvals; forms must never claim completed membership from email bootstrap.
 - [x] **Partial real-member UX:** `/member-onboarding` shows actual owned genealogy, tenant-safe sponsor/slot verification, approved consent, email OTP and e-PIN status, and calls atomic pending enrollment. `/member-operations` uses real admin package/consent/reviewer/PIN APIs. Full referral dashboard, SMS, activation and financial member wallet remain pending.
-- [ ] Complete role-specific member referral and finance dashboard, mobile OTP, KYC and approved activation lifecycle with independent UAT.
+- [x] Five read-only/non-financial member-portal milestones implemented: authenticated Member Dashboard, bounded direct sponsorship referral pagination, visible-depth LEFT/RIGHT team summary, tenant-scoped staff operational counts, and MySQL access-control/UI browser regression tests.
+- [ ] Complete financial member portal only after approved plan, immutable commission wallet/ledger and provider acceptance. SMS live provider UAT, KYC and approved activation lifecycle separately pending.
 - [ ] Browser assertions for reload/persist, 401/403, keyboard, mobile 320/360/390/412, real MySQL data.
 
 ### P3 — Pairing engine and commission foundation (policy-neutral until approval)

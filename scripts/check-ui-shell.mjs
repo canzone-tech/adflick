@@ -21,7 +21,7 @@ if (!shell.includes("pathname === '/login' || pathname === '/join'")) throw new 
 if (!layout.includes('<AppChrome>{children}</AppChrome>') || !layout.includes("import './app-chrome.css'")) {
   throw new Error('All operations pages must receive the central AppChrome in root layout.');
 }
-for (const route of ['/','/cms','/campaigns','/delivery','/scheduler','/fleet','/playback','/health','/incidents','/finance','/finance/payouts','/account','/communications','/email-verification','/phone-verification','/member-onboarding','/member-operations']) {
+for (const route of ['/','/cms','/campaigns','/delivery','/scheduler','/fleet','/playback','/health','/incidents','/finance','/finance/payouts','/account','/communications','/email-verification','/phone-verification','/member-dashboard','/member-onboarding','/member-operations']) {
   if (!shell.includes("href: '"+route+"'")) throw new Error('Missing canonical navigation route '+route);
   if (!browser.includes("'"+route+"'")) throw new Error('Browser layout test must cover '+route);
 }
@@ -35,7 +35,7 @@ const pages = [
   'page.tsx','cms/page.tsx','campaigns/page.tsx','delivery/page.tsx','scheduler/page.tsx',
   'fleet/page.tsx','playback/page.tsx','health/page.tsx','incidents/page.tsx',
   'finance/page.tsx','finance/payouts/page.tsx','account/page.tsx',
-  'communications/page.tsx','email-verification/page.tsx','phone-verification/page.tsx','member-onboarding/page.tsx','member-operations/page.tsx','join/page.tsx',
+  'communications/page.tsx','email-verification/page.tsx','phone-verification/page.tsx','member-dashboard/page.tsx','member-onboarding/page.tsx','member-operations/page.tsx','join/page.tsx',
 ];
 for (const page of pages) {
   const content = read('apps/web/app/'+page);
