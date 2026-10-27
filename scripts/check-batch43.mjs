@@ -3,8 +3,8 @@ import path from 'node:path';
 const root = process.cwd();
 const required = [
   'apps/api/test/reconciliation-import.mysql.e2e-spec.ts',
-  'docs/BATCH_43_MYSQL_RECONCILIATION_INTEGRATION.md',
-  'docs/BATCH_43_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) { console.error(`[BATCH 43] Missing ${file}`); process.exitCode = 1; }
 if (process.exitCode) process.exit(process.exitCode);

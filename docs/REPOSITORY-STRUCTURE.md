@@ -25,7 +25,7 @@ docs/                Architecture, policy, UAT, history and recovery decisions
 
 ## Cleanup rules
 
-- The top-level `BATCH_*_FILE_MANIFEST.txt` files are historical provenance records, **not generated junk**. Some scripts (for example `check-batch50.mjs`) directly reference them. Do not delete or relocate before a complete reference audit and test-gate update.
+- Legacy batch-wise manifests, Markdown plans and acceptance CSVs were consolidated into `docs/BATCH-HISTORY.md` on 27 October 2026. All 163 original file paths/blob hashes remain indexed there, plus the historical milestone CSV is recoverable from the preceding Git commit. Do not recreate individual batch documents. Keep current tests and release evidence intact.
 - Keep `package-lock.json`, all Prisma migrations, `AGENTS.md`, `.env.example`, existing release scripts, source checks and audit docs. Do not combine migration history or rewrite applied SQL.
 - Generated `node_modules/`, `.next/`, `dist/`, screenshots and local secrets are already ignored. Never commit production backups or secrets.
 - The recovered policy modules in `apps/api/src/recovered-domain/` intentionally isolate **non-runtime** starter logic from active NestJS services. Future promotion into runtime requires versioned policy approval, tenant/RBAC, DB transactions/outbox, E2E and real UI/player UAT.

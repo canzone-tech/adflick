@@ -1,13 +1,13 @@
 # ADFLICK — SRS-aligned development execution backlog
 
 **Decision:** In-place, forward-only extension of `dev/local-foundation`; do **not** create another application or erase proven playout modules.
-**Source:** Client `ADFLICK_Binary_1x1_MLM_Complete_SRS.docx` v1.0 draft (2026-10-23).
+**Source:** Client `ADFLICK_Binary_1x1_MLM_Complete_SRS.docx` v1.0 (originally Draft 2026-10-23); **functional development scope APPROVED 2026-10-27 in chat**; compensation/legal rules remain unapproved.
 **Release type:** No changes to production or approved business rules authorized by this backlog.
 
 ## Priority order and exit criteria
 
 ### P0 — Confirm scope and close irreversible product decisions
-- [ ] Obtain signed functional baseline for public web, member, admin/super-admin, advertiser/screen owner and operations.
+- [x] Project owner approved v1.0 functional development scope on 2026-10-27; formal commercial and legal signatures are tracked separately.
 - [ ] Approve unique member ID scheme, identity/organization relationship and registration/sponsor/placement correction rules.
 - [ ] Approve OTP/communication, consent versioning, privacy, package/e-PIN status lifecycle and financial *feature-disable* policy.
 - [ ] Keep ALL commission calculation, paid e-PIN sales and real payouts disabled until business/finance/legal sign-off.

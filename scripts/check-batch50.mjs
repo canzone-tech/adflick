@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 const required = [
   'scripts/verify-clean-release.mjs',
-  'docs/BATCH_50_CLEAN_RELEASE_PREFLIGHT.md',
-  'docs/BATCH_50_ACCEPTANCE_MATRIX.csv',
-  'BATCH_50_FILE_MANIFEST.txt',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) {
   if (!fs.existsSync(file)) {

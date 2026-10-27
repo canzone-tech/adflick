@@ -6,7 +6,7 @@ const required = [
   'apps/api/src/finance/providers/reconciliation-match.ts',
   'apps/api/src/finance/providers/sandbox-provider.spec.ts',
   'apps/api/src/finance/providers/reconciliation-match.spec.ts',
-  'docs/BATCH_19_SANDBOX_PROVIDER_RECONCILIATION.md'
+  'docs/BATCH-HISTORY.md'
 ];
 for (const file of required) {
   if (!fs.existsSync(path.join(root, file))) {

@@ -5,9 +5,9 @@ import path from 'node:path';
 const root = process.cwd();
 const fail = (message) => { console.error(`[BATCH 25] ${message}`); process.exitCode = 1; };
 const requiredFiles = [
-  'docs/BATCH_25_AUTHORIZATION_INTEGRATION_ACCEPTANCE.md',
-  'docs/BATCH_25_ROLE_PERMISSION_ACCEPTANCE_MATRIX.csv',
-  'docs/BATCH_25_SECURITY_ACCEPTANCE_TEST_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
   'apps/api/src/campaigns/campaigns.tenant-isolation.spec.ts',
   'apps/api/src/cms/cms.tenant-isolation.spec.ts',
   'apps/api/src/devices/devices.tenant-isolation.spec.ts',
@@ -23,15 +23,15 @@ if (process.exitCode) process.exit(process.exitCode);
 
 const schema = fs.readFileSync(path.join(root, 'prisma/schema.prisma'), 'utf8');
 if (!/provider\s*=\s*"mysql"/.test(schema)) fail('Prisma provider must remain MySQL.');
-const roleCsv = fs.readFileSync(path.join(root, 'docs/BATCH_25_ROLE_PERMISSION_ACCEPTANCE_MATRIX.csv'), 'utf8');
+const roleCsv = fs.readFileSync(path.join(root, 'docs/BATCH-HISTORY.md'), 'utf8');
 const roles = ['SUPER_ADMIN','ORGANIZATION_ADMIN','ADVERTISER','SCREEN_OWNER','CONTENT_MANAGER','OPERATIONS_MANAGER','FINANCE_MANAGER','SUPPORT_AGENT','AUDITOR_COMPLIANCE'];
 for (const role of roles) if (!roleCsv.includes(`\n${role},`)) fail(`Role acceptance row missing: ${role}`);
 
-const testCsv = fs.readFileSync(path.join(root, 'docs/BATCH_25_SECURITY_ACCEPTANCE_TEST_MATRIX.csv'), 'utf8');
+const testCsv = fs.readFileSync(path.join(root, 'docs/BATCH-HISTORY.md'), 'utf8');
 for (const token of ['TEN-001','TEN-002','DEV-002','FIN-001','FIN-004','FIN-006','REL-001']) {
   if (!testCsv.includes(`\n${token},`)) fail(`Critical acceptance scenario missing: ${token}`);
 }
-if (!/Live transfers stay disabled/i.test(fs.readFileSync(path.join(root, 'docs/BATCH_25_AUTHORIZATION_INTEGRATION_ACCEPTANCE.md'), 'utf8'))) {
+if (!/Live transfers stay disabled/i.test(fs.readFileSync(path.join(root, 'docs/BATCH-HISTORY.md'), 'utf8'))) {
   fail('Acceptance document must explicitly keep live transfers disabled until release conditions are met.');
 }
 

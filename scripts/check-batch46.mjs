@@ -4,9 +4,9 @@ const root = process.cwd();
 const required = [
   'apps/api/src/finance/reconciliation/reconciliation-import-observability.ts',
   'apps/api/src/finance/reconciliation/reconciliation-import-observability.spec.ts',
-  'docs/BATCH_46_RECONCILIATION_OBSERVABILITY.md',
-  'docs/BATCH_46_ACCEPTANCE_MATRIX.csv',
-  'BATCH_46_FILE_MANIFEST.txt',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) { console.error(`[BATCH 46] Missing ${file}`); process.exitCode = 1; }
 if (process.exitCode) process.exit(process.exitCode);

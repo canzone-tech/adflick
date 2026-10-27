@@ -1,3 +1,5 @@
+> Historical note: the former per-batch Markdown/CSV/manifest files and original 001–150 milestone CSV are consolidated into [BATCH-HISTORY.md](BATCH-HISTORY.md). This older recovery assessment is preserved for technical history; source/acceptance statuses must be checked against current exact-SHA CI and the SRS traceability record.
+
 # ADFLICK — Source Recovery / Milestone Status (18 Oct 2026)
 
 **Status: candidate source import; not a production release.** This branch holds the verified cumulative **Batch 50** snapshot, not a merged Batch 001–150 system. Root source archive SHA-256: `9218928155bee854a16479a01feb71308177c85941189a9a02a7774929165783`.
@@ -57,4 +59,4 @@ Earlier recovery observations below describe the **original Batch 50 ZIP**, not 
 
 Source archives are preserved outside repository; do not commit ZIPs, real secrets, .env files, generated files or DB backups.
 
-See `docs/BATCH_50_CLEAN_RELEASE_PREFLIGHT.md`, `docs/ARCHITECTURE.md`, engineering handover guide and `docs/MILESTONE_REGISTER_001_150.csv`.
+See `docs/BATCH-HISTORY.md`, `docs/ARCHITECTURE.md`, engineering handover guide and `docs/BATCH-HISTORY.md`.

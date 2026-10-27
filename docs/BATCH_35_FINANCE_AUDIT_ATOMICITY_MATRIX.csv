@@ -1,8 +1,0 @@
-case_id,scenario,expected_result,validation_type,status
-B35-01,Reconciliation batch lookup is organization scoped,Only requested organization's batch is returned,Static source plus Jest,Pending Jest execution
-B35-02,Nested payout item relation read,Items include organization predicate,Static source plus Jest,Pending Jest execution
-B35-03,Audit event insert fails,Service rejects and does not return success,Mocked unit test,Test authored not executed
-B35-04,MySQL audit insert failure,Item and batch updates roll back,MySQL 8.4 integration,Pending
-B35-05,Successful reconciliation,One audit record and matching item/batch states persist,MySQL 8.4 integration,Pending
-B35-06,Cross-organization payout item,Item is never loaded or changed,MySQL 8.4 integration,Pending
-B35-07,Live provider transfer,No transfer is invoked,Source inspection,Pending release review

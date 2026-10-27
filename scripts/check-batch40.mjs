@@ -9,8 +9,8 @@ const required = [
   'apps/api/src/finance/dto/reserve-reconciliation-import.dto.ts',
   'apps/api/src/finance/reconciliation/reconciliation-import.service.spec.ts',
   'prisma/migrations/202610140039_reconciliation_import_idempotency/migration.sql',
-  'docs/BATCH_40_RECONCILIATION_IMPORT_ENDPOINT.md',
-  'docs/BATCH_40_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
   console.error(`[BATCH 40] Missing required file: ${file}`); process.exitCode = 1;

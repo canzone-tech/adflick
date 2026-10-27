@@ -4,8 +4,8 @@ import path from 'node:path';
 const required = [
   'apps/api/src/auth/tenant-scope.ts',
   'apps/api/src/auth/tenant-scope.spec.ts',
-  'docs/BATCH_21_E2E_TENANT_ISOLATION_PRODUCTION_ACCEPTANCE.md',
-  'docs/BATCH_21_ROLE_PERMISSION_REGRESSION_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) {
   if (!fs.existsSync(path.join(process.cwd(), file))) {

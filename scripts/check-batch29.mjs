@@ -3,8 +3,8 @@ import path from 'node:path';
 const root = process.cwd();
 const required = [
   'apps/api/src/payouts/payouts.service.spec.ts',
-  'docs/BATCH_29_CONCURRENCY_EXPORT_SECURITY.md',
-  'docs/BATCH_29_SECURITY_CONCURRENCY_TEST_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
   'scripts/check-batch29.mjs',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
@@ -27,7 +27,7 @@ if (!service.includes('Payout batch was changed by another request. Refresh and 
     !service.includes('where: { id, organizationId, status: PayoutBatchStatus.PENDING_APPROVAL }')) {
   console.error('[BATCH 29] Conditional payout approval transition missing.'); process.exitCode = 1;
 }
-const matrix = fs.readFileSync(path.join(root, 'docs/BATCH_29_SECURITY_CONCURRENCY_TEST_MATRIX.csv'), 'utf8');
+const matrix = fs.readFileSync(path.join(root, 'docs/BATCH-HISTORY.md'), 'utf8');
 for (const id of ['SEC-029-01','SEC-029-04','SEC-029-07','SEC-029-08','SEC-029-10']) if (!matrix.includes(id)) {
   console.error(`[BATCH 29] Missing security test matrix case: ${id}`); process.exitCode = 1;
 }

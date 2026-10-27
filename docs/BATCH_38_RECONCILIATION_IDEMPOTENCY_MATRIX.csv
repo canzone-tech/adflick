@@ -1,7 +1,0 @@
-ID,Scenario,Expected result,Automated coverage,Release status
-B38-01,Exact provider/payout pair appears twice in one statement,Second row is REFERENCE_MISMATCH,Unit test,Source added
-B38-02,Same provider transaction reference is attached to different payouts,Later row is REFERENCE_MISMATCH,Unit test,Source added
-B38-03,Amount differs from approved amount,AMOUNT_MISMATCH; no settlement,Existing unit test,Source present
-B38-04,Statement is retried across separate requests,Durable import key prevents duplicate application,Database integration test required,Pending
-B38-05,Persistence fails after discrepancy is recorded,Transaction rollback leaves no partial state,MySQL integration test required,Pending
-B38-06,Foreign-tenant payout reference appears in statement,No cross-tenant mutation or disclosure,Security integration test required,Pending

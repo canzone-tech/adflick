@@ -2,9 +2,9 @@ import { hasLockedDependencyGate } from './ci-contract.mjs';
 import fs from 'node:fs';
 
 const required = [
-  'docs/BATCH_49_FAIL_CLOSED_CI_AND_LOCKFILE_POLICY.md',
-  'docs/BATCH_49_ACCEPTANCE_MATRIX.csv',
-  'BATCH_49_FILE_MANIFEST.txt',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) {
   if (!fs.existsSync(file)) {

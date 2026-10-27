@@ -1,7 +1,7 @@
 # ADFLICK — Client SRS v1.0 requirement-to-code assessment
 
 **Assessment date:** 2026-10-27
-**Client source:** `ADFLICK_Binary_1x1_MLM_Complete_SRS.docx`, dated 23 October 2026; **v1.0 DRAFT for stakeholder review**, not a signed business-rule approval.
+**Client source:** `ADFLICK_Binary_1x1_MLM_Complete_SRS.docx`, dated 23 October 2026; originally marked **v1.0 DRAFT for stakeholder review**. **Functional development scope APPROVED by project owner in chat on 27 October 2026**. Commercial/legal/payment rules are NOT approved.
 **Audited code:** `dev/local-foundation` at `95b36c271bddb3405799e47726eed83a408ce10b`.
 **Decision:** **EXTEND, DO NOT RESTART** the existing Adflick monorepo. Its NestJS/Next.js/MySQL/Prisma/auth/CI foundation is useful, but a Binary 1:1 MLM product is **not implemented or releasable** merely because the playout CI is green.
 **Evidence convention:** PRESENT=identified live canonical code (not acceptance); PARTIAL=some foundational pieces; MISSING=no corresponding live canonical Prisma/API module; BLOCKED=approval, provider, device or operator evidence missing. All acceptance criteria require test evidence before PASS.
@@ -65,7 +65,7 @@
 
 ## Explicit decision requests before coding real compensation
 
-- Business owner confirms v1.0 SRS as a scoped functional baseline (currently draft).
+- **CONFIRMED 2026-10-27:** product owner approved SRS v1.0 functional development scope in chat; no signed commercial/legal policy implied.
 - Finance/business defines exact pair unit, qualification, caps, timezone, carry-forward, flushed volume, commission rates/bases, stacking, reversals and thresholds.
 - Product/legal approves registration/KYC/OTP, package sales/e-PIN, tax/refund terms, consumer disclosures, marketing claims, consent and privacy.
 - Independent legal/tax/finance/compliance review for paid joining, referral/binary commissions, prizes/pools/device rewards (client SRS §4.1, §15.3).

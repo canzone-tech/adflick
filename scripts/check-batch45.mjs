@@ -3,9 +3,9 @@ import path from 'node:path';
 const root = process.cwd();
 const required = [
   'apps/api/test/reconciliation-import.http.e2e-spec.ts',
-  'docs/BATCH_45_RECONCILIATION_HTTP_E2E.md',
-  'docs/BATCH_45_ACCEPTANCE_MATRIX.csv',
-  'BATCH_45_FILE_MANIFEST.txt',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
   console.error(`[BATCH 45] Missing ${file}`); process.exitCode = 1;

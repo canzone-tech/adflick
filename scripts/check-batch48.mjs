@@ -3,9 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 const required = [
   'scripts/verify-dependency-install.mjs',
-  'docs/BATCH_48_CLEAN_CI_DEPENDENCY_HARDENING.md',
-  'docs/BATCH_48_ACCEPTANCE_MATRIX.csv',
-  'BATCH_48_FILE_MANIFEST.txt',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.resolve(file))) {
   console.error(`[BATCH 48] Missing ${file}`); process.exitCode = 1;

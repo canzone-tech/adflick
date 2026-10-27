@@ -4,8 +4,8 @@ import path from 'node:path';
 const root = process.cwd();
 const required = [
   'apps/api/test/security.e2e-spec.ts',
-  'docs/BATCH_28_CROSS_TENANT_PERSISTENCE_E2E.md',
-  'docs/BATCH_28_CROSS_TENANT_TEST_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
   'scripts/check-batch28.mjs',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
@@ -28,7 +28,7 @@ for (const token of [
 ]) if (!test.includes(token)) {
   console.error(`[BATCH 28] Missing tenant persistence test coverage: ${token}`); process.exitCode = 1;
 }
-const matrix = fs.readFileSync(path.join(root, 'docs/BATCH_28_CROSS_TENANT_TEST_MATRIX.csv'), 'utf8');
+const matrix = fs.readFileSync(path.join(root, 'docs/BATCH-HISTORY.md'), 'utf8');
 for (const id of ['TEN-028-01','TEN-028-06','TEN-028-07','TEN-028-11']) if (!matrix.includes(id)) {
   console.error(`[BATCH 28] Missing test matrix case: ${id}`); process.exitCode = 1;
 }

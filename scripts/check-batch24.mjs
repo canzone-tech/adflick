@@ -6,8 +6,8 @@ const required = [
   'apps/api/src/devices/devices.tenant-isolation.spec.ts',
   'apps/api/src/playback/playback.tenant-isolation.spec.ts',
   'apps/api/src/devices/devices.service.ts',
-  'docs/BATCH_24_AUTHORIZATION_COVERAGE_AND_REMEDIATION.md',
-  'docs/BATCH_24_AUTHORIZATION_TEST_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) {
   if (!fs.existsSync(path.join(process.cwd(), file))) {

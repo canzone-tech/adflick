@@ -1,5 +1,0 @@
-ID,Area,Scenario,Expected result,Test layer,Status
-B36-001,Database transaction,Audit foreign key fails after payout batch update,State update rolls back and no audit row persists,MySQL integration,Added not executed locally
-B36-002,Database transaction,Valid payout batch update and audit insert,State and audit row persist together,MySQL integration,Added not executed locally
-B36-003,Database safety,Non-MySQL DATABASE_URL,Suite refuses to run,Integration setup,Source assertion pending
-B36-004,Provider safety,Integration suite execution,No provider or bank API invoked,Code review,Pass by design

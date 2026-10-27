@@ -6,8 +6,8 @@ const required = [
   'prisma/migrations/202610140039_reconciliation_import_idempotency/migration.sql',
   'apps/api/src/finance/reconciliation/reconciliation-import-idempotency.ts',
   'apps/api/src/finance/reconciliation/reconciliation-import-idempotency.spec.ts',
-  'docs/BATCH_39_DURABLE_IMPORT_IDEMPOTENCY.md',
-  'docs/BATCH_39_IMPORT_IDEMPOTENCY_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
   console.error(`[BATCH 39] Missing required file: ${file}`); process.exitCode = 1;

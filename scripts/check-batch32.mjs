@@ -4,8 +4,8 @@ const root = process.cwd();
 const required = [
   'apps/api/src/playback/playback.authorization-consumption.spec.ts',
   'apps/api/src/payouts/payouts.service.ts',
-  'docs/BATCH_32_CONCURRENCY_AND_FINANCE_ACCEPTANCE.md',
-  'docs/BATCH_32_SECURITY_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
   'scripts/check-batch32.mjs',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {

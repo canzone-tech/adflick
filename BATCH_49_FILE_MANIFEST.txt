@@ -1,6 +1,0 @@
-BATCH 49 FILE MANIFEST
-- .github/workflows/ci.yml — removes dynamic lockfile generation and fails clearly if the committed root lockfile is missing.
-- package.json — adds Batch 49 to cumulative source checks.
-- scripts/check-batch49.mjs — static CI lockfile policy checks.
-- docs/BATCH_49_FAIL_CLOSED_CI_AND_LOCKFILE_POLICY.md — lockfile generation, clean install and release guidance.
-- docs/BATCH_49_ACCEPTANCE_MATRIX.csv — acceptance criteria and verification status.

@@ -6,8 +6,8 @@ const required = [
   'apps/api/src/auth/tenant-scope.spec.ts',
   'apps/api/src/finance/providers/callback-validation.spec.ts',
   'apps/api/src/finance/release/release-gate.spec.ts',
-  'docs/BATCH_26_AUTHORIZATION_TEST_EXECUTION.md',
-  'docs/BATCH_25_SECURITY_ACCEPTANCE_TEST_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) {
   if (!fs.existsSync(path.join(process.cwd(), file))) {

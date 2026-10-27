@@ -6,8 +6,8 @@ const required = [
   'apps/api/src/campaigns/campaigns.tenant-isolation.spec.ts',
   'apps/api/src/incidents/incidents.tenant-isolation.spec.ts',
   'apps/api/src/payouts/payouts.tenant-isolation.spec.ts',
-  'docs/BATCH_23_AUTOMATED_TENANT_REGRESSION_QA.md',
-  'docs/BATCH_23_TENANT_TEST_CASES.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
   '.github/workflows/ci.yml',
 ];
 for (const file of required) {

@@ -5,7 +5,7 @@ const required = [
   'apps/api/src/finance/providers/callback-validation.spec.ts',
   'apps/api/src/finance/release/release-gate.ts',
   'apps/api/src/finance/release/release-gate.spec.ts',
-  'docs/BATCH_20_PROVIDER_ACCEPTANCE_RELEASE_GATE.md'
+  'docs/BATCH-HISTORY.md'
 ];
 for (const f of required) if (!fs.existsSync(path.join(process.cwd(), f))) {
   console.error(`Missing Batch 20 file: ${f}`); process.exitCode = 1;

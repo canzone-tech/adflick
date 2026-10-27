@@ -10,3 +10,5 @@ Run `npm run verify` against a **disposable local** MySQL instance. Backend CI, 
 Historical schema migrations are immutable if applied in any authoritative environment. Block and escalate migration-repair decisions if application history is unknown; do not bypass a failing migration.
 
 Use normal fast-forward Git updates with expected-HEAD checks; preserve unrelated work. Document every technical gate result as PASS, FAIL, or BLOCKED. Never claim a test ran without logs.
+
+Consolidated batch documentation now lives in `docs/BATCH-HISTORY.md`; do not recreate one Markdown/text/CSV file per historical batch. Preserve source scans, executable test cases, Prisma migrations and Git recoverability. SRS v1.0 functional scope approved 2026-10-27; all compensation/legal/payment policies require separate authorization.

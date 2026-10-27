@@ -4,8 +4,8 @@ const root = process.cwd();
 const required = [
   'apps/api/src/campaigns/campaigns.nested-tenant.spec.ts',
   'apps/api/src/payouts/payouts.export-tenant.spec.ts',
-  'docs/BATCH_30_NESTED_RESOURCE_EXPORT_TESTS.md',
-  'docs/BATCH_30_SECURITY_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
   'scripts/check-batch30.mjs',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
@@ -29,7 +29,7 @@ for (const token of [
 ]) if (!payout.includes(token)) {
   console.error(`[BATCH 30] Missing export tenant assertion: ${token}`); process.exitCode = 1;
 }
-const matrix = fs.readFileSync(path.join(root, 'docs/BATCH_30_SECURITY_ACCEPTANCE_MATRIX.csv'), 'utf8');
+const matrix = fs.readFileSync(path.join(root, 'docs/BATCH-HISTORY.md'), 'utf8');
 for (const id of ['SEC-030-01','SEC-030-03','SEC-030-04','SEC-030-07']) if (!matrix.includes(id)) {
   console.error(`[BATCH 30] Missing security matrix case: ${id}`); process.exitCode = 1;
 }

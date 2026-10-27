@@ -1,7 +1,0 @@
-case_id,area,scenario,expected_result,validation_type,status
-FIN-033-01,reconciliation,Concurrent request changes payout item to PAID before stale FAILED update,Conditional update affects zero rows and conflict is raised,Unit test source,Added-not-executed
-FIN-033-02,reconciliation,Concurrent request changes payout item to REVERSED before stale update,Terminal status is not overwritten,Unit test source,Added-not-executed
-SEC-033-03,tenant isolation,Final payout-item read after reconciliation,Query includes payoutBatchId and organizationId,Static source check,Pass
-SEC-033-04,tenant isolation,Provider submission updates exported payout items,Mutation includes payoutBatchId organizationId and expected prior status,Static source check,Pass
-FIN-033-05,audit integrity,Stale reconciliation write loses conditional update race,No reconciliation success audit is created,Unit test source,Added-not-executed
-FIN-033-06,release safety,Live provider transfer activation,Remains disabled pending release gate and provider acceptance,Operational control,Required

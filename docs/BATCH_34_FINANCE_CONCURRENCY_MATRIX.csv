@@ -1,6 +1,0 @@
-ID,Scenario,Expected result,Audit expectation,Execution status
-B34-01,Item became terminal before reconciliation conditional write,Conflict and transaction rollback,No success audit,Unit test added; execution pending
-B34-02,Batch status changed before conditional batch transition,Conflict and transaction rollback,No success audit,Unit test added; execution pending
-B34-03,Item and batch conditional transitions succeed,Reconciliation state returned,One reconciliation audit in transaction,Unit test added; execution pending
-B34-04,Reconciliation item list includes foreign-tenant item,Reject before mutation,No audit,Existing tenant predicates retained
-B34-05,Audit insert fails after state writes,Transaction rollback required,No committed state without audit,MySQL integration verification required

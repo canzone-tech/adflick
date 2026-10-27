@@ -4,8 +4,8 @@ const root = process.cwd();
 const required = [
   'apps/api/src/finance/providers/reconciliation-match.ts',
   'apps/api/src/finance/providers/reconciliation-match.spec.ts',
-  'docs/BATCH_38_RECONCILIATION_IDEMPOTENCY.md',
-  'docs/BATCH_38_RECONCILIATION_IDEMPOTENCY_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
   console.error(`[BATCH 38] Missing required file: ${file}`); process.exitCode = 1;

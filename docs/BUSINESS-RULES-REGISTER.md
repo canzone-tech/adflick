@@ -1,3 +1,7 @@
+# Client SRS v1.0 functional scope approval — 2026-10-27
+
+The project owner explicitly approved **ADFLICK Binary 1:1 MLM + Advertising Platform SRS v1.0 as functional development scope** in this conversation. Client-supplied SRS is dated 2026-10-23 and originally labelled Draft. This approval covers *what to build* (public site, members, sponsor/placement, e-PIN, packages, binary matching, role portals and advertising). It is **not** sign-off of earning amounts, compensation rates/formulas, tax treatment, refunds, paid e-PIN/package sales, payouts, compliance or deployment. All such features remain disabled pending their own signed versioned policy and independent legal/finance review.
+
 # ADFLICK business rules register
 
 | Concern | Source observation | Release status / owner decision |

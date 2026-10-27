@@ -7,8 +7,8 @@ const required = [
   'apps/api/src/finance/finance.controller.ts',
   'apps/api/src/finance/reconciliation/reconciliation-import.service.ts',
   'apps/api/src/finance/reconciliation/reconciliation-import.processing.spec.ts',
-  'docs/BATCH_41_TRANSACTIONAL_RECONCILIATION_PROCESSING.md',
-  'docs/BATCH_41_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
   console.error(`[BATCH 41] Missing required file: ${file}`); process.exitCode = 1;

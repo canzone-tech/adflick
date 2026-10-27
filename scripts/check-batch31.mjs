@@ -4,8 +4,8 @@ const root = process.cwd();
 const required = [
   'apps/api/src/playback/playback.duplicate-ingestion.spec.ts',
   'apps/api/src/payouts/payouts.export-tenant.spec.ts',
-  'docs/BATCH_31_PLAYBACK_IDEMPOTENCY_EXPORT_TENANT.md',
-  'docs/BATCH_31_SECURITY_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
   'scripts/check-batch31.mjs',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
@@ -26,7 +26,7 @@ if (!payout.includes('items: { where: { organizationId } }') ||
     !payout.includes('where: { payoutBatchId: id, organizationId }')) {
   console.error('[BATCH 31] Payout export nested and direct item reads must be tenant-scoped.'); process.exitCode = 1;
 }
-const matrix = fs.readFileSync(path.join(root, 'docs/BATCH_31_SECURITY_ACCEPTANCE_MATRIX.csv'), 'utf8');
+const matrix = fs.readFileSync(path.join(root, 'docs/BATCH-HISTORY.md'), 'utf8');
 for (const id of ['SEC-031-01','SEC-031-02','SEC-031-04','SEC-031-07']) if (!matrix.includes(id)) {
   console.error(`[BATCH 31] Missing security matrix case: ${id}`); process.exitCode = 1;
 }

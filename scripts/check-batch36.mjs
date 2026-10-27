@@ -3,8 +3,8 @@ import path from 'node:path';
 const root = process.cwd();
 const required = [
   'apps/api/test/finance-transaction.mysql.e2e-spec.ts',
-  'docs/BATCH_36_MYSQL_FINANCE_TRANSACTION_ATOMICITY.md',
-  'docs/BATCH_36_FINANCE_TRANSACTION_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) {
   console.error(`[BATCH 36] Missing required file: ${file}`); process.exitCode = 1;

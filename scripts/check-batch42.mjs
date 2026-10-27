@@ -7,8 +7,8 @@ const required = [
   'apps/api/src/finance/reconciliation/prisma-reconciliation-import-store.ts',
   'apps/api/src/finance/reconciliation/reconciliation-import.service.ts',
   'apps/api/src/finance/reconciliation/reconciliation-import.processing.spec.ts',
-  'docs/BATCH_42_SAFE_IMPORT_RECOVERY.md',
-  'docs/BATCH_42_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) { console.error(`[BATCH 42] Missing ${file}`); process.exitCode = 1; }
 if (process.exitCode) process.exit(process.exitCode);

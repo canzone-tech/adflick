@@ -5,7 +5,7 @@ import path from 'node:path';
 const root = process.cwd();
 const required = [
   'apps/api/test/security.e2e-spec.ts',
-  'docs/BATCH_27_MYSQL_SECURITY_E2E.md',
+  'docs/BATCH-HISTORY.md',
   'scripts/check-batch27.mjs',
 ];
 for (const file of required) {

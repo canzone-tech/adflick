@@ -3,8 +3,8 @@ import path from 'node:path';
 const root = process.cwd();
 const required = [
   'apps/api/src/finance/reconciliation/reconciliation-import.read.spec.ts',
-  'docs/BATCH_44_RECONCILIATION_READ_API.md',
-  'docs/BATCH_44_ACCEPTANCE_MATRIX.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) if (!fs.existsSync(path.join(root, file))) { console.error(`[BATCH 44] Missing ${file}`); process.exitCode = 1; }
 if (process.exitCode) process.exit(process.exitCode);

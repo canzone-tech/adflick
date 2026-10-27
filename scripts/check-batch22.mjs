@@ -10,8 +10,8 @@ const required = [
   'apps/api/src/finance/finance.service.ts',
   'apps/api/src/payouts/payouts.service.ts',
   'apps/api/src/scheduler/assignments.service.ts',
-  'docs/BATCH_22_SERVICE_TENANT_ISOLATION_REMEDIATION.md',
-  'docs/BATCH_22_TENANT_ISOLATION_REGRESSION_CASES.csv',
+  'docs/BATCH-HISTORY.md',
+  'docs/BATCH-HISTORY.md',
 ];
 for (const file of required) {
   if (!fs.existsSync(path.join(process.cwd(), file))) {
@@ -42,7 +42,7 @@ for (const [file, token] of checks) {
     process.exitCode = 1;
   }
 }
-const tests = fs.readFileSync(path.join(process.cwd(), 'docs/BATCH_22_TENANT_ISOLATION_REGRESSION_CASES.csv'), 'utf8');
+const tests = fs.readFileSync(path.join(process.cwd(), 'docs/BATCH-HISTORY.md'), 'utf8');
 for (const id of ['TEN-001', 'TEN-010', 'TEN-017', 'TEN-020']) {
   if (!tests.includes(id)) {
     console.error(`Regression matrix missing ${id}`);
