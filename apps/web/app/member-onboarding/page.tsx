@@ -206,7 +206,7 @@ export default function MemberOnboardingPage() {
             </label>
           </section>:<p role="alert">Enrollment is unavailable until independently approved consent is published.</p>}
           {!progress.emailOtpVerified&&<p role="status">First <Link href="/email-verification">verify email OTP</Link>. This is separate from login email proof.</p>}
-          {!progress.phoneOtpVerified&&<p role="status">A verified <Link href="/phone-verification">mobile OTP</Link> is also mandatory. Without approved SMS gateway, enrollment cannot proceed.</p>}}
+          {!progress.phoneOtpVerified&&<p role="status">A verified <Link href="/phone-verification">mobile OTP</Link> is also mandatory. Without approved SMS gateway, enrollment cannot proceed.</p>}
           {!progress.enrollmentEnabled&&<p role="status">Enrollment is currently disabled by operator policy. This form cannot bypass that gate.</p>}
           <div className="member-onboard-actions">
             <button className="member-onboard-primary" type="submit"

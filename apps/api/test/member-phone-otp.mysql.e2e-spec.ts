@@ -71,7 +71,7 @@ suite('real HTTP JSON SMS gateway + disposable MySQL phone OTP lifecycle',()=>{
     org=a.id;orgIds.push(a.id,b.id);
     const jwt=new JwtService({secret:process.env.JWT_ACCESS_SECRET,signOptions:{algorithm:'HS256',expiresIn:'5m'}});
     for(const [name,organizationId,role] of [
-      ['member',a.id,UserRole.MEMBER],['outsider',b.id,UserRole.MEMBER],
+      ['member',a.id,UserRole.MEMBER],['resend',a.id,UserRole.MEMBER],['outsider',b.id,UserRole.MEMBER],
       ['admin',a.id,UserRole.ORGANIZATION_ADMIN],
     ] as const){
       const u=await db.user.create({data:{
@@ -157,19 +157,26 @@ suite('real HTTP JSON SMS gateway + disposable MySQL phone OTP lifecycle',()=>{
   });
 
   it('new SMS request invalidates older verified challenge; provider rejection never reports sent',async()=>{
+    const firstSend=await post('resend','/request',{phone:'+919876543212',smsConsentAccepted:true}).expect(201);
+    const initial=received[received.length-1]!;
+    expect(initial.reference).toBe(firstSend.body.challengeId);
+    const validCode=initial.message.match(/OTP (\\d{6})/)?.[1];
+    await post('resend','/verify',{challengeId:initial.reference,code:validCode}).expect(201);
+    const owner=await db.memberPhoneOtp.findUniqueOrThrow({
+      where:{id:initial.reference},select:{userId:true},
+    });
     await db.memberPhoneOtpThrottle.updateMany({
-      where:{organizationId:org,userId:user},
+      where:{organizationId:org,userId:owner.userId},
       data:{nextAllowedAt:new Date(Date.now()-1000)},
     });
-    const first=received[0]!.reference;
     rejectDelivery=true;
-    await post('member','/request',{phone:'+919876543211',smsConsentAccepted:true}).expect(503);
-    expect((await db.memberPhoneOtp.findUniqueOrThrow({where:{id:first}})).status).toBe('FAILED');
+    await post('resend','/request',{phone:'+919876543211',smsConsentAccepted:true}).expect(503);
+    expect((await db.memberPhoneOtp.findUniqueOrThrow({where:{id:initial.reference}})).status).toBe('FAILED');
     const latest=await db.memberPhoneOtp.findFirstOrThrow({
-      where:{organizationId:org,userId:user},orderBy:{createdAt:'desc'},
+      where:{organizationId:org,userId:owner.userId},orderBy:{createdAt:'desc'},
     });
     expect(latest.status).toBe('FAILED');
     expect(latest.sentAt).toBeNull();
-    expect((await get('member','/status').expect(200)).body.verified).toBe(false);
+    expect((await get('resend','/status').expect(200)).body.verified).toBe(false);
   });
 });
