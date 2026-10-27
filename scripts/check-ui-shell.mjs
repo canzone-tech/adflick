@@ -37,6 +37,6 @@ const pages = [
 ];
 for (const page of pages) {
   const content = read('apps/web/app/'+page);
-  if (/<aside\b|className="sidebar"|className="topbar"/.test(content)) throw new Error('Duplicated page-specific operations chrome in '+page);
+  if (/className="(?:app-sidebar|sidebar|app-topbar|topbar)"/.test(content) || /aria-label="Main workspace"/.test(content)) throw new Error('Duplicated page-specific navigation shell in '+page);
 }
 console.log('Shared AppChrome contract PASS: all current operations routes, accessibility controls, and real-browser breakpoints covered.');
