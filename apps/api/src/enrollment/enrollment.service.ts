@@ -223,7 +223,7 @@ export class EnrollmentService {
   /** Exact-email lookup for authorized PIN issuers; no global member directory leak. */
   async findEligibleRecipient(actor: AuthenticatedUser, email: string) {
     const organizationId = this.organization(actor);
-    if (!email || email.length > 254 || !/^[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+$/.test(email)) {
+    if (!email || email.length > 254 || !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email)) {
       throw new BadRequestException('Enter a valid existing member account email.');
     }
     const user = await this.prisma.user.findFirst({

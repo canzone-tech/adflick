@@ -186,7 +186,7 @@ export default function MemberOnboardingPage() {
               <span>{value}</span>
             </label>)}
           </fieldset>
-          <p className="member-onboard-note">An available side is only a snapshot; another transaction can occupy it before final submission. Only the server's atomic enrollment commits placement.</p>
+          <p className="member-onboard-note">An available side is only a snapshot; another transaction can occupy it before final submission. Only the server&apos;s atomic enrollment commits placement.</p>
           <div className="member-onboard-field">
             <label htmlFor="member-pin">One-time e-PIN assigned to this account</label>
             <input id="member-pin" type="password" autoComplete="off" required minLength={40} maxLength={60}
