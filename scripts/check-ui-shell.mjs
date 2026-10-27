@@ -14,6 +14,8 @@ for (const file of required) {
 }
 const shell = read('apps/web/components/app-chrome.tsx');
 const layout = read('apps/web/app/layout.tsx');
+const globals = read('apps/web/app/globals.css');
+if (globals.includes('.screen-card{') || globals.includes('.sidebar{') || globals.includes('.topbar{')) throw new Error('Retired homepage CSS must not leak into other workspace pages.');
 const browser = read('scripts/browser-uat.mjs');
 if (!layout.includes('<AppChrome>{children}</AppChrome>') || !layout.includes("import './app-chrome.css'")) {
   throw new Error('All operations pages must receive the central AppChrome in root layout.');
@@ -35,6 +37,6 @@ const pages = [
 ];
 for (const page of pages) {
   const content = read('apps/web/app/'+page);
-  if (/<aside\\b|className="sidebar"|className="topbar"/.test(content)) throw new Error('Duplicated page-specific operations chrome in '+page);
+  if (/<aside\b|className="sidebar"|className="topbar"/.test(content)) throw new Error('Duplicated page-specific operations chrome in '+page);
 }
 console.log('Shared AppChrome contract PASS: all current operations routes, accessibility controls, and real-browser breakpoints covered.');

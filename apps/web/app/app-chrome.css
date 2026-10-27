@@ -30,7 +30,7 @@
 .app-menu-toggle{display:none;width:42px;height:42px;flex:none;align-items:center;justify-content:center;border:1px solid #e6dff7;border-radius:9px;background:#fff;color:#5b40cb;font-size:19px;cursor:pointer}
 .app-page{width:100%;min-width:0;max-width:1536px;margin:0 auto;padding:24px clamp(16px,2.6vw,38px) 48px}
 .app-page>main,.app-page>.app-home{min-width:0;width:100%}
-.app-page :where(.cms-shell,.fleet-shell,.playback-shell,.campaign-shell,.delivery-shell,.sched-shell,.health-shell,.inc-shell){max-width:100%;padding:0}
+.app-shell .app-page :where(.cms-shell,.fleet-shell,.playback-shell,.campaign-shell,.delivery-shell,.sched-shell,.health-shell,.inc-shell){max-width:100%;padding:0}
 .app-page .login-shell{min-height:0;background:transparent;padding:0;display:block}
 .app-page .login-back{position:static;display:inline-flex;margin-bottom:14px}
 .app-page .account-card{width:min(100%,850px);max-width:100%}
