@@ -79,3 +79,7 @@ GitHub feature unit -> exact SHA Backend CI, Frontend CI and Release Evidence al
 ## Incremental implementation evidence — member genealogy foundation
 
 The new read-only P1 member genealogy slice (Prisma models, migration, JWT/RBAC routes and MySQL E2E) is documented in [SRS v1.0 Member Genealogy Foundation](SRS-V1-MEMBER-GENEALOGY.md). Scope: same-tenant FK, one LEFT/RIGHT slot with MySQL uniqueness, member-owned descendant read, no e-PIN activation or commissions. **AT-01–AT-05 remain incomplete** until real atomic registration and cycle/consent/PIN tests pass; no production signoff.
+
+## Enrollment slice — evidence boundary
+
+Read-only e-PIN listings, draft non-financial packages, versioned consent, maker-checker approval, recipient-bound HMAC e-PIN issuance/revocation and authenticated **pending** enrollment are implemented behind default-deny runtime flags. Existing-user only (no public account creation/OTP), SRS AT-01..05 **not fully accepted**. [Detailed contract](SRS-V1-ENROLLMENT.md).

@@ -234,6 +234,10 @@ model Organization {
   financeDisputes FinanceDispute[]
   memberProfiles MemberProfile[]
   binaryTreeRoot BinaryTreeRoot?
+  memberPackages MemberPackage[]
+  enrollmentPins EnrollmentPin[]
+  consentDocuments MemberConsentDocument[]
+  enrollmentConsents MemberConsentRecord[]
 
   @@index([isActive, createdAt])
 }
@@ -262,6 +266,7 @@ model User {
   financeApprovalsCreated FinanceApproval[] @relation("FinanceApprovalCreator")
   financeApprovalsDecided FinanceApproval[] @relation("FinanceApprovalDecider")
   memberProfile MemberProfile?
+  enrollmentPinsRecipient EnrollmentPin[] @relation("EnrollmentPinRecipient")
 
   @@unique([id, organizationId])
   @@index([organizationId, status])
@@ -981,6 +986,8 @@ model MemberProfile {
   placement      PlacementNode?         @relation("PlacedMember")
   placedChildren PlacementNode[]        @relation("PlacementParent")
   treeRoot       BinaryTreeRoot?        @relation("TreeRootMember")
+  enrollmentPin EnrollmentPin? @relation("EnrollmentPinRedemption")
+  enrollmentConsent MemberConsentRecord?
 
   @@unique([userId, organizationId])
   @@unique([organizationId, id])
@@ -1024,4 +1031,100 @@ model PlacementNode {
   @@unique([organizationId, memberId])
   @@unique([parentMemberId, side])
   @@index([organizationId, parentMemberId, side])
+}
+
+
+/** Enrollment policies are non-financial. No package price or earning eligibility is inferred. */
+enum MemberPackageStatus {
+  DRAFT
+  ENABLED
+  DISABLED
+}
+
+enum EnrollmentPinStatus {
+  ISSUED
+  REDEEMED
+  REVOKED
+}
+
+enum MemberConsentDocumentStatus {
+  DRAFT
+  APPROVED
+  RETIRED
+}
+
+model MemberPackage {
+  id String @id @default(cuid()) @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  code String @db.VarChar(60)
+  name String @db.VarChar(160)
+  status MemberPackageStatus @default(DRAFT)
+  createdByUserId String @db.VarChar(30)
+  approvedByUserId String? @db.VarChar(30)
+  approvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  pins EnrollmentPin[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, code])
+  @@index([organizationId, status])
+}
+
+model EnrollmentPin {
+  id String @id @default(cuid()) @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  packageId String @db.VarChar(30)
+  recipientUserId String @db.VarChar(30)
+  tokenHash String @unique @db.Char(64)
+  status EnrollmentPinStatus @default(ISSUED)
+  expiresAt DateTime
+  redeemedAt DateTime?
+  redeemedByMemberId String? @unique @db.VarChar(30)
+  revokedAt DateTime?
+  issuedByUserId String @db.VarChar(30)
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  package MemberPackage @relation(fields: [organizationId, packageId], references: [organizationId, id], onDelete: Restrict)
+  recipient User @relation("EnrollmentPinRecipient", fields: [recipientUserId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  redeemedBy MemberProfile? @relation("EnrollmentPinRedemption", fields: [organizationId, redeemedByMemberId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, redeemedByMemberId])
+  @@index([organizationId, recipientUserId, status, expiresAt])
+  @@index([organizationId, status, createdAt])
+}
+
+model MemberConsentDocument {
+  id String @id @default(cuid()) @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  version String @db.VarChar(60)
+  documentSha256 String @db.Char(64)
+  documentText String @db.LongText
+  status MemberConsentDocumentStatus @default(DRAFT)
+  createdByUserId String @db.VarChar(30)
+  approvedByUserId String? @db.VarChar(30)
+  approvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  consents MemberConsentRecord[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, version])
+  @@index([organizationId, status])
+}
+
+model MemberConsentRecord {
+  id String @id @default(cuid()) @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  memberId String @unique @db.VarChar(30)
+  documentId String @db.VarChar(30)
+  acceptedAt DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  member MemberProfile @relation(fields: [organizationId, memberId], references: [organizationId, id], onDelete: Restrict)
+  document MemberConsentDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, memberId])
+  @@index([organizationId, documentId, acceptedAt])
 }

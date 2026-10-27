@@ -15,9 +15,9 @@
 
 ### P1 — Member/e-PIN/placement canonical MySQL foundation (non-paying)
 - [x] **Partial schema gate (read-only, non-paying):** `MemberProfile`, `SponsorRelationship`, `PlacementNode`, `BinaryTreeRoot` + MEMBER role, compound FKs, unique LEFT/RIGHT index in new migration. Package/Activation/e-PIN/Consent remain pending.
-- [ ] Define package/version state independent from plan/earnings policy.
+- [x] Non-financial `MemberPackage` configuration is separate from earnings plans, with DRAFT → independently reviewed ENABLED transition (feature-gated); legal/payment approval is still pending.
 - [x] First real JWT/RBAC member/staff read API slice implements tenant, owned descendants, bounded tree and minimal disclosure; browser/member portal acceptance pending.
-- [ ] Validate PIN without consuming, atomic registration consumes PIN and assigns exactly one unique LEFT/RIGHT slot.
+- [x] **Bounded technical slice:** Existing authenticated MEMBER accounts can claim recipient-bound e-PIN, consent and an occupied-side-checked LEFT/RIGHT placement in a single MySQL transaction; new profile remains PENDING_ACTIVATION. Public join, OTP and fully approved compensation are still blocked.
 - [ ] Concurrent registrations, replay, expired PIN, cycle, self-referral, transfer/revoke and rollback tests against disposable MySQL 8.4.
 - [ ] No payments, commission postings or automatic eligibility activation.
 
