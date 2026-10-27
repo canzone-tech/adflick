@@ -13,9 +13,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { FinanceModule } from './finance/finance.module';
 import { PayoutsModule } from './payouts/payouts.module';
+import { MembersModule } from './members/members.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, CmsModule, DevicesModule, PlaybackModule, CampaignsModule, DeliveryModule, SchedulerModule, IncidentsModule, FinanceModule, PayoutsModule, ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])],
+  imports: [PrismaModule, AuthModule, CmsModule, DevicesModule, PlaybackModule, CampaignsModule, DeliveryModule, SchedulerModule, IncidentsModule, FinanceModule, PayoutsModule, MembersModule, ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])],
   controllers: [HealthController, AccessController],
 })
 export class AppModule {}

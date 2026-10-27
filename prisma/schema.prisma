@@ -24,6 +24,7 @@ enum UserRole {
   FINANCE_MANAGER
   SUPPORT_AGENT
   AUDITOR_COMPLIANCE
+  MEMBER
 }
 
 enum ScreenStatus {
@@ -231,6 +232,8 @@ model Organization {
   reconciliationImports ReconciliationImport[]
   reconciliationImportRows ReconciliationImportRow[]
   financeDisputes FinanceDispute[]
+  memberProfiles MemberProfile[]
+  binaryTreeRoot BinaryTreeRoot?
 
   @@index([isActive, createdAt])
 }
@@ -258,7 +261,9 @@ model User {
   rewardCalculationsCreated RewardCalculation[] @relation("RewardCalculationCreator")
   financeApprovalsCreated FinanceApproval[] @relation("FinanceApprovalCreator")
   financeApprovalsDecided FinanceApproval[] @relation("FinanceApprovalDecider")
+  memberProfile MemberProfile?
 
+  @@unique([id, organizationId])
   @@index([organizationId, status])
   @@index([displayName])
 }
@@ -939,4 +944,79 @@ model MfaChallenge {
 
   @@index([userId, expiresAt])
   @@index([sessionId, consumedAt])
+}
+
+
+/**
+ * Client SRS v1.0: non-financial member and genealogy foundation.
+ * No live registration, activation, e-PIN consumption, placement mutation,
+ * commission or member payout endpoint is enabled in this phase.
+ * Parent/sponsor memberships MUST remain in the same organization via
+ * compound foreign keys; approval of spillover/correction is pending.
+ */
+enum MemberEnrollmentStatus {
+  PENDING_ACTIVATION
+  ACTIVE
+  SUSPENDED
+}
+
+enum BinarySide {
+  LEFT
+  RIGHT
+}
+
+model MemberProfile {
+  id             String                 @id @default(cuid()) @db.VarChar(30)
+  organizationId String                 @db.VarChar(30)
+  userId         String                 @unique @db.VarChar(30)
+  memberCode     String                 @db.VarChar(40)
+  status         MemberEnrollmentStatus @default(PENDING_ACTIVATION)
+  activatedAt    DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User                   @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  sponsorship    SponsorRelationship?   @relation("SponsoredMember")
+  directReferrals SponsorRelationship[] @relation("SponsorParent")
+  placement      PlacementNode?         @relation("PlacedMember")
+  placedChildren PlacementNode[]        @relation("PlacementParent")
+  treeRoot       BinaryTreeRoot?        @relation("TreeRootMember")
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, memberCode])
+  @@index([organizationId, status, createdAt])
+}
+
+model SponsorRelationship {
+  memberId        String        @id @db.VarChar(30)
+  organizationId  String        @db.VarChar(30)
+  sponsorMemberId String        @db.VarChar(30)
+  createdAt       DateTime      @default(now())
+  member          MemberProfile @relation("SponsoredMember", fields: [organizationId, memberId], references: [organizationId, id], onDelete: Restrict)
+  sponsor         MemberProfile @relation("SponsorParent", fields: [organizationId, sponsorMemberId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, sponsorMemberId])
+}
+
+/** One binary-tree root per organization; all other members occupy one side. */
+model BinaryTreeRoot {
+  organizationId String        @id @db.VarChar(30)
+  memberId       String        @unique @db.VarChar(30)
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  member         MemberProfile @relation("TreeRootMember", fields: [organizationId, memberId], references: [organizationId, id], onDelete: Restrict)
+}
+
+model PlacementNode {
+  memberId        String        @id @db.VarChar(30)
+  organizationId  String        @db.VarChar(30)
+  parentMemberId  String        @db.VarChar(30)
+  side            BinarySide
+  placedAt        DateTime      @default(now())
+  member          MemberProfile @relation("PlacedMember", fields: [organizationId, memberId], references: [organizationId, id], onDelete: Restrict)
+  parent          MemberProfile @relation("PlacementParent", fields: [organizationId, parentMemberId], references: [organizationId, id], onDelete: Restrict)
+
+  // Concurrent LEFT/RIGHT collisions cannot both commit in MySQL.
+  @@unique([parentMemberId, side])
+  @@index([organizationId, parentMemberId, side])
 }

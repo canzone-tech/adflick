@@ -14,9 +14,9 @@
 - [ ] Product owner confirms whether a separate `apps/admin` is needed; prefer one Next.js deployment with role-scoped layouts unless deployment/security needs justify a second.
 
 ### P1 — Member/e-PIN/placement canonical MySQL foundation (non-paying)
-- [ ] Add `MemberProfile`, `SponsorRelationship`, `PlacementNode`, `Package`, `Activation`, `EPin`, `EPinEvent`, `ConsentRecord` and indexes/constraints using a NEW migration (not edits to historical migrations).
+- [x] **Partial schema gate (read-only, non-paying):** `MemberProfile`, `SponsorRelationship`, `PlacementNode`, `BinaryTreeRoot` + MEMBER role, compound FKs, unique LEFT/RIGHT index in new migration. Package/Activation/e-PIN/Consent remain pending.
 - [ ] Define package/version state independent from plan/earnings policy.
-- [ ] Member and sponsor read APIs implement tenant/descendant scoping and minimal identity disclosure.
+- [x] First real JWT/RBAC member/staff read API slice implements tenant, owned descendants, bounded tree and minimal disclosure; browser/member portal acceptance pending.
 - [ ] Validate PIN without consuming, atomic registration consumes PIN and assigns exactly one unique LEFT/RIGHT slot.
 - [ ] Concurrent registrations, replay, expired PIN, cycle, self-referral, transfer/revoke and rollback tests against disposable MySQL 8.4.
 - [ ] No payments, commission postings or automatic eligibility activation.
