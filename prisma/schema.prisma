@@ -1091,7 +1091,7 @@ model EnrollmentPin {
   redeemedBy MemberProfile? @relation("EnrollmentPinRedemption", fields: [organizationId, redeemedByMemberId], references: [organizationId, id], onDelete: Restrict)
 
   @@unique([organizationId, redeemedByMemberId])
-  @@index([organizationId, recipientUserId, status, expiresAt])
+  @@index([organizationId, recipientUserId, status, expiresAt], map: "EnrollmentPin_recipient_status_exp_idx")
   @@index([organizationId, status, createdAt])
 }
 

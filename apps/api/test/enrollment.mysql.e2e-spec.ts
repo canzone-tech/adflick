@@ -43,10 +43,10 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     const session = await prisma.refreshSession.create({ data: {
       userId: user.id, tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex'),
       expiresAt: new Date(Date.now()+20*60_000),
-      mfaVerifiedAt: [UserRole.SUPER_ADMIN,UserRole.ORGANIZATION_ADMIN].includes(role) ? new Date() : null,
+      mfaVerifiedAt: (role === UserRole.SUPER_ADMIN || role === UserRole.ORGANIZATION_ADMIN) ? new Date() : null,
     } });
     sessions.push(session.id);
-    if ([UserRole.SUPER_ADMIN,UserRole.ORGANIZATION_ADMIN].includes(role)) {
+    if ((role === UserRole.SUPER_ADMIN || role === UserRole.ORGANIZATION_ADMIN)) {
       await prisma.mfaEnrollment.create({ data: {
         userId: user.id, secretCiphertext: encryptSecret(generateBase32Secret()), enabled: true,
       } });
@@ -167,34 +167,34 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     await issue('alpha');
     const rows = await http('maker').get('/member-enrollment/pins?take=10').expect(200);
     expect(rows.body.total).toBe(1);
-    expect(JSON.stringify(rows.body)).not.toContain(issued['alpha'].pin);
+    expect(JSON.stringify(rows.body)).not.toContain(issued['alpha']!.pin);
     expect(JSON.stringify(rows.body)).not.toContain('tokenHash');
-    const db = await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha'].id}});
+    const db = await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha']!.id}});
     expect(db.tokenHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(db.tokenHash).not.toBe(issued['alpha'].pin);
+    expect(db.tokenHash).not.toBe(issued['alpha']!.pin);
   });
 
   it('invalid consent and foreign sponsor cannot consume a PIN', async () => {
     process.env.ADFLICK_MEMBER_ENROLLMENT_ENABLED = 'true';
     await http('alpha').post('/member-enrollment/enroll', enrollment('alpha',{consentDocumentSha256:'f'.repeat(64)})).expect(400);
     await http('alpha').post('/member-enrollment/enroll', enrollment('alpha',{sponsorMemberCode:foreignCode})).expect(400);
-    expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha'].id}})).status).toBe(EnrollmentPinStatus.ISSUED);
-    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['alpha']}})).toBe(0);
+    expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha']!.id}})).status).toBe(EnrollmentPinStatus.ISSUED);
+    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['alpha']!}})).toBe(0);
   });
 
   it('enrolls an authenticated existing member atomically as PENDING_ACTIVATION, never pays', async () => {
     const res = await http('alpha').post('/member-enrollment/enroll', enrollment('alpha')).expect(201);
     expect(res.body.status).toBe('PENDING_ACTIVATION');
     const member = await prisma.memberProfile.findFirstOrThrow({
-      where:{organizationId:org,userId:account['alpha']},
+      where:{organizationId:org,userId:account['alpha']!},
       include:{placement:true,sponsorship:true,enrollmentConsent:true,enrollmentPin:true},
     });
     expect(member.placement?.parentMemberId).toBe(rootId);
     expect(member.placement?.side).toBe('LEFT');
     expect(member.sponsorship?.sponsorMemberId).toBe(rootId);
     expect(member.enrollmentConsent?.documentId).toBe(consentId);
-    expect(member.enrollmentPin?.id).toBe(issued['alpha'].id);
-    expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha'].id}})).status).toBe('REDEEMED');
+    expect(member.enrollmentPin?.id).toBe(issued['alpha']!.id);
+    expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha']!.id}})).status).toBe('REDEEMED');
     await http('alpha').post('/member-enrollment/enroll', enrollment('alpha')).expect(409);
     const mine = await http('alpha').get('/members/me').expect(200);
     expect(mine.body.status).toBe('PENDING_ACTIVATION');
@@ -209,17 +209,17 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     ]);
     expect(res.map(r=>r.status).sort()).toEqual([201,409]);
     expect(await prisma.placementNode.count({where:{organizationId:org,parentMemberId:rootId,side:'RIGHT'}})).toBe(1);
-    const states=await Promise.all(['beta','gamma'].map(n=>prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued[n].id},select:{status:true}})));
+    const states=await Promise.all(['beta','gamma'].map(n=>prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued[n]!.id},select:{status:true}})));
     expect(states.map(x=>x.status).sort()).toEqual(['ISSUED','REDEEMED']);
-    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:{in:[account['beta'],account['gamma']]}}})).toBe(1);
+    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:{in:[account['beta']!,account['gamma']!]}}})).toBe(1);
   });
 
   it('revocation prevents consumption and leaves no member/consent records', async () => {
     await issue('delta');
-    await http('maker').post('/member-enrollment/pins/'+issued['delta'].id+'/revoke',{reason:'Security cancellation approved'}).expect(201);
+    await http('maker').post('/member-enrollment/pins/'+issued['delta']!.id+'/revoke',{reason:'Security cancellation approved'}).expect(201);
     await http('delta').post('/member-enrollment/enroll', enrollment('delta',{side:'LEFT'})).expect(409);
-    expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['delta'].id}})).status).toBe('REVOKED');
-    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['delta']}})).toBe(0);
+    expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['delta']!.id}})).status).toBe('REVOKED');
+    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['delta']!}})).toBe(0);
   });
 
   it('expired PIN and incorrect package policy are refused', async () => {
@@ -227,6 +227,6 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     await new Promise(resolve=>setTimeout(resolve,1500));
     await http('epsilon').post('/member-enrollment/enroll', enrollment('epsilon',{side:'LEFT'})).expect(409);
     expect((await prisma.enrollmentPin.findUniqueOrThrow({where:{id:pin.id}})).status).toBe('ISSUED');
-    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['epsilon']}})).toBe(0);
+    expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['epsilon']!}})).toBe(0);
   }, 10_000);
 });

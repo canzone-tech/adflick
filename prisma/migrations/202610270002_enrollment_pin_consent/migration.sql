@@ -57,7 +57,7 @@ CREATE TABLE `EnrollmentPin` (
   UNIQUE INDEX `EnrollmentPin_tokenHash_key`(`tokenHash`),
   UNIQUE INDEX `EnrollmentPin_redeemedByMemberId_key`(`redeemedByMemberId`),
   UNIQUE INDEX `EnrollmentPin_organizationId_redeemedByMemberId_key`(`organizationId`,`redeemedByMemberId`),
-  INDEX `EnrollmentPin_organizationId_recipientUserId_status_expiresAt_idx`(`organizationId`,`recipientUserId`,`status`,`expiresAt`),
+  INDEX `EnrollmentPin_recipient_status_exp_idx`(`organizationId`,`recipientUserId`,`status`,`expiresAt`),
   INDEX `EnrollmentPin_organizationId_status_createdAt_idx`(`organizationId`,`status`,`createdAt`),
   PRIMARY KEY (`id`),
   CONSTRAINT `EnrollmentPin_organizationId_fkey` FOREIGN KEY (`organizationId`)
