@@ -49,3 +49,13 @@ test('append-only FK bridge reconciles child and parent ID collation without tou
   assert.equal(result.foreignKeys, 2);
   assert.deepEqual(result.findings, []);
 });
+
+test('composite org/member FK verifies both columns and rejects incompatible second column', () => {
+  const parent = migration('001', 'CREATE TABLE `Member` (`id` VARCHAR(30) NOT NULL, `organizationId` VARCHAR(30) NOT NULL) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;');
+  const child = migration('002', 'CREATE TABLE `Child` (`organizationId` VARCHAR(30) NOT NULL, `memberId` VARCHAR(30) NOT NULL, CONSTRAINT `Child_member_fkey` FOREIGN KEY (`organizationId`,`memberId`) REFERENCES `Member`(`organizationId`,`id`)) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;');
+  const good = auditMigrationSources([parent, child]);
+  assert.equal(good.foreignKeys, 1);
+  assert.deepEqual(good.findings, []);
+  const bad = migration('001', 'CREATE TABLE `Member` (`id` INT NOT NULL, `organizationId` VARCHAR(30) NOT NULL) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;');
+  assert.match(auditMigrationSources([bad, child]).findings.join('\n'), /incompatible FK column categories/);
+});

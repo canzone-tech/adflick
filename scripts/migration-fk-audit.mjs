@@ -1,7 +1,12 @@
 // Static FK charset/collation analysis; Prisma migrate deploy remains authoritative.
 const CREATE = /CREATE\s+TABLE\s+\x60([^\x60]+)\x60\s*\(([\s\S]*?)\)\s*DEFAULT\s+CHARACTER\s+SET\s+(\w+)\s+COLLATE\s+(\w+)\s*;/gi;
 const ALTER = /ALTER\s+TABLE\s+\x60([^\x60]+)\x60\s+([\s\S]*?);/gi;
-const FK = /CONSTRAINT\s+\x60([^\x60]+)\x60\s+FOREIGN\s+KEY\s*\(\s*\x60([^\x60]+)\x60\s*\)\s+REFERENCES\s+\x60([^\x60]+)\x60\s*\(\s*\x60([^\x60]+)\x60\s*\)/gi;
+// Accept compound organization-scoped FKs and inspect every paired column.
+const FK = /CONSTRAINT\s+\x60([^\x60]+)\x60\s+FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+\x60([^\x60]+)\x60\s*\(([^)]+)\)/gi;
+function fkColumns(list) {
+  const names = [...list.matchAll(/\x60([^\x60]+)\x60/g)].map(x => x[1]);
+  return names.length > 0 && /^\s*\x60[^\x60]+\x60(?:\s*,\s*\x60[^\x60]+\x60)*\s*$/.test(list) ? names : [];
+}
 const TEXTUAL = new Set(['VARCHAR', 'CHAR', 'TEXT', 'TINYTEXT', 'MEDIUMTEXT', 'LONGTEXT']);
 function columnType(sql, column) {
   if (!/^[a-zA-Z_][a-zA-Z_0-9]*$/.test(column)) return null;
@@ -25,7 +30,7 @@ export function auditMigrationSources(sources) {
         continue;
       }
       tables.set(table, { charset, collation, declaration: body, columnOverrides: new Map() });
-      for (const key of body.matchAll(FK)) fks.set(table + '.' + key[1], { path, table, name: key[1], column: key[2], parent: key[3], target: key[4] });
+      for (const key of body.matchAll(FK)) fks.set(table + '.' + key[1], { path, table, name: key[1], columns: fkColumns(key[2]), parent: key[3], targets: fkColumns(key[4]) });
     }
     for (const match of sql.matchAll(ALTER)) {
       const [, table, body] = match;
@@ -42,7 +47,7 @@ export function auditMigrationSources(sources) {
         const key = table + '.' + dropped[1];
         if (!fks.delete(key)) findings.push(path + ': attempted to drop unknown FK ' + key + '.');
       }
-      for (const key of body.matchAll(FK)) fks.set(table + '.' + key[1], { path, table, name: key[1], column: key[2], parent: key[3], target: key[4] });
+      for (const key of body.matchAll(FK)) fks.set(table + '.' + key[1], { path, table, name: key[1], columns: fkColumns(key[2]), parent: key[3], targets: fkColumns(key[4]) });
     }
     const total = (sql.match(/\bFOREIGN\s+KEY\b/gi) ?? []).length - (sql.match(/\bDROP\s+FOREIGN\s+KEY\b/gi) ?? []).length;
     const recognized = [...sql.matchAll(FK)].length;
@@ -54,22 +59,30 @@ export function auditMigrationSources(sources) {
       findings.push(fk.path + ': ' + fk.name + ': FK table not found.');
       continue;
     }
-    const sourceType = columnType(source.declaration, fk.column);
-    const destinationType = columnType(destination.declaration, fk.target);
-    if (!sourceType || !destinationType) {
-      findings.push(fk.path + ': ' + fk.name + ': FK column declaration not found.');
+    if (fk.columns.length === 0 || fk.columns.length !== fk.targets.length) {
+      findings.push(fk.path + ': ' + fk.name + ': malformed or mismatched FK column list.');
       continue;
     }
-    const sourceText = TEXTUAL.has(sourceType);
-    const targetText = TEXTUAL.has(destinationType);
-    if (sourceText !== targetText) {
-      findings.push(fk.path + ': ' + fk.name + ': incompatible FK column categories.');
-    } else if (sourceText) {
-      const sourceEffective = source.columnOverrides.get(fk.column) ?? source;
-      const targetEffective = destination.columnOverrides.get(fk.target) ?? destination;
-      if (sourceEffective.charset !== targetEffective.charset || sourceEffective.collation !== targetEffective.collation) {
-        findings.push(fk.path + ': ' + fk.name + ': ' + fk.table + '.' + fk.column + ' (' + sourceEffective.collation +
-          ') -> ' + fk.parent + '.' + fk.target + ' (' + targetEffective.collation + '): incompatible FK charset/collation.');
+    for (let index = 0; index < fk.columns.length; index++) {
+      const column = fk.columns[index];
+      const target = fk.targets[index];
+      const sourceType = columnType(source.declaration, column);
+      const destinationType = columnType(destination.declaration, target);
+      if (!sourceType || !destinationType) {
+        findings.push(fk.path + ': ' + fk.name + ': FK column declaration not found (' + column + ' -> ' + target + ').');
+        continue;
+      }
+      const sourceText = TEXTUAL.has(sourceType);
+      const targetText = TEXTUAL.has(destinationType);
+      if (sourceText !== targetText) {
+        findings.push(fk.path + ': ' + fk.name + ': incompatible FK column categories (' + column + ' -> ' + target + ').');
+      } else if (sourceText) {
+        const sourceEffective = source.columnOverrides.get(column) ?? source;
+        const targetEffective = destination.columnOverrides.get(target) ?? destination;
+        if (sourceEffective.charset !== targetEffective.charset || sourceEffective.collation !== targetEffective.collation) {
+          findings.push(fk.path + ': ' + fk.name + ': ' + fk.table + '.' + column + ' (' + sourceEffective.collation +
+            ') -> ' + fk.parent + '.' + target + ' (' + targetEffective.collation + '): incompatible FK charset/collation.');
+        }
       }
     }
   }
