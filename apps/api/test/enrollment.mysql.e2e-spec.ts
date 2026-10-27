@@ -103,6 +103,16 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     const r = await prisma.memberProfile.create({data:{organizationId:org,userId:rootUser,memberCode:rootCode,status:'ACTIVE'}});
     const f = await prisma.memberProfile.create({data:{organizationId:foreignOrg,userId:foreignRoot,memberCode:foreignCode,status:'ACTIVE'}});
     rootId = r.id;
+    // Verified challenge fixtures are confined to isolated MySQL acceptance.
+    // SMTP delivery and wrong-code paths have their own integration suite.
+    for(const name of ['alpha','beta','gamma']) {
+      await prisma.memberEmailOtp.create({data:{
+        organizationId:org, userId:account[name]!, purpose:'MEMBER_ENROLLMENT',
+        codeHash:createHash('sha256').update(randomBytes(16)).digest('hex'),
+        maxAttempts:5, status:'VERIFIED', verifiedAt:new Date(),
+        expiresAt:new Date(Date.now()+20*60_000),
+      }});
+    }
     await prisma.binaryTreeRoot.createMany({data:[
       {organizationId:org,memberId:r.id},{organizationId:foreignOrg,memberId:f.id},
     ]});
@@ -111,6 +121,9 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
   afterAll(async () => {
     try {
       if (prisma && orgIds.length) {
+        await prisma.memberEmailOtp.deleteMany({where:{organizationId:{in:orgIds}}});
+        await prisma.memberEmailOtpThrottle.deleteMany({where:{organizationId:{in:orgIds}}});
+        await prisma.memberOtpPolicy.deleteMany({where:{organizationId:{in:orgIds}}});
         await prisma.enrollmentPin.updateMany({where:{organizationId:{in:orgIds}},data:{redeemedByMemberId:null}});
         await prisma.memberConsentRecord.deleteMany({where:{organizationId:{in:orgIds}}});
         await prisma.enrollmentPin.deleteMany({where:{organizationId:{in:orgIds}}});

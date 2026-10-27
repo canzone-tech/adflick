@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import {
-  BinarySide, EnrollmentPinStatus, MemberConsentDocumentStatus,
+  BinarySide, EnrollmentPinStatus, MemberConsentDocumentStatus, MemberEmailOtpStatus,
   MemberPackageStatus, Prisma, UserRole, UserStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -283,6 +283,22 @@ export class EnrollmentService {
           if (!rooted) throw new ConflictException('Sponsor/placement graph is disconnected or cyclic.');
         }
 
+        // Email OTP is mandatory. Its consumption rolls back together with PIN,
+        // placement, member profile and consent if any downstream write fails.
+        const verifiedOtp = await tx.memberEmailOtp.findFirst({
+          where: { organizationId, userId: actor.sub, purpose: 'MEMBER_ENROLLMENT',
+            status: MemberEmailOtpStatus.VERIFIED, expiresAt: { gt: now }, verifiedAt: { not: null } },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: { id: true },
+        });
+        if (!verifiedOtp) throw new ConflictException('Email OTP verification is required for member enrollment.');
+        const consumedOtp = await tx.memberEmailOtp.updateMany({
+          where: { id: verifiedOtp.id, organizationId, userId: actor.sub,
+            status: MemberEmailOtpStatus.VERIFIED, expiresAt: { gt: now } },
+          data: { status: MemberEmailOtpStatus.CONSUMED, consumedAt: now },
+        });
+        if (consumedOtp.count !== 1) throw new ConflictException('Email OTP has already been consumed.');
+
         // Atomic CAS prevents PIN replay. On any later failure (including occupied side)
         // MySQL rolls this claim and all member/consent/placement writes back together.
         const claimed = await tx.enrollmentPin.updateMany({
@@ -295,7 +311,7 @@ export class EnrollmentService {
           data: {
             organizationId, userId: actor.sub,
             memberCode: 'M-' + randomBytes(12).toString('hex').toUpperCase(),
-            // No payout/commission eligibility. Future identity/OTP verification is mandatory.
+            // No payout/commission eligibility; email OTP was required above.
             status: 'PENDING_ACTIVATION',
           },
           select: { id: true, memberCode: true, status: true },
@@ -318,7 +334,7 @@ export class EnrollmentService {
           sponsorMemberId: sponsor.id, placementParentMemberId: parent.id, side: dto.side,
         }) });
         return { memberCode: member.memberCode, status: member.status, placementSide: dto.side,
-          message: 'Enrollment recorded; identity/OTP verification and activation are still pending.' };
+          message: 'Verified-email enrollment recorded; separate identity/KYC checks and activation remain pending.' };
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 15_000 });
     } catch (e) { return this.convertCollision(e); }
   }

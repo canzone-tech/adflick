@@ -9,7 +9,7 @@
 ### P0 — Confirm scope and close irreversible product decisions
 - [x] Project owner approved v1.0 functional development scope on 2026-10-27; formal commercial and legal signatures are tracked separately.
 - [ ] Approve unique member ID scheme, identity/organization relationship and registration/sponsor/placement correction rules.
-- [ ] Approve OTP/communication, consent versioning, privacy, package/e-PIN status lifecycle and financial *feature-disable* policy.
+- [ ] Approve public OTP/communication, privacy, package/e-PIN lifecycle and financial *feature-disable* policy. **Technical email OTP + TLS SMTP implementation uses default-off config and non-financial per-tenant policy, not legal/provider activation.**
 - [ ] Keep ALL commission calculation, paid e-PIN sales and real payouts disabled until business/finance/legal sign-off.
 - [ ] Product owner confirms whether a separate `apps/admin` is needed; prefer one Next.js deployment with role-scoped layouts unless deployment/security needs justify a second.
 

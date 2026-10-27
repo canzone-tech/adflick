@@ -238,6 +238,9 @@ model Organization {
   enrollmentPins EnrollmentPin[]
   consentDocuments MemberConsentDocument[]
   enrollmentConsents MemberConsentRecord[]
+  memberOtpPolicy MemberOtpPolicy?
+  emailOtps MemberEmailOtp[]
+  emailOtpThrottles MemberEmailOtpThrottle[]
 
   @@index([isActive, createdAt])
 }
@@ -267,6 +270,8 @@ model User {
   financeApprovalsDecided FinanceApproval[] @relation("FinanceApprovalDecider")
   memberProfile MemberProfile?
   enrollmentPinsRecipient EnrollmentPin[] @relation("EnrollmentPinRecipient")
+  emailOtps MemberEmailOtp[]
+  emailOtpThrottles MemberEmailOtpThrottle[]
 
   @@unique([id, organizationId])
   @@index([organizationId, status])
@@ -1127,4 +1132,67 @@ model MemberConsentRecord {
 
   @@unique([organizationId, memberId])
   @@index([organizationId, documentId, acceptedAt])
+}
+
+
+/** Email OTP is not TOTP MFA and never grants finance/privileged access. */
+enum MemberOtpPurpose {
+  MEMBER_ENROLLMENT
+}
+
+enum MemberEmailOtpStatus {
+  QUEUED
+  SENT
+  VERIFIED
+  CONSUMED
+  FAILED
+}
+
+model MemberOtpPolicy {
+  organizationId String @id @db.VarChar(30)
+  emailEnabled Boolean @default(false)
+  digits Int @default(6)
+  ttlSeconds Int @default(300)
+  resendSeconds Int @default(60)
+  maxAttempts Int @default(5)
+  version Int @default(1)
+  updatedByUserId String? @db.VarChar(30)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+model MemberEmailOtp {
+  id String @id @default(cuid()) @db.VarChar(30)
+  organizationId String @db.VarChar(30)
+  userId String @db.VarChar(30)
+  purpose MemberOtpPurpose @default(MEMBER_ENROLLMENT)
+  codeHash String @db.Char(64)
+  status MemberEmailOtpStatus @default(QUEUED)
+  attempts Int @default(0)
+  maxAttempts Int
+  expiresAt DateTime
+  sentAt DateTime?
+  verifiedAt DateTime?
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([organizationId, userId, purpose, createdAt], map: "MemberEmailOtp_owner_purpose_created_idx")
+  @@index([organizationId, status, expiresAt])
+}
+
+model MemberEmailOtpThrottle {
+  organizationId String @db.VarChar(30)
+  userId String @db.VarChar(30)
+  purpose MemberOtpPurpose @default(MEMBER_ENROLLMENT)
+  nextAllowedAt DateTime
+  windowStart DateTime
+  requestCount Int @default(1)
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@id([organizationId, userId, purpose])
 }

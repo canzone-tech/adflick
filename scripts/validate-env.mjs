@@ -50,6 +50,29 @@ if (production) {
 } else {
   warnings.push('Non-production environment: placeholder credentials may be present; never reuse them in a shared deployment.');
 }
+
+const smtpActive = process.env.ADFLICK_SMTP_ENABLED === 'true';
+const otpActive = process.env.ADFLICK_MEMBER_EMAIL_OTP_ENABLED === 'true';
+if (smtpActive || otpActive) {
+  if (!smtpActive) errors.push('Email OTP requires ADFLICK_SMTP_ENABLED=true.');
+  for (const key of ['ADFLICK_SMTP_HOST','ADFLICK_SMTP_FROM_EMAIL']) {
+    if (!process.env[key]?.trim()) errors.push(key+' is required when SMTP/OTP is enabled.');
+  }
+  const port=Number(process.env.ADFLICK_SMTP_PORT ?? '587');
+  if (!Number.isInteger(port)||port<1||port>65535) errors.push('SMTP port must be from 1 to 65535.');
+  const secure=process.env.ADFLICK_SMTP_SECURE === 'true';
+  if ((secure && port===587)||(!secure && port===465)) errors.push('SMTP port 465 requires implicit TLS; port 587 requires STARTTLS.');
+  if (Boolean(process.env.ADFLICK_SMTP_USERNAME?.trim())!==Boolean(process.env.ADFLICK_SMTP_PASSWORD?.trim())) {
+    errors.push('SMTP username/password must both be configured or both be absent.');
+  }
+  if (otpActive && (!process.env.ADFLICK_MEMBER_OTP_HASH_PEPPER || process.env.ADFLICK_MEMBER_OTP_HASH_PEPPER.length<32)) {
+    errors.push('ADFLICK_MEMBER_OTP_HASH_PEPPER must be a distinct secret of >=32 characters.');
+  }
+}
+if (production && process.env.ADFLICK_SMTP_INSECURE_LOOPBACK_TEST === 'true') {
+  errors.push('Insecure loopback SMTP transport is forbidden in production.');
+}
+
 for (const warning of warnings) console.warn(`WARN: ${warning}`);
 if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);

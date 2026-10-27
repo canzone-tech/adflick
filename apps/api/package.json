@@ -10,7 +10,7 @@
     "test": "jest --config ./jest.config.cjs --runInBand",
     "test:e2e:security": "jest --config ./jest.config.cjs --runInBand --testRegex '.*[.]e2e-spec[.]ts$' --runTestsByPath test/security.e2e-spec.ts",
     "test:e2e:finance": "jest --config ./jest.config.cjs --runInBand --testRegex '.*[.]e2e-spec[.]ts$' --runTestsByPath test/finance-transaction.mysql.e2e-spec.ts test/reconciliation-import.mysql.e2e-spec.ts test/reconciliation-import.http.e2e-spec.ts",
-    "test:e2e:members": "jest --config ./jest.config.cjs --runInBand --testRegex '.*[.]e2e-spec[.]ts$' --runTestsByPath test/members.mysql.e2e-spec.ts test/enrollment.mysql.e2e-spec.ts"
+    "test:e2e:members": "jest --config ./jest.config.cjs --runInBand --testRegex '.*[.]e2e-spec[.]ts$' --runTestsByPath test/members.mysql.e2e-spec.ts test/enrollment.mysql.e2e-spec.ts test/member-email-otp.mysql.e2e-spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
