@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { PayoutsService } from './payouts.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 
@@ -15,10 +16,10 @@ describe('PayoutsService tenant isolation contract', () => {
 
   it('rejects cross-tenant dispute resolution before opening a transaction', async () => {
     prisma.financeDispute.findFirst.mockResolvedValue(null);
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await expect(service.resolveDispute(actor, 'dispute-org-b', {
       status: 'RESOLVED_ORGANIZATION_FAVOUR', note: 'Reviewed and resolved with evidence.',
-    } as any)).rejects.toThrow('Finance dispute not found.');
+    } as Parameters<PayoutsService['resolveDispute']>[2])).rejects.toThrow('Finance dispute not found.');
     expect(prisma.financeDispute.findFirst).toHaveBeenCalledWith({
       where: { id: 'dispute-org-b', organizationId: 'org-a' },
     });
@@ -27,7 +28,7 @@ describe('PayoutsService tenant isolation contract', () => {
   });
 
   it('fails closed without organization context', async () => {
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     expect(() => service.listBatches({ ...actor, organizationId: null })).toThrow('Organization context is required.');
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });

@@ -1,10 +1,11 @@
+import { PrismaReconciliationImportStore } from './prisma-reconciliation-import-store';
 import { ForbiddenException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { ReconciliationImportService } from './reconciliation-import.service';
 
 describe('ReconciliationImportService', () => {
   const store = { create: jest.fn(), findByKey: jest.fn() };
-  const service = new ReconciliationImportService(store as any);
+  const service = new ReconciliationImportService(store as unknown as PrismaReconciliationImportStore);
   const dto = { providerName: 'SANDBOX', idempotencyKey: 'statement-1', payload: 'header\\nrow' };
 
   beforeEach(() => jest.clearAllMocks());

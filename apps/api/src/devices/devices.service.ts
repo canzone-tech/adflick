@@ -189,6 +189,10 @@ export class DevicesService {
   async heartbeat(screenId: string, rawSecret: string, dto: HeartbeatDto, ip?: string) {
     const screen = await this.authenticateDevice(screenId, rawSecret);
     const now = new Date();
+    const capabilities = dto.capabilities;
+    if (capabilities !== undefined && !isInputJsonObject(capabilities)) {
+      throw new BadRequestException('Device capabilities must be a JSON object of finite, JSON-safe values.');
+    }
     const updated = await this.prisma.screen.update({
       where: { id: screen.id },
       data: {
@@ -196,7 +200,7 @@ export class DevicesService {
         devicePlatform: dto.platform, playerVersion: dto.playerVersion,
         lastHeartbeatAt: now, lastSeenAt: now, lastIpAddress: (ip || dto.ipAddress)?.slice(0, 45),
         cpuPercent: dto.cpuPercent, memoryPercent: dto.memoryPercent, storagePercent: dto.storagePercent,
-        capabilitiesJson: dto.capabilities as any,
+        capabilitiesJson: capabilities,
         lastSyncAt: dto.syncStatus === 'SYNCED' ? now : undefined,
         lastPlayerError: dto.playerError ? dto.playerError.slice(0, 500) : null,
       },

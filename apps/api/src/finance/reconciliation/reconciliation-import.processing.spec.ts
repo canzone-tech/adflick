@@ -1,3 +1,4 @@
+import { PrismaReconciliationImportStore } from './prisma-reconciliation-import-store';
 import { createHash } from 'node:crypto';
 import { UserRole } from '@prisma/client';
 import { ReconciliationImportService } from './reconciliation-import.service';
@@ -13,7 +14,7 @@ describe('ReconciliationImportService.process', () => {
         id: 'item-1', providerReference: 'provider-tx-1', amountPaise: 25000, currency: 'INR', status: 'SUBMITTED',
       }]),
     },
-    $transaction: jest.fn(async (callback: (tx: any) => Promise<any>) => callback(tx)),
+    $transaction: jest.fn(async (callback: (trx: typeof tx) => Promise<unknown>) => callback(tx)),
     reconciliationImport: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
   };
   const store = {
@@ -21,7 +22,7 @@ describe('ReconciliationImportService.process', () => {
     create: jest.fn().mockResolvedValue({ id: 'import-1', status: 'RECEIVED' }),
     findByKey: jest.fn(),
   };
-  const service = new ReconciliationImportService(store as any);
+  const service = new ReconciliationImportService(store as unknown as PrismaReconciliationImportStore);
   const actor = {
     sub: 'finance-1', email: 'finance@example.test', organizationId: 'org-1',
     roles: [UserRole.FINANCE_MANAGER], sessionId: 'session-1',

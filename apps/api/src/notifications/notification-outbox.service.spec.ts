@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { NotificationOutboxService } from './notification-outbox.service';
 import { AlertNotifierService } from './alert-notifier.service';
 
@@ -10,13 +11,13 @@ describe('NotificationOutboxService', () => {
   const prisma = {
     notificationOutbox: { create: jest.fn(), findFirst: jest.fn(), updateMany: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
     auditEvent: { create: jest.fn() },
-  } as any;
+  };
   const notifier = { notifyIncident: jest.fn() } as unknown as AlertNotifierService;
   let service: NotificationOutboxService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new NotificationOutboxService(prisma, notifier);
+    service = new NotificationOutboxService(prisma as unknown as PrismaService, notifier);
   });
 
   it('enqueues an incident with a deterministic idempotency key', async () => {

@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { PlaybackService } from './playback.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 
@@ -15,7 +16,7 @@ describe('PlaybackService report tenant boundary', () => {
   it('always binds a screen-specific report to the authenticated organization', async () => {
     prisma.playbackEvent.count.mockResolvedValue(0);
     prisma.playbackEvent.groupBy.mockResolvedValue([]);
-    const service = new PlaybackService(prisma as any);
+    const service = new PlaybackService(prisma as unknown as PrismaService);
     const result = await service.report(actor, 'screen-org-b');
     const expectedWhere = {
       organizationId: 'org-a',
@@ -29,7 +30,7 @@ describe('PlaybackService report tenant boundary', () => {
   });
 
   it('fails closed before querying without organization context', async () => {
-    const service = new PlaybackService(prisma as any);
+    const service = new PlaybackService(prisma as unknown as PrismaService);
     await expect(service.report({ ...actor, organizationId: null })).rejects.toThrow();
     expect(prisma.playbackEvent.count).not.toHaveBeenCalled();
     expect(prisma.playbackEvent.groupBy).not.toHaveBeenCalled();

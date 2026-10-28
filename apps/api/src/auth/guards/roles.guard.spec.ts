@@ -1,3 +1,4 @@
+import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
 import { RolesGuard } from './roles.guard';
@@ -7,7 +8,7 @@ function contextFor(request: Record<string, unknown>) {
     getHandler: () => function handler() {},
     getClass: () => class TestController {},
     switchToHttp: () => ({ getRequest: () => request }),
-  } as any;
+  } as unknown as ExecutionContext;
 }
 
 describe('RolesGuard privileged MFA boundary', () => {

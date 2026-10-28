@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { PayoutsService } from './payouts.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -16,7 +17,7 @@ describe('PayoutsService tenant-scoped exports', () => {
 
   it('does not export another organization batch or its items', async () => {
     prisma.payoutBatch.findFirst.mockResolvedValue(null);
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await expect(service.exportBatch(actor, 'batch-org-b')).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.payoutBatch.findFirst).toHaveBeenCalledWith({
       where: { id: 'batch-org-b', organizationId: 'org-a' },

@@ -1,3 +1,5 @@
+import { StorageService } from './storage.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CmsService } from './cms.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 
@@ -17,7 +19,7 @@ describe('CmsService tenant isolation contract', () => {
 
   it('rejects cross-tenant layout publication before mutation or audit', async () => {
     prisma.screenLayout.findFirst.mockResolvedValue(null);
-    const service = new CmsService(prisma as any, storage as any);
+    const service = new CmsService(prisma as unknown as PrismaService, storage as unknown as StorageService);
     await expect(service.publishLayout(actor, 'layout-org-b')).rejects.toThrow('Layout not found.');
     expect(prisma.screenLayout.findFirst).toHaveBeenCalledWith({
       where: { id: 'layout-org-b', organizationId: 'org-a' },

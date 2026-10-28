@@ -1,13 +1,15 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { FinanceService } from './finance.service';
 import { RewardCalculationStatus, FinanceApprovalStatus } from '@prisma/client';
 
 describe('FinanceService maker-checker controls', () => {
   const actor = { sub: 'maker-1', email: 'maker@example.test', organizationId: 'org-1', roles: ['FINANCE_MANAGER'], sessionId: 'session-1' };
-  let prisma: any; let service: FinanceService;
+  const makePrisma = () => ({ rewardCalculation: { findFirst: jest.fn(), update: jest.fn() }, financeApproval: { findFirst: jest.fn(), create: jest.fn() }, auditEvent: { create: jest.fn() }, $transaction: jest.fn() });
+  let prisma: ReturnType<typeof makePrisma>; let service: FinanceService;
   beforeEach(() => {
-    prisma = { rewardCalculation: { findFirst: jest.fn(), update: jest.fn() }, financeApproval: { findFirst: jest.fn(), create: jest.fn() }, auditEvent: { create: jest.fn() }, $transaction: jest.fn() };
-    service = new FinanceService(prisma);
+    prisma = makePrisma();
+    service = new FinanceService(prisma as unknown as PrismaService);
   });
   it('refuses approval requests for ineligible calculations', async () => {
     prisma.rewardCalculation.findFirst.mockResolvedValue({ id: 'reward-1', organizationId: 'org-1', status: RewardCalculationStatus.INELIGIBLE, amountPaise: 0 });

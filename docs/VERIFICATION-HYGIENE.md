@@ -23,3 +23,7 @@ NestJS `AlertNotifierService` logged HTTPS/host rejection and a simulated 503 du
 - Do not silently delete assertions or replace runtime tests with textual searches.
 - Do not suppress ESLint warnings merely to make output green. Fix typed mocks/production contracts in focused changes, with CI evidence.
 - No SMS provider, compensation, payout-policy or deployment activation is authorized by verification refactoring.
+
+## Local report readability
+
+The root coverage script keeps Jest statement/branch/function/line measurements unchanged, writes detailed HTML and JSON-summary reports under `apps/api/coverage/`, and prints only the terminal text summary to avoid thousands of red per-file rows. Red percentages mean uncovered lines, not failed tests. Coverage thresholds have not been reduced and nothing is excluded from instrumentation. Alert webhook negative-path tests assert their expected Nest logger messages using a test-local spy; production HTTPS and host allowlist enforcement remains unchanged.

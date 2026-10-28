@@ -2,7 +2,7 @@ import {
   ForbiddenException, Injectable,
 } from '@nestjs/common';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
-import { Prisma, AssetStatus, PlaybackEventStatus, PlaybackEventType, ScreenStatus, UserRole } from '@prisma/client';
+import { Prisma, Screen, AssetStatus, PlaybackEventStatus, PlaybackEventType, ScreenStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { PlaybackEventDto } from './dto/playback-event.dto';
@@ -29,7 +29,7 @@ export class PlaybackService {
     return screen;
   }
 
-  private async validateEvent(screen: any, event: PlaybackEventDto) {
+  private async validateEvent(screen: Screen, event: PlaybackEventDto) {
     if (!event.authorizationId || !event.authorizationToken) {
       return { ok: false, reason: 'SERVER_ISSUED_PLAYBACK_AUTHORIZATION_REQUIRED' };
     }
@@ -178,8 +178,8 @@ export class PlaybackService {
           return { eventId: event.eventId, status: finalStatus, reason: finalReason, countedForEligibility: eligible };
         });
         results.push(row);
-      } catch (err: any) {
-        if (err?.code === 'P2002') {
+      } catch (err: unknown) {
+        if (err !== null && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
           const committed = await this.prisma.playbackEvent.findUnique({
             where: { screenId_eventId: { screenId, eventId: event.eventId } },
             select: { id: true },
@@ -206,7 +206,7 @@ export class PlaybackService {
     if (!actor.organizationId) throw new ForbiddenException('Organization context is required.');
     const allowed: UserRole[] = [UserRole.SUPER_ADMIN,UserRole.ORGANIZATION_ADMIN,UserRole.OPERATIONS_MANAGER,UserRole.FINANCE_MANAGER,UserRole.AUDITOR_COMPLIANCE];
     if (!actor.roles.some((r) => allowed.includes(r as UserRole))) throw new ForbiddenException('Your role cannot view playback reports.');
-    const where: any = { organizationId: actor.organizationId, status: PlaybackEventStatus.ACCEPTED, eventType: PlaybackEventType.PLAY_COMPLETED };
+    const where: Prisma.PlaybackEventWhereInput = { organizationId: actor.organizationId, status: PlaybackEventStatus.ACCEPTED, eventType: PlaybackEventType.PLAY_COMPLETED };
     if (screenId) where.screenId = screenId;
     const [total, byScreen] = await Promise.all([
       this.prisma.playbackEvent.count({ where }),

@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { createHash } from 'node:crypto';
 import { PlaybackService } from './playback.service';
 
@@ -28,7 +29,7 @@ describe('PlaybackService duplicate ingestion safety', () => {
     prisma.screen.update.mockResolvedValue({});
     prisma.playbackEvent.findUnique.mockResolvedValue(null);
     prisma.playbackAuthorization.findFirst.mockResolvedValue(null);
-    prisma.$transaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => callback({
+    prisma.$transaction.mockImplementation(async (callback: (trx: { playbackEvent: typeof prisma.playbackEvent; playbackAuthorization: typeof prisma.playbackAuthorization; $executeRaw: jest.Mock }) => Promise<unknown>) => callback({
       playbackEvent: prisma.playbackEvent,
       playbackAuthorization: prisma.playbackAuthorization,
       $executeRaw: jest.fn(),
@@ -39,8 +40,8 @@ describe('PlaybackService duplicate ingestion safety', () => {
     prisma.playbackEvent.findUnique.mockResolvedValue({
       id: 'existing-event', status: 'ACCEPTED', validationReason: null,
     });
-    const service = new PlaybackService(prisma as any);
-    const result = await service.ingestBatch(screen.id, secret, [event] as any);
+    const service = new PlaybackService(prisma as unknown as PrismaService);
+    const result = await service.ingestBatch(screen.id, secret, [event] as Parameters<PlaybackService['ingestBatch']>[2]);
     expect(result.duplicates).toBe(1);
     expect(result.results[0]).toMatchObject({
       eventId: event.eventId, status: 'DUPLICATE',
@@ -52,8 +53,8 @@ describe('PlaybackService duplicate ingestion safety', () => {
 
   it('handles the database unique-key race as a duplicate and not an eligible play', async () => {
     prisma.playbackEvent.create.mockRejectedValue({ code: 'P2002' });
-    const service = new PlaybackService(prisma as any);
-    const result = await service.ingestBatch(screen.id, secret, [event] as any);
+    const service = new PlaybackService(prisma as unknown as PrismaService);
+    const result = await service.ingestBatch(screen.id, secret, [event] as Parameters<PlaybackService['ingestBatch']>[2]);
     expect(result.duplicates).toBe(1);
     expect(result.results[0]).toMatchObject({
       eventId: event.eventId, status: 'DUPLICATE',
@@ -67,8 +68,8 @@ describe('PlaybackService duplicate ingestion safety', () => {
   });
 
   it('rejects invalid device credentials before querying event IDs', async () => {
-    const service = new PlaybackService(prisma as any);
-    await expect(service.ingestBatch(screen.id, 'wrong-device-secret-which-is-long-enough', [event] as any))
+    const service = new PlaybackService(prisma as unknown as PrismaService);
+    await expect(service.ingestBatch(screen.id, 'wrong-device-secret-which-is-long-enough', [event] as Parameters<PlaybackService['ingestBatch']>[2]))
       .rejects.toThrow();
     expect(prisma.playbackEvent.findUnique).not.toHaveBeenCalled();
   });

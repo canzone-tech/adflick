@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
 import { PayoutBatchStatus, PayoutItemStatus, UserRole } from '@prisma/client';
 import { PayoutsService } from './payouts.service';
@@ -20,7 +21,7 @@ describe('PayoutsService reconciliation concurrency guard', () => {
   const prisma = {
     payoutBatch: { findFirst: jest.fn() },
     financeDispute: { findMany: jest.fn() },
-    $transaction: jest.fn(async (callback: (tx: any) => Promise<any>) => callback(tx)),
+    $transaction: jest.fn(async (callback: (trx: typeof tx) => Promise<unknown>) => callback(tx)),
   };
 
   beforeEach(() => {
@@ -33,10 +34,10 @@ describe('PayoutsService reconciliation concurrency guard', () => {
   });
 
   it('rejects a stale reconciliation write if another transaction made the item terminal', async () => {
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await expect(service.reconcile(actor, batch.id, {
       items: [{ payoutItemId: 'item-a', status: 'FAILED', note: 'Provider reported failure' }],
-    } as any)).rejects.toBeInstanceOf(ConflictException);
+    } as Parameters<PayoutsService['reconcile']>[2])).rejects.toBeInstanceOf(ConflictException);
 
     expect(tx.payoutItem.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
@@ -52,20 +53,20 @@ describe('PayoutsService reconciliation concurrency guard', () => {
     tx.payoutItem.updateMany.mockResolvedValue({ count: 1 });
     tx.payoutItem.findMany.mockResolvedValue([{ status: PayoutItemStatus.FAILED }]);
     tx.payoutBatch.updateMany.mockResolvedValue({ count: 1 });
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await service.reconcile(actor, batch.id, {
       items: [{ payoutItemId: 'item-a', status: 'FAILED', note: 'Provider reported failure' }],
-    } as any);
+    } as Parameters<PayoutsService['reconcile']>[2]);
     expect(tx.payoutItem.findMany).toHaveBeenCalledWith({ where: { payoutBatchId: 'batch-a', organizationId: 'org-a' } });
   });
   it('rejects a stale batch transition and does not write a success audit', async () => {
     tx.payoutItem.updateMany.mockResolvedValue({ count: 1 });
     tx.payoutItem.findMany.mockResolvedValue([{ status: PayoutItemStatus.FAILED }]);
     tx.payoutBatch.updateMany.mockResolvedValue({ count: 0 });
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await expect(service.reconcile(actor, batch.id, {
       items: [{ payoutItemId: 'item-a', status: 'FAILED', note: 'Provider reported failure' }],
-    } as any)).rejects.toBeInstanceOf(ConflictException);
+    } as Parameters<PayoutsService['reconcile']>[2])).rejects.toBeInstanceOf(ConflictException);
     expect(tx.payoutBatch.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         id: 'batch-a', organizationId: 'org-a',
@@ -78,10 +79,10 @@ describe('PayoutsService reconciliation concurrency guard', () => {
   it('writes the reconciliation audit only after the conditional batch transition succeeds', async () => {
     tx.payoutItem.updateMany.mockResolvedValue({ count: 1 });
     tx.payoutItem.findMany.mockResolvedValue([{ status: PayoutItemStatus.FAILED }]);
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await service.reconcile(actor, batch.id, {
       items: [{ payoutItemId: 'item-a', status: 'FAILED', note: 'Provider reported failure' }],
-    } as any);
+    } as Parameters<PayoutsService['reconcile']>[2]);
     expect(tx.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ action: 'PAYOUT_BATCH_RECONCILED', organizationId: 'org-a' }),
     }));

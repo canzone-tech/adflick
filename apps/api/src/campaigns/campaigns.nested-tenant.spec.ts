@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -22,8 +23,8 @@ describe('CampaignsService nested tenant associations', () => {
       status: 'DRAFT', creatives: [], screenTargets: [],
     });
     prisma.mediaAsset.findMany.mockResolvedValue([]);
-    const service = new CampaignsService(prisma as any);
-    await expect(service.update(actor, 'campaign-a', { creativeAssetIds: ['asset-org-b'] } as any))
+    const service = new CampaignsService(prisma as unknown as PrismaService);
+    await expect(service.update(actor, 'campaign-a', { creativeAssetIds: ['asset-org-b'] } as Parameters<CampaignsService['update']>[2]))
       .rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.mediaAsset.findMany).toHaveBeenCalledWith({
       where: { id: { in: ['asset-org-b'] }, organizationId: 'org-a', status: 'READY' },
@@ -38,8 +39,8 @@ describe('CampaignsService nested tenant associations', () => {
       status: 'DRAFT', creatives: [], screenTargets: [],
     });
     prisma.screen.findMany.mockResolvedValue([]);
-    const service = new CampaignsService(prisma as any);
-    await expect(service.update(actor, 'campaign-a', { screenIds: ['screen-org-b'] } as any))
+    const service = new CampaignsService(prisma as unknown as PrismaService);
+    await expect(service.update(actor, 'campaign-a', { screenIds: ['screen-org-b'] } as Parameters<CampaignsService['update']>[2]))
       .rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.screen.findMany).toHaveBeenCalledWith({
       where: { id: { in: ['screen-org-b'] }, organizationId: 'org-a', status: { not: 'RETIRED' } },

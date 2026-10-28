@@ -1,3 +1,4 @@
+import type { Response } from 'express';
 import { Test } from '@nestjs/testing';
 import { HealthController } from './health.controller';
 import { PrismaService } from './prisma/prisma.service';
@@ -27,16 +28,16 @@ describe('HealthController', () => {
 
   it('returns 200 when the database readiness query succeeds', async () => {
     const controller = await makeController();
-    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
-    await controller.readiness(response);
+    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await controller.readiness(response as unknown as Response);
     expect(response.status).toHaveBeenCalledWith(200);
     expect(response.json).toHaveBeenCalledWith({ status: 'ready', checks: { database: 'ok' } });
   });
 
   it('returns sanitized 503 when the database readiness query fails', async () => {
     const controller = await makeController(jest.fn().mockRejectedValue(new Error('secret connection detail')));
-    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
-    await controller.readiness(response);
+    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await controller.readiness(response as unknown as Response);
     expect(response.status).toHaveBeenCalledWith(503);
     expect(response.json).toHaveBeenCalledWith({ status: 'not_ready', checks: { database: 'unavailable' } });
     expect(JSON.stringify(response.json.mock.calls)).not.toContain('secret connection detail');

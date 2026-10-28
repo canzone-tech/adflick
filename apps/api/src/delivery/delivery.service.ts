@@ -47,7 +47,7 @@ export class DeliveryService {
       orderBy: { createdAt: 'asc' },
       take: 100,
     });
-    const entries: any[] = [];
+    const entries: Array<Record<string, unknown>> = [];
     for (const campaign of campaigns) {
       for (const creative of campaign.creatives) {
         const asset = creative.asset;

@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PayoutBatchStatus, UserRole } from '@prisma/client';
 import { PayoutsService } from './payouts.service';
@@ -19,7 +20,7 @@ describe('PayoutsService concurrent approval guard', () => {
   };
   const prisma = {
     payoutBatch: { findFirst: jest.fn() },
-    $transaction: jest.fn(async (callback: (tx: any) => Promise<any>) => callback(tx)),
+    $transaction: jest.fn(async (callback: (trx: typeof tx) => Promise<unknown>) => callback(tx)),
   };
 
   beforeEach(() => {
@@ -29,7 +30,7 @@ describe('PayoutsService concurrent approval guard', () => {
   });
 
   it('rejects a stale concurrent decision when the conditional update affects no row', async () => {
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await expect(service.decide(actor, batch.id, { status: 'APPROVED', note: 'reviewed' }))
       .rejects.toBeInstanceOf(ConflictException);
     expect(tx.payoutBatch.updateMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -40,7 +41,7 @@ describe('PayoutsService concurrent approval guard', () => {
 
   it('prevents the batch creator from approving their own batch', async () => {
     prisma.payoutBatch.findFirst.mockResolvedValue({ ...batch, createdById: actor.sub });
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await expect(service.decide(actor, batch.id, { status: 'APPROVED' }))
       .rejects.toBeInstanceOf(ForbiddenException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -49,7 +50,7 @@ describe('PayoutsService concurrent approval guard', () => {
   it('writes the approval audit only after a successful conditional transition', async () => {
     tx.payoutBatch.updateMany.mockResolvedValue({ count: 1 });
     tx.payoutBatch.findUniqueOrThrow.mockResolvedValue({ ...batch, status: PayoutBatchStatus.APPROVED });
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await service.decide(actor, batch.id, { status: 'APPROVED', note: 'reviewed' });
     expect(tx.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ action: 'PAYOUT_BATCH_APPROVED', organizationId: actor.organizationId }),

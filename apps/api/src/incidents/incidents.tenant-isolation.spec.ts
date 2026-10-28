@@ -1,3 +1,5 @@
+import { PrismaService } from '../prisma/prisma.service';
+import { NotificationOutboxService } from '../notifications/notification-outbox.service';
 import { IncidentsService } from './incidents.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 
@@ -18,8 +20,8 @@ describe('IncidentsService tenant isolation contract', () => {
 
   it('rejects cross-tenant incident update before any write', async () => {
     prisma.incident.findFirst.mockResolvedValue(null);
-    const service = new IncidentsService(prisma as any, notifications as any);
-    await expect(service.update(actor, 'incident-org-b', { status: 'RESOLVED' } as any))
+    const service = new IncidentsService(prisma as unknown as PrismaService, notifications as unknown as NotificationOutboxService);
+    await expect(service.update(actor, 'incident-org-b', { status: 'RESOLVED' } as Parameters<IncidentsService['update']>[2]))
       .rejects.toThrow('Incident not found.');
     expect(prisma.incident.findFirst).toHaveBeenCalledWith({
       where: { id: 'incident-org-b', organizationId: 'org-a' },

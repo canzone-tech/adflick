@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { PayoutBatchStatus, PayoutItemStatus, UserRole } from '@prisma/client';
 import { PayoutsService } from './payouts.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -19,7 +20,7 @@ describe('PayoutsService reconciliation transaction integrity', () => {
   const prisma = {
     payoutBatch: { findFirst: jest.fn() },
     financeDispute: { findMany: jest.fn() },
-    $transaction: jest.fn(async (callback: (tx: any) => Promise<any>) => callback(tx)),
+    $transaction: jest.fn(async (callback: (trx: typeof tx) => Promise<unknown>) => callback(tx)),
   };
 
   beforeEach(() => {
@@ -34,10 +35,10 @@ describe('PayoutsService reconciliation transaction integrity', () => {
   });
 
   it('loads reconciliation items with the authenticated organization predicate', async () => {
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await service.reconcile(actor, 'batch-a', {
       items: [{ payoutItemId: 'item-a', status: 'FAILED', note: 'Provider reported failure' }],
-    } as any);
+    } as Parameters<PayoutsService['reconcile']>[2]);
     expect(prisma.payoutBatch.findFirst).toHaveBeenCalledWith({
       where: { id: 'batch-a', organizationId: 'org-a' },
       include: { items: { where: { organizationId: 'org-a' } } },
@@ -46,10 +47,10 @@ describe('PayoutsService reconciliation transaction integrity', () => {
 
   it('propagates audit persistence failure instead of returning reconciliation success', async () => {
     tx.auditEvent.create.mockRejectedValue(new Error('simulated audit insert failure'));
-    const service = new PayoutsService(prisma as any);
+    const service = new PayoutsService(prisma as unknown as PrismaService);
     await expect(service.reconcile(actor, 'batch-a', {
       items: [{ payoutItemId: 'item-a', status: 'FAILED', note: 'Provider reported failure' }],
-    } as any)).rejects.toThrow('simulated audit insert failure');
+    } as Parameters<PayoutsService['reconcile']>[2])).rejects.toThrow('simulated audit insert failure');
 
     expect(tx.payoutItem.updateMany).toHaveBeenCalledTimes(1);
     expect(tx.payoutBatch.updateMany).toHaveBeenCalledTimes(1);

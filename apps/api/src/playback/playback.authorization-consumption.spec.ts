@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { createHash } from 'node:crypto';
 import { PlaybackService } from './playback.service';
 
@@ -27,13 +28,13 @@ describe('Playback authorization single-consumption race', () => {
     prisma.screen.findUnique.mockResolvedValue(screen);
     prisma.screen.update.mockResolvedValue({});
     prisma.playbackEvent.findUnique.mockResolvedValue(null);
-    prisma.playbackEvent.create.mockImplementation(async ({ data }: any) => ({ id: `saved-${data.eventId}` }));
+    prisma.playbackEvent.create.mockImplementation(async ({ data }: { data: { eventId: string } }) => ({ id: `saved-${data.eventId}` }));
     prisma.playbackAuthorization.findFirst.mockResolvedValue({ id: 'grant-a' });
     prisma.playbackAuthorization.updateMany
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 0 });
     prisma.mediaAsset.findFirst.mockResolvedValue({ id: 'asset-a', durationMs: 13_000 });
-    prisma.$transaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => callback({
+    prisma.$transaction.mockImplementation(async (callback: (trx: { playbackEvent: typeof prisma.playbackEvent; playbackAuthorization: typeof prisma.playbackAuthorization; $executeRaw: jest.Mock }) => Promise<unknown>) => callback({
       playbackEvent: prisma.playbackEvent,
       playbackAuthorization: prisma.playbackAuthorization,
       $executeRaw: jest.fn().mockResolvedValue(1),
@@ -41,8 +42,8 @@ describe('Playback authorization single-consumption race', () => {
   });
 
   it('counts no more than one completed event against the same one-use authorization', async () => {
-    const service = new PlaybackService(prisma as any);
-    const result = await service.ingestBatch(screen.id, secret, [makeEvent('event-a'), makeEvent('event-b')] as any);
+    const service = new PlaybackService(prisma as unknown as PrismaService);
+    const result = await service.ingestBatch(screen.id, secret, [makeEvent('event-a'), makeEvent('event-b')] as Parameters<PlaybackService['ingestBatch']>[2]);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(prisma.playbackAuthorization.updateMany).toHaveBeenCalledTimes(2);

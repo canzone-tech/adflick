@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { DevicesService } from './devices.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 
@@ -16,7 +17,7 @@ describe('DevicesService tenant isolation contract', () => {
 
   it('rejects cross-tenant status change before mutation', async () => {
     prisma.screen.findFirst.mockResolvedValue(null);
-    const service = new DevicesService(prisma as any);
+    const service = new DevicesService(prisma as unknown as PrismaService);
     await expect(service.setScreenStatus(actor, 'screen-org-b', 'SUSPENDED'))
       .rejects.toThrow('Screen not found.');
     expect(prisma.screen.findFirst).toHaveBeenCalledWith({
@@ -30,7 +31,7 @@ describe('DevicesService tenant isolation contract', () => {
   it('includes organization scope in the mutation after a successful scoped lookup', async () => {
     prisma.screen.findFirst.mockResolvedValue({ id: 'screen-org-a', name: 'Lobby', status: 'ONLINE' });
     prisma.screen.update.mockResolvedValue({ id: 'screen-org-a', name: 'Lobby', status: 'SUSPENDED' });
-    const service = new DevicesService(prisma as any);
+    const service = new DevicesService(prisma as unknown as PrismaService);
     await service.setScreenStatus(actor, 'screen-org-a', 'SUSPENDED');
     expect(prisma.screen.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'screen-org-a', organizationId: 'org-a' },

@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import { AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { ReserveReconciliationImportDto } from '../dto/reserve-reconciliation-import.dto';
 import { reserveReconciliationImport } from './reconciliation-import-idempotency';
@@ -104,9 +104,9 @@ export class ReconciliationImportService {
       }));
       const outcomes = matchStatementRows(expected, rows);
 
-      await this.store.prisma.$transaction(async (tx: any) => {
+      await this.store.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         await tx.reconciliationImportRow.createMany({
-          data: outcomes.map((outcome: any, index: number) => {
+          data: outcomes.map((outcome, index: number) => {
             const sourceRow = rows[index];
             if (!sourceRow) throw new Error('Reconciliation outcome has no source statement row.');
             return {
@@ -130,7 +130,7 @@ export class ReconciliationImportService {
             processingToken: null,
             processingLeaseUntil: null,
             rowCount: rows.length,
-            matchedCount: outcomes.filter((item: any) => item.outcome === 'MATCH').length,
+            matchedCount: outcomes.filter((item) => item.outcome === 'MATCH').length,
             discrepancyCount: outcomes.filter((item: any) => item.outcome !== 'MATCH').length,
             completedAt: new Date(),
           },

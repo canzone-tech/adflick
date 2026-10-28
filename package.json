@@ -33,7 +33,7 @@
     "verify": "node scripts/verify.mjs --all",
     "verify:backend": "node scripts/verify.mjs --backend",
     "verify:frontend": "node scripts/verify.mjs --frontend",
-    "test:api:coverage": "npm run test -w apps/api -- --coverage",
+    "test:api:coverage": "npm run test -w apps/api -- --coverage --coverageReporters=text-summary --coverageReporters=json-summary --coverageReporters=html",
     "local:up": "node scripts/local-runtime.mjs",
     "local:uat": "node scripts/local-runtime.mjs --browser-uat",
     "local:dev:up": "node scripts/local-runtime.mjs --persistent-dev",

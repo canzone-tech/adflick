@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { FinanceApprovalStatus, LedgerEntryType, PlaybackEventStatus, PlaybackEventType, RewardCalculationStatus, RewardDeviceType, ScreenStatus, UserRole } from '@prisma/client';
+import { FinanceApprovalStatus, LedgerEntryType, PlaybackEventStatus, PlaybackEventType, RewardCalculation, RewardCalculationStatus, RewardDeviceType, ScreenStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { UpsertRewardPolicyDto } from './dto/upsert-reward-policy.dto';
@@ -38,7 +38,7 @@ export class FinanceService {
     if (!policy || !policy.enabled) throw new ConflictException('Reward policy is missing or disabled. Configure and enable it before calculating eligibility.');
     if (start < policy.effectiveFrom) throw new BadRequestException('Reward period starts before the current policy effective date.');
     const screens = await this.prisma.screen.findMany({ where: { organizationId, status: { notIn: [ScreenStatus.RETIRED, ScreenStatus.SUSPENDED] } }, select: { id: true, name: true, ownerUserId: true, platform: true, devicePlatform: true, status: true, lastHeartbeatAt: true } });
-    const output: any[] = [];
+    const output: RewardCalculation[] = [];
     for (const screen of screens) {
       const platform = `${screen.platform} ${screen.devicePlatform ?? ''}`.toLowerCase();
       const isSmartphone = /(phone|mobile|smartphone|android handheld|ios)/.test(platform);

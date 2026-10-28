@@ -14,7 +14,7 @@ describe('reconciliation import observability', () => {
     const event = buildReconciliationOperationalEvent({
       event: 'reconciliation_import_failed', importId: 'imp-1', organizationId: 'org-1', durationMs: -5,
       failureCode: 'STATEMENT_INVALID',
-    } as any);
+    });
     expect(event.durationMs).toBe(0);
     expect(JSON.stringify(event)).not.toContain('rawPayload');
     expect(Object.keys(event).sort()).toEqual(['durationMs', 'event', 'failureCode', 'importId', 'organizationId'].sort());

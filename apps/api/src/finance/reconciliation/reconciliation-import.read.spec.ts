@@ -1,3 +1,4 @@
+import { PrismaReconciliationImportStore } from './prisma-reconciliation-import-store';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
@@ -18,7 +19,7 @@ describe('ReconciliationImportService read APIs', () => {
     reconciliationImport: { findFirst: jest.fn() },
     reconciliationImportRow: { findMany: jest.fn(), count: jest.fn() },
   };
-  const service = new ReconciliationImportService({ prisma } as any);
+  const service = new ReconciliationImportService({ prisma } as unknown as PrismaReconciliationImportStore);
 
   beforeEach(() => jest.clearAllMocks());
 

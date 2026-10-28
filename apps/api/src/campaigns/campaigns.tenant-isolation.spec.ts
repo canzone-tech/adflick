@@ -1,3 +1,4 @@
+import { PrismaService } from '../prisma/prisma.service';
 import { CampaignsService } from './campaigns.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 
@@ -16,8 +17,8 @@ describe('CampaignsService tenant isolation contract', () => {
 
   it('does not mutate a campaign that is not visible in the authenticated organization', async () => {
     prisma.campaign.findFirst.mockResolvedValue(null);
-    const service = new CampaignsService(prisma as any);
-    await expect(service.update(actor, 'campaign-org-b', { name: 'attempted change' } as any))
+    const service = new CampaignsService(prisma as unknown as PrismaService);
+    await expect(service.update(actor, 'campaign-org-b', { name: 'attempted change' } as Parameters<CampaignsService['update']>[2]))
       .rejects.toThrow('Campaign not found.');
     expect(prisma.campaign.findFirst).toHaveBeenCalledWith({
       where: { id: 'campaign-org-b', organizationId: 'org-a' },
@@ -26,7 +27,7 @@ describe('CampaignsService tenant isolation contract', () => {
   });
 
   it('does not read campaigns when organization context is absent', async () => {
-    const service = new CampaignsService(prisma as any);
+    const service = new CampaignsService(prisma as unknown as PrismaService);
     await expect(service.get({ ...actor, organizationId: null }, 'campaign-id'))
       .rejects.toThrow();
     expect(prisma.campaign.findFirst).not.toHaveBeenCalled();
