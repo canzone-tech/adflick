@@ -219,8 +219,8 @@ suite('SRS public verified-email account bootstrap — real MySQL + SMTP HTTP',(
     const priorMessages=messages.length;
     const attempt=await post('/public-signup/start',dto('expired')).expect(201);
     expect(messages).toHaveLength(priorMessages+1);
-    const code=messages[messages.length-1]!.match(/verification code is (\\d{6})/)?.[1];
-    expect(code).toMatch(/^\\d{6}$/);
+    const code=messages[messages.length-1]!.match(/verification code is ([0-9]{6})/)?.[1];
+    expect(code).toMatch(/^[0-9]{6}$/);
     await db.publicSignupIntent.update({
       where:{id:attempt.body.requestId},
       data:{expiresAt:new Date(Date.now()-1000)},

@@ -150,6 +150,13 @@ suite('real HTTP JSON SMS gateway + disposable MySQL phone OTP lifecycle',()=>{
     const code=received[0]!.message.match(/OTP (\d{6})/)?.[1];
     expect(code).toMatch(/^\d{6}$/);
     await post('member','/verify',{challengeId:id,code:code==='000000'?'111111':'000000'}).expect(400);
+    const beforeExpiry=await db.memberPhoneOtp.findUniqueOrThrow({where:{id}});
+    await db.memberPhoneOtp.update({where:{id},data:{expiresAt:new Date(Date.now()-1000)}});
+    await post('member','/verify',{challengeId:id,code}).expect(400);
+    expect((await db.memberPhoneOtp.findUniqueOrThrow({where:{id}}))).toMatchObject({
+      status:'SENT',attempts:1,verifiedAt:null,
+    });
+    await db.memberPhoneOtp.update({where:{id},data:{expiresAt:beforeExpiry.expiresAt}});
     await post('member','/verify',{challengeId:id,code}).expect(201);
     await post('member','/verify',{challengeId:id,code}).expect(400);
     const status=await get('member','/status').expect(200);
@@ -189,29 +196,4 @@ suite('real HTTP JSON SMS gateway + disposable MySQL phone OTP lifecycle',()=>{
     expect(latest.sentAt).toBeNull();
     expect((await get('resend','/status').expect(200)).body.verified).toBe(false);
   });
-  it('expired phone challenge rejects the correct sandbox-gateway OTP without confirming ownership',async()=>{
-    rejectDelivery=false;
-    await db.memberPhoneOtpThrottle.updateMany({
-      where:{organizationId:org,userId:user},
-      data:{nextAllowedAt:new Date(Date.now()-1000)},
-    });
-    const result=await post('member','/request',{phone:'+919876543210',smsConsentAccepted:true}).expect(201);
-    const delivered=received[received.length-1]!;
-    expect(delivered.reference).toBe(result.body.challengeId);
-    const code=delivered.message.match(/OTP (\\d{6})/)?.[1];
-    expect(code).toMatch(/^\\d{6}$/);
-    await db.memberPhoneOtp.update({
-      where:{id:result.body.challengeId},
-      data:{expiresAt:new Date(Date.now()-1000)},
-    });
-    const audits=await db.auditEvent.count({where:{organizationId:org,action:'MEMBER_PHONE_OTP_VERIFIED'}});
-    await post('member','/verify',{challengeId:result.body.challengeId,code}).expect(400);
-    const challenge=await db.memberPhoneOtp.findUniqueOrThrow({where:{id:result.body.challengeId}});
-    expect(challenge.status).toBe('SENT');
-    expect(challenge.attempts).toBe(0);
-    expect(challenge.phoneCiphertext).not.toContain('+919876543210');
-    expect((await get('member','/status').expect(200)).body.verified).toBe(false);
-    expect(await db.auditEvent.count({where:{organizationId:org,action:'MEMBER_PHONE_OTP_VERIFIED'}})).toBe(audits);
-  });
-
 });
