@@ -28,8 +28,15 @@ for (const route of ['/','/cms','/campaigns','/delivery','/scheduler','/fleet','
 for (const control of ['aria-current','aria-expanded','aria-controls','app-skip-link','app-menu-toggle','app-backdrop','handleDrawerKeyDown','Escape']) {
   if (!shell.includes(control)) throw new Error('Missing accessible shell control: '+control);
 }
-for (const test of ['Emulation.setDeviceMetricsOverride', 'app-topbar', 'app-sidebar', '320, 390, 768, 1280', "['/login','/join'].includes(path)"]) {
+for (const test of ['Emulation.setDeviceMetricsOverride', 'app-topbar', 'app-sidebar', "['/login','/join'].includes(path)"]) {
   if (!browser.includes(test)) throw new Error('Missing real-browser shell regression: '+test);
+}
+// Validate required handset, tablet and desktop widths semantically instead of
+// matching one exact array string (which rejects stronger viewport coverage).
+const viewportList = browser.match(/for\\s*\\(const width of \\[([\\d,\\s]+)\\]\\)/)?.[1];
+const viewports = new Set((viewportList ?? '').split(',').map(Number));
+for (const width of [320, 360, 390, 412, 768, 1280]) {
+  if (!viewports.has(width)) throw new Error('Missing real-browser shell regression width: '+width);
 }
 const pages = [
   'page.tsx','cms/page.tsx','campaigns/page.tsx','delivery/page.tsx','scheduler/page.tsx',
