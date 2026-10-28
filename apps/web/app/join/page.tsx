@@ -30,7 +30,7 @@ export default function JoinPage() {
   const [notice,setNotice]=useState('');
 
   async function lookup(e:FormEvent<HTMLFormElement>) {
-    e.preventDefault();setBusy(true);setError('');setNotice('');setTenant(null);setRequestId('');
+    e.preventDefault();if(busy)return;setBusy(true);setError('');setNotice('');setTenant(null);setRequestId('');setCode('');setExpiresAt('');setDone(false);setConsentAccepted(false);
     try {
       const slug=tenantSlug.trim().toLowerCase();
       const org=await apiRequest<Tenant>('/public-signup/organizations/'+encodeURIComponent(slug));
@@ -41,7 +41,7 @@ export default function JoinPage() {
 
   async function begin(e:FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if(!tenant)return;
+    if(busy||!tenant)return;
     if(password!==confirmPassword){setError('Passwords must match.');return;}
     setBusy(true);setError('');setNotice('');
     try {
@@ -60,7 +60,14 @@ export default function JoinPage() {
   }
 
   async function verify(e:FormEvent<HTMLFormElement>) {
-    e.preventDefault();setBusy(true);setError('');setNotice('');
+    e.preventDefault();
+    if(busy)return;
+    if(!requestId||!Number.isFinite(Date.parse(expiresAt))||Date.parse(expiresAt)<=Date.now()){
+      setError('Verification request expired. Start a new request with the current approved consent.');
+      setCode('');
+      return;
+    }
+    setBusy(true);setError('');setNotice('');
     try {
       const result=await apiRequest<Verified>('/public-signup/verify',{
         method:'POST',body:JSON.stringify({requestId,code}),
@@ -98,7 +105,7 @@ export default function JoinPage() {
           </label>
           <button disabled={busy||code.length!==6}>{busy?'Checking secure code…':'Verify email & create login account'}</button>
         </form>
-        <button className="join-secondary" disabled={busy} onClick={()=>{setRequestId('');setCode('');setError('');setNotice('');}}>Start a new request</button>
+        <button className="join-secondary" disabled={busy} onClick={()=>{setRequestId('');setExpiresAt('');setCode('');setError('');setNotice('');setTenant(null);setConsentAccepted(false);}}>Start a new request</button>
       </section>:tenant?<section className="join-card">
         <p className="join-step">Step 2 / 3</p><h2>Account details</h2>
         <p>Organization: <strong>{tenant.organizationName}</strong></p>
@@ -125,7 +132,7 @@ export default function JoinPage() {
           </section>
           <button disabled={busy||!consentAccepted}>{busy?'Sending secure email…':'Send verification email'}</button>
         </form>
-        <button className="join-secondary" onClick={()=>{setTenant(null);setConsentAccepted(false);}}>Change organization</button>
+        <button className="join-secondary" disabled={busy} onClick={()=>{setTenant(null);setConsentAccepted(false);setError('');setNotice('');}}>Change organization</button>
       </section>:<section className="join-card">
         <p className="join-step">Step 1 / 3</p><h2>Find an approved organization</h2>
         <p>Public signup is only available where organization registration, real SMTP and the current legal consent are explicitly enabled.</p>

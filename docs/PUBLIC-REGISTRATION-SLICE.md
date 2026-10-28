@@ -22,3 +22,9 @@ SMTP sender/domain, SPF/DKIM/DMARC, inbox deliverability, retention/privacy poli
 
 ## Acceptance evidence
 `apps/api/test/public-signup.mysql.e2e-spec.ts` runs against disposable local MySQL with actual loopback SMTP socket acceptance; it checks disabled default, tenant policy, legal hash, password hash, OTP wrong/replay, generic duplicate response, account/role/consent atomicity and server session login. Web CI covers new route and shared nav exemption. Exact-SHA CI, local verify, product/legal/provider UAT and production restore are separate gates.
+
+## Signup lifecycle and consent-drift UX hardening (2026-10-28)
+
+The public `/join` flow now clears stale organization/OTP/consent state on restart or lookup, blocks duplicate in-flight submits in its event handlers, and rejects a visibly expired verification request locally with a clear restart instruction. Backend expiration, HMAC OTP and MySQL replay checks remain authoritative—client time is only a convenience and never grants verification.
+
+The real SMTP/MySQL registration acceptance suite now creates a newly approved test-only consent version after an OTP was issued against the earlier approved version. Correct OTP verification must fail with 409 and leave the staged request unconsumed, no new user/member/consent, and no success audit; submitting the outdated consent for another signup must fail 400. Actual legal approval, provider acceptance, full membership activation and production remain pending.

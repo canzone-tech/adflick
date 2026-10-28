@@ -151,6 +151,7 @@ export default function MemberOperationsPage() {
     {loading&&<p role="status">Loading authorized membership records…</p>}
     {error&&<p className="communication-error" role="alert">{error} <Link href="/account">Account and MFA</Link></p>}
     {message&&<p className="communication-success" role="status">{message}</p>}
+    {!loading&&!identity&&<p role="status">Please <Link href="/login">sign in</Link> to view authorized membership records.</p>}
     {!loading&&identity&&!staff&&<p role="alert">Membership administration is restricted to authorized staff roles.</p>}
     {!loading&&staff&&<>
       <section className="member-admin-card" aria-labelledby="member-admin-overview-title">

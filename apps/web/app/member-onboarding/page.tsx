@@ -44,26 +44,34 @@ export default function MemberOnboardingPage() {
       try {
         setTree(await apiRequest<Tree>('/members/me/tree?depth=4'));
       } catch { setTree(null); }
-    }
+    } else setTree(null);
   }
+  const [reloadKey,setReloadKey]=useState(0);
   useEffect(()=>{
     let alive=true;
-    void Promise.all([
-      apiRequest<Identity>('/auth/me'),
-      apiRequest<Progress>('/member-enrollment/progress'),
-    ]).then(async ([user,loaded])=>{
-      if(!alive)return;
-      setIdentity(user);setProgress(loaded);
-      if(loaded.membership) {
-        try {
-          const subtree=await apiRequest<Tree>('/members/me/tree?depth=4');
-          if(alive)setTree(subtree);
-        }catch{if(alive)setTree(null);}
-      }
-    }).catch(e=>{if(alive)setError(errorMessage(e));})
-      .finally(()=>{if(alive)setLoading(false);});
+    setLoading(true);setError('');setProgress(null);setTree(null);setIdentity(null);
+    setSponsor(null);setParent(null);setPreflight(null);
+    void (async()=>{
+      try {
+        const user=await apiRequest<Identity>('/auth/me');
+        if(!alive)return;
+        setIdentity(user);
+        // Never load enrollment state for an unrelated role.
+        if(!user.roles.includes('MEMBER'))return;
+        const loaded=await apiRequest<Progress>('/member-enrollment/progress');
+        if(!alive)return;
+        setProgress(loaded);
+        if(loaded.membership) {
+          try {
+            const subtree=await apiRequest<Tree>('/members/me/tree?depth=4');
+            if(alive)setTree(subtree);
+          }catch{if(alive)setTree(null);}
+        }
+      }catch(e){if(alive)setError(errorMessage(e));}
+      finally{if(alive)setLoading(false);}
+    })();
     return()=>{alive=false;};
-  },[]);
+  },[reloadKey]);
 
   function invalidate(){setPreflight(null);setMessage('');}
   async function lookup(which:'sponsor'|'parent') {
@@ -119,7 +127,10 @@ export default function MemberOnboardingPage() {
     <h1>Member enrollment</h1>
     <p className="communication-intro">Real account, approved consent, verified email OTP and recipient-bound e-PIN are checked by the server. Final LEFT/RIGHT placement uses a MySQL transaction, not browser state.</p>
     {loading&&<p role="status">Loading authenticated membership and verification state…</p>}
-    {error&&<p role="alert" className="communication-error">{error}</p>}
+    {error&&<div role="alert" className="communication-error">
+      <p>{error}</p>
+      {!loading&&<button type="button" disabled={busy} onClick={()=>setReloadKey(key=>key+1)}>Retry membership checks</button>}
+    </div>}
     {message&&<p role="status" className="communication-success">{message}</p>}
     {!loading&&!identity&&<p role="status">Please <Link href="/login">sign in</Link> to continue.</p>}
     {!loading&&identity&&!permitted&&<p role="alert">This workflow is restricted to MEMBER accounts.</p>}

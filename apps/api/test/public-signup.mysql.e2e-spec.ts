@@ -236,4 +236,29 @@ suite('SRS public verified-email account bootstrap — real MySQL + SMTP HTTP',(
     expect(await db.auditEvent.count({where:{organizationId:orgId,action:'PUBLIC_SIGNUP_EMAIL_VERIFIED_ACCOUNT_CREATED'}})).toBe(before);
   });
 
+  it('refuses a correctly verified stale-consent signup without creating an account or consuming the request',async()=>{
+    const result=await post('/public-signup/start',dto('consent-drift')).expect(201);
+    const code=messages[messages.length-1]!.match(/verification code is ([0-9]{6})/)?.[1];
+    expect(code).toMatch(/^[0-9]{6}$/);
+    // A newly approved legal version takes precedence over the accepted one.
+    // The original staged account must not be materialized under stale consent.
+    const replacement=await db.memberConsentDocument.create({data:{
+      organizationId:orgId,version:'updated-'+randomBytes(5).toString('hex'),
+      documentText:'New isolated acceptance fixture; not production legal copy.',
+      documentSha256:createHash('sha256').update('New isolated acceptance fixture; not production legal copy.').digest('hex'),
+      status:'APPROVED',createdByUserId:adminId,approvedByUserId:adminId,
+      approvedAt:new Date(Date.now()+1000),
+    }});
+    const before=await db.auditEvent.count({where:{organizationId:orgId,action:'PUBLIC_SIGNUP_EMAIL_VERIFIED_ACCOUNT_CREATED'}});
+    await post('/public-signup/verify',{requestId:result.body.requestId,code}).expect(409);
+    const stillPending=await db.publicSignupIntent.findUniqueOrThrow({where:{id:result.body.requestId}});
+    expect(stillPending).toMatchObject({status:'SENT',attempts:0,consentDocumentId:documentId});
+    expect(await db.user.count({where:{organizationId:orgId,email:'consent-drift@example.test'}})).toBe(0);
+    expect(await db.accountConsentRecord.count({where:{organizationId:orgId}})).toBe(1);
+    expect(await db.memberProfile.count({where:{organizationId:orgId}})).toBe(0);
+    expect(await db.auditEvent.count({where:{organizationId:orgId,action:'PUBLIC_SIGNUP_EMAIL_VERIFIED_ACCOUNT_CREATED'}})).toBe(before);
+    await post('/public-signup/start',dto('another-request')).expect(400);
+    expect(replacement.id).not.toBe(documentId);
+  });
+
 });

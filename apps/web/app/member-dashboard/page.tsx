@@ -32,24 +32,34 @@ export default function MemberDashboardPage() {
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
+  const [reloadKey,setReloadKey]=useState(0);
   useEffect(()=>{
     let alive=true;
-    void Promise.all([
-      apiRequest<Identity>('/auth/me'),
-      apiRequest<Dashboard>('/members/me/dashboard'),
-    ]).then(async ([who,summary])=>{
-      if(!alive)return;
-      setIdentity(who);setDashboard(summary);
-      if(!who.roles.includes('MEMBER'))return;
-      const [refs,teamData]=await Promise.all([
-        apiRequest<ReferralPage>('/members/me/referrals?take='+PAGE_SIZE+'&skip=0'),
-        apiRequest<Team>('/members/me/team-summary?depth=3'),
-      ]);
-      if(alive){setReferrals(refs);setTeam(teamData);}
-    }).catch(e=>{if(alive)setError(errorMessage(e));})
-      .finally(()=>{if(alive)setLoading(false);});
+    setLoading(true);setError('');setDashboard(null);setReferrals(null);setTeam(null);
+    void (async()=>{
+      try {
+        // Check identity before requesting MEMBER-only data. Staff never calls
+        // the member report endpoints merely by navigating to this page.
+        const who=await apiRequest<Identity>('/auth/me');
+        if(!alive)return;
+        setIdentity(who);
+        if(!who.roles.includes('MEMBER'))return;
+        const summary=await apiRequest<Dashboard>('/members/me/dashboard');
+        if(!alive)return;
+        setDashboard(summary);
+        if(!summary.hasProfile)return;
+        const [refs,teamData]=await Promise.all([
+          apiRequest<ReferralPage>('/members/me/referrals?take='+PAGE_SIZE+'&skip=0'),
+          apiRequest<Team>('/members/me/team-summary?depth='+depth),
+        ]);
+        if(alive){setReferrals(refs);setTeam(teamData);}
+      }catch(e){if(alive)setError(errorMessage(e));}
+      finally{if(alive)setLoading(false);}
+    })();
     return()=>{alive=false;};
-  },[]);
+  // The refresh button always restarts a bounded, server-authenticated read.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[reloadKey]);
   async function changePage(next:number) {
     setBusy(true);setError('');
     try {
@@ -72,7 +82,10 @@ export default function MemberDashboardPage() {
     <h1>My member dashboard</h1>
     <p className="communication-intro">Authenticated, organization-scoped membership records. Direct sponsorship and binary placement are separate relationships. No earnings, pairing or payout entitlement is inferred.</p>
     {loading&&<p role="status">Loading your real MySQL membership records…</p>}
-    {error&&<p className="communication-error" role="alert">{error}</p>}
+    {error&&<div className="communication-error" role="alert">
+      <p>{error}</p>
+      {!loading&&<button type="button" disabled={busy} onClick={()=>setReloadKey(key=>key+1)}>Retry loading membership</button>}
+    </div>}
     {!loading&&!identity&&<p role="status">Please <Link href="/login">sign in</Link>.</p>}
     {!loading&&identity&&!eligible&&<p role="alert">This dashboard requires a MEMBER role.</p>}
     {!loading&&eligible&&dashboard&&!dashboard.hasProfile&&<section className="member-dashboard-panel">

@@ -57,3 +57,7 @@ These cases assert persisted state rather than merely checking HTTP response cod
 The current member QA unit adds correct-but-expired public signup, email OTP and phone OTP rejection with persisted MySQL no-write/no-verify assertions; deliberately cyclic rooted-genealogy read denial (HTTP 409) with isolated fixture cleanup; and real Chrome responsive checks of the three member routes at 320/390/768/1280px. Existing Prisma migrations, production auth/OTP/finance policies and source-level checks remain unchanged. A correct test-gateway OTP is **not** an approved live SMS provider.
 
 Unit-coverage percentages need not change because the acceptance slices primarily exercise HTTP/MySQL and browser UAT, which have separate gates. Exact SHA/run links must be recorded after CI completes; local verify remains user-confirmed only.
+
+## Five combined member/product hardening milestones
+
+One GitHub-first QA unit covers: (1) Member Dashboard role-first fetch; (2) Member Onboarding role-first fetch; (3) staff/member explicit retry and secure data clearing; (4) public Join expired-request and consent-drift guards; (5) real MySQL authenticated repeated reads plus Chrome guest/staff route isolation. `npm run verify` remains a single combined local gate after exact-SHA Backend CI, Frontend CI and Release Evidence PASS. No coverage thresholds, business rules, financial activation, mail/SMS integrations, production or migrations are altered.

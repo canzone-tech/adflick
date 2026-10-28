@@ -308,6 +308,26 @@ suite('SRS v1.0 non-financial member genealogy MySQL HTTP acceptance', () => {
     expect(restored.body.nodes.filter((node: { memberCode: string }) => node.memberCode === codes['root'])).toHaveLength(1);
   });
 
+  it('serves the same recorded authenticated member state after independent reload requests', async () => {
+    const getOwned=()=>get('/members/me/dashboard',tokens['root']!);
+    const first=await getOwned().expect(200);
+    const second=await getOwned().expect(200);
+    expect(second.body).toEqual(first.body);
+    expect(second.body).toMatchObject({
+      hasProfile:true,directReferrals:2,financialEligibilityEstablished:false,
+      directPlacement:{
+        LEFT:{memberCode:codes['left']},
+        RIGHT:{memberCode:codes['right']},
+      },
+    });
+    const referrals=await get('/members/me/referrals?take=100&skip=0',tokens['root']!).expect(200);
+    const afterReload=await get('/members/me/referrals?take=100&skip=0',tokens['root']!).expect(200);
+    expect(afterReload.body).toEqual(referrals.body);
+    const other=await get('/members/me/dashboard',tokens['foreign']!).expect(200);
+    expect(JSON.stringify(other.body)).not.toContain(codes['root']);
+    await get('/members/me/dashboard',tokens['adminA']!).expect(403);
+  });
+
   it('rejects cross-tenant sponsor, placement and member-user associations at FK layer', async () => {
     await expect(prisma.sponsorRelationship.create({
       data: { organizationId: tenantA, memberId: spareTwo, sponsorMemberId: foreign },

@@ -100,6 +100,15 @@ async function run() {
   if (!await evaluate("location.pathname==='/login' && Boolean(document.querySelector('input[type=email]:invalid'))")) throw new Error('Required login form validation not enforced.');
   const apiStatus = await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/auth/me') + ", {credentials:'omit'});return r.status;})()");
   if (apiStatus !== 401) throw new Error('Browser API unauthenticated request was not HTTP 401.');
+  // Public browser must never display authenticated member or staff records.
+  for (const path of ['/member-dashboard','/member-onboarding','/member-operations']) {
+    await navigate(path);
+    await until("document.querySelector('main')?.innerText.includes('Please sign in')",path+' guest access guidance');
+    const privateData=await evaluate("Boolean(document.querySelector('.member-dashboard-facts, .member-onboard-summary, .member-admin-overview'))");
+    if(privateData)throw new Error('Guest accessed private member content: '+path);
+  }
+  console.log('Chrome member portal guest isolation PASS');
+
 
   await navigate('/cms'); await click('.cms-tabs button:nth-child(3)'); await until("document.body.innerText.includes('Add preview assets in the Media Library tab first.')", 'empty playlist guidance');
   if (!await evaluate("document.querySelector('.playlist-grid .primary-button')?.disabled === true")) throw new Error('Empty playlist preview must be disabled.');
@@ -116,6 +125,19 @@ async function run() {
     if (browserStorage.access !== null || browserStorage.refresh !== null) throw new Error('Authentication tokens were written to browser local storage.');
     if (/adflick-(access|refresh)|__Host-adflick-(access|refresh)/i.test(browserStorage.cookie)) throw new Error('HttpOnly auth cookie was exposed to document.cookie.');
     const authenticated = await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/auth/me') + ", {credentials:'include'});return r.status;})()"); if (authenticated !== 200) throw new Error('Cookie-authenticated browser API request was not HTTP 200.');
+
+    // Authenticated ORGANIZATION_ADMIN is not a MEMBER: route UX must show
+    // explicit role denial without issuing a MEMBER-only data API request.
+    await navigate('/member-dashboard');
+    await until("document.querySelector('main')?.innerText.includes('This dashboard requires a MEMBER role.')", 'member dashboard role denial');
+    if(await evaluate("Boolean(document.querySelector('.member-dashboard-facts, .communication-error'))"))
+      throw new Error('Member dashboard leaked data or displayed spurious API errors to staff.');
+    await navigate('/member-onboarding');
+    await until("document.querySelector('main')?.innerText.includes('This workflow is restricted to MEMBER accounts.')", 'member onboarding role denial');
+    if(await evaluate("Boolean(document.querySelector('.member-onboard-summary, .communication-error'))"))
+      throw new Error('Member enrollment leaked data or displayed spurious API errors to staff.');
+    await navigate('/account');
+    await until("document.body.innerText.includes('ORGANIZATION_ADMIN')", 'account restored after role-safe navigation');
 
     const beforeEnrollment = await privilegedMutationStatus();
     if (beforeEnrollment !== 403) throw new Error('Privileged mutation did not fail closed before MFA enrollment; status=' + beforeEnrollment);

@@ -9,3 +9,10 @@
 5. **Full-stack QA and consistent design:** New `/member-dashboard` uses shared AppChrome and mobile 320/390/768/1280 shell checks, real loading/errors, no-profile state, referral Next/Previous and depth selector. Existing `/member-operations` displays server-only counters. Disposable MySQL HTTP suite checks missing roles, cross-tenant 404/empty, pagination limits, empty account, 1–4 depth and honest totals after concurrent placement collision. No fixtures in application runtime.
 
 **Pending approvals/limitations:** Current member-contact update, live SMS provider and handset tests, full Sponsor/Placement business decisions, member activation, real financial ledger/wallet, dry-run pairing policies, sensitive PII retention, real role-based browser visual UAT, VPS backup/restore, explicit production release sign-off. No changes to production or existing payout/commission rules.
+
+## Follow-up member UX security and retry hardening (2026-10-28)
+
+- Member Dashboard and Onboarding first fetch `/auth/me` and require MEMBER before any MEMBER-only API call. Other authenticated staff see a role-specific message, not a confusing 403 from an unnecessary member API request. Their data is never rendered on member pages.
+- Operations first checks authorized staff role before loading organization records and offers a login link for guests. All three pages have accessible explicit retry actions after request failures; reloading clears stale records and one-time PIN display on the staff page rather than showing cross-session data.
+- The real MySQL member HTTP suite repeats authenticated dashboard/referrals requests, compares persisted results, and confirms foreign-tenant absence and staff denial. This is HTTP reload persistence evidence, not application process-restart or production database recovery proof.
+- Browser Chrome UAT checks anonymous member/staff content remains hidden, tests authenticated ORGANIZATION_ADMIN role messages without member data, and keeps existing 320/390/768/1280 viewport checks. Production visual approval remains separate.
