@@ -31,3 +31,15 @@ The root coverage script keeps Jest statement/branch/function/line measurements 
 ## Strict lint regression gate
 
 Backend ESLint now uses `--max-warnings=0` in the existing workspace script, keeping `no-explicit-any` enabled. Jest and real MySQL checks remain required; the previously observed 75 warnings were traced to loose runtime types and isolated test doubles. Future unsafe casts must fail CI rather than silently accumulate.
+
+## Critical-path behavioral coverage expansion (28 October 2026)
+
+Additional Jest cases now exercise existing **operational** identity and finance boundaries without changing business behavior:
+
+- `auth.service.security.spec.ts`: uniform credential rejection, no session/audit on failure, refresh-token hashing, login metadata minimization, atomic refresh single-winner, revoked/expired sessions, bounded passwords and scoped logout.
+- `mfa.service.security.spec.ts`: privileged-only session step-up, MFA enrollment requirement, cross-user/revoked/expired session denial, step-up TTL, challenge rate limit, OTP attempt counter, concurrent consumed-challenge guard and replay rejection.
+- `finance.service.approval.spec.ts`: finance RBAC, tenant isolation, previously decided approval denial, transaction-scoped accrual audit ordering, reject-without-accrual and audit failure propagation. This tests the existing **screen-owner reward** approval flow, **not** SRS member binary commission or release approval.
+
+These new tests run in the existing `test:api:coverage` stage; they do not replace MySQL security/finance/member integration tests or real-browser UAT. Coverage ratios are **not** artificially reweighted/excluded and no thresholds are relaxed. Unit transaction fakes assert predicates/order and failure propagation; only actual MySQL integration proves transactional rollback.
+
+Before changing release or financial policy, independently review business-policy approval, actual provider UAT and recovery evidence. Do not use green tests to authorize payment, payout or deployment.
