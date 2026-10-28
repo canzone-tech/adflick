@@ -215,4 +215,25 @@ suite('SRS public verified-email account bootstrap — real MySQL + SMTP HTTP',(
     expect(await db.user.count({where:{email:'two@example.test'}})).toBe(0);
     expect(await db.memberProfile.count({where:{organizationId:orgId,userId:verifiedUserId}})).toBe(0);
   });
+  it('expired public email proof never creates credentials, member profile or consent records',async()=>{
+    const priorMessages=messages.length;
+    const attempt=await post('/public-signup/start',dto('expired')).expect(201);
+    expect(messages).toHaveLength(priorMessages+1);
+    const code=messages[messages.length-1]!.match(/verification code is (\\d{6})/)?.[1];
+    expect(code).toMatch(/^\\d{6}$/);
+    await db.publicSignupIntent.update({
+      where:{id:attempt.body.requestId},
+      data:{expiresAt:new Date(Date.now()-1000)},
+    });
+    const before=await db.auditEvent.count({where:{organizationId:orgId,action:'PUBLIC_SIGNUP_EMAIL_VERIFIED_ACCOUNT_CREATED'}});
+    await post('/public-signup/verify',{requestId:attempt.body.requestId,code}).expect(400);
+    const persisted=await db.publicSignupIntent.findUniqueOrThrow({where:{id:attempt.body.requestId}});
+    expect(persisted.status).toBe('SENT');
+    expect(persisted.attempts).toBe(0);
+    expect(await db.user.count({where:{organizationId:orgId,email:'expired@example.test'}})).toBe(0);
+    expect(await db.memberProfile.count({where:{organizationId:orgId}})).toBe(0);
+    expect(await db.accountConsentRecord.count({where:{organizationId:orgId}})).toBe(1);
+    expect(await db.auditEvent.count({where:{organizationId:orgId,action:'PUBLIC_SIGNUP_EMAIL_VERIFIED_ACCOUNT_CREATED'}})).toBe(before);
+  });
+
 });

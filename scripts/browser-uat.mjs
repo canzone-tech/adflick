@@ -62,6 +62,24 @@ async function run() {
       throw new Error('Viewport overflow in shared shell at '+width+'px: '+JSON.stringify(metrics));
     }
     if (metrics.menuVisible !== (width <= 860)) throw new Error('Wrong mobile menu breakpoint at '+width+'px.');
+
+    // SRS member/member-operations routes must be readable at the actual viewport,
+    // not just hidden behind a responsive shared sidebar.
+    for (const [path, title] of [
+      ['/member-dashboard', 'My member dashboard'],
+      ['/member-onboarding', 'Member enrollment'],
+      ['/member-operations', 'Member enrollment operations'],
+    ]) {
+      await navigate(path);
+      const memberMetrics = await evaluate("(() => ({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,heading:document.querySelector('main h1')?.textContent?.trim(),mainWidth:document.querySelector('main')?.getBoundingClientRect().width,errors:document.querySelectorAll('nextjs-portal [data-nextjs-dialog]').length}))()");
+      if (memberMetrics.width !== width || memberMetrics.scrollWidth > width + 2 ||
+          !memberMetrics.mainWidth || memberMetrics.mainWidth > width + 2 ||
+          memberMetrics.heading !== title || memberMetrics.errors !== 0) {
+        throw new Error('Member workflow responsive regression at '+width+'px '+path+': '+JSON.stringify(memberMetrics));
+      }
+      if (width === 390) await screenshot('member-' + path.slice(1) + '-mobile-390');
+    }
+    await navigate('/');
     if (width === 320) {
       await click('[data-testid=app-menu-toggle]');
       await until("document.querySelector('[data-testid=app-menu-toggle]')?.getAttribute('aria-expanded')==='true' && getComputedStyle(document.querySelector('[data-testid=app-sidebar]')).visibility==='visible'", 'mobile drawer opened');

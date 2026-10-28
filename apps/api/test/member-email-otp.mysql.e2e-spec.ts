@@ -219,4 +219,26 @@ suite('SRS email OTP: SMTP acceptance + MySQL verification lifecycle', () => {
     expect(latest.status).toBe('FAILED');
     expect(latest.sentAt).toBeNull();
   });
+  it('expired email challenge cannot be verified even with the correct SMTP-delivered code',async()=>{
+    await db.memberEmailOtpThrottle.updateMany({
+      where:{organizationId:org,userId:memberId},
+      data:{nextAllowedAt:new Date(Date.now()-1000)},
+    });
+    process.env.ADFLICK_SMTP_PORT=String((server.address() as AddressInfo).port);
+    const sent=await api('member').post('/request').expect(201);
+    const code=messages[messages.length-1]!.match(/verification code is (\\d{6})/)?.[1];
+    expect(code).toMatch(/^\\d{6}$/);
+    await db.memberEmailOtp.update({
+      where:{id:sent.body.challengeId},
+      data:{expiresAt:new Date(Date.now()-1000)},
+    });
+    const audits=await db.auditEvent.count({where:{organizationId:org,action:'MEMBER_EMAIL_OTP_VERIFIED'}});
+    await api('member').post('/verify',{challengeId:sent.body.challengeId,code}).expect(400);
+    const challenge=await db.memberEmailOtp.findUniqueOrThrow({where:{id:sent.body.challengeId}});
+    expect(challenge.status).toBe('SENT');
+    expect(challenge.attempts).toBe(0);
+    expect((await api('member').get('/status').expect(200)).body.verified).toBe(false);
+    expect(await db.auditEvent.count({where:{organizationId:org,action:'MEMBER_EMAIL_OTP_VERIFIED'}})).toBe(audits);
+  });
+
 });

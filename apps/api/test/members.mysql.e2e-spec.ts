@@ -288,6 +288,26 @@ suite('SRS v1.0 non-financial member genealogy MySQL HTTP acceptance', () => {
     expect(directReferrals.body.total).toBe(2);
   });
 
+
+  it('rejects a cyclic rooted genealogy read without returning a corrupt member tree', async () => {
+    // An intentionally cyclic disposable fixture tests the server traversal guard.
+    // It is deleted in finally; no production mutation path is introduced.
+    const cyclic = await prisma.placementNode.create({
+      data: { organizationId: tenantA, memberId: root, parentMemberId: left, side: BinarySide.RIGHT },
+    });
+    try {
+      const own = await get('/members/me/tree?depth=4', tokens['root']!).expect(409);
+      expect(JSON.stringify(own.body)).not.toContain(codes['foreign']);
+      await get('/members/' + codes['root'] + '/tree?depth=4', tokens['adminA']!).expect(409);
+      await get('/members/me/team-summary?depth=4', tokens['root']!).expect(409);
+    } finally {
+      await prisma.placementNode.delete({ where: { id: cyclic.id } });
+    }
+    const restored = await get('/members/me/tree?depth=2', tokens['root']!).expect(200);
+    expect(restored.body.nodes.some((node: { memberCode: string }) => node.memberCode === codes['root'])).toBe(true);
+    expect(restored.body.nodes.filter((node: { memberCode: string }) => node.memberCode === codes['root'])).toHaveLength(1);
+  });
+
   it('rejects cross-tenant sponsor, placement and member-user associations at FK layer', async () => {
     await expect(prisma.sponsorRelationship.create({
       data: { organizationId: tenantA, memberId: spareTwo, sponsorMemberId: foreign },

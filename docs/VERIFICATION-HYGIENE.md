@@ -51,3 +51,9 @@ The existing disposable-MySQL acceptance suites are extended in place, rather th
 `apps/api/test/finance-transaction.mysql.e2e-spec.ts` additionally tests the existing PayoutsService against real MySQL for cross-tenant reconciliation denial, reopening refusal after transition and unchanged stored audit/batch state. This remains **screen-owner finance**, not SRS member commissions; no provider, compensation, payout, or activation policies are enabled. Tests remain gated by `RUN_MYSQL_MEMBERS_E2E` / `RUN_MYSQL_FINANCE_E2E` on isolated non-production MySQL and are exercised by the root verification/CI gates.
 
 These cases assert persisted state rather than merely checking HTTP response codes. They do not claim exhaustive security coverage, real SMS-provider UAT, commercial approval, or production recovery.
+
+## Five SRS-aligned trust and UI regressions
+
+The current member QA unit adds correct-but-expired public signup, email OTP and phone OTP rejection with persisted MySQL no-write/no-verify assertions; deliberately cyclic rooted-genealogy read denial (HTTP 409) with isolated fixture cleanup; and real Chrome responsive checks of the three member routes at 320/390/768/1280px. Existing Prisma migrations, production auth/OTP/finance policies and source-level checks remain unchanged. A correct test-gateway OTP is **not** an approved live SMS provider.
+
+Unit-coverage percentages need not change because the acceptance slices primarily exercise HTTP/MySQL and browser UAT, which have separate gates. Exact SHA/run links must be recorded after CI completes; local verify remains user-confirmed only.

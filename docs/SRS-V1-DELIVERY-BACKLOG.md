@@ -58,3 +58,15 @@
 ## Folder structure guidance
 
 Retain tested workspaces `apps/api`, `apps/web`, `packages/shared`, `prisma`, `scripts`, `docs`. Within NestJS add vertical `members/`, `genealogy/`, `epins/`, `packages/`, `plans/`, `commissions/` when their requirements are accepted. Keep `finance/` and `payouts/` scoped explicitly; preserve device-reward lineage. Do not mass-move modules, rename APIs, delete historical manifests/migrations or split a new app until verified demand and migration tests.
+
+## Five-domain QA milestones — member trust and responsive contracts (2026-10-28)
+
+The next quality slice reuses existing MySQL/HTTP suites and the actual Chrome browser runner; **no new numbered batch scripts** are introduced.
+
+1. **Public signup verification expiry**: an expired correct SMTP OTP must not create a User, MemberProfile, extra consent or successful account audit (SRS AT-19 partial).
+2. **Email OTP expiry**: a correct but expired email challenge cannot be VERIFIED or logged as verified, even after SMTP delivery (member enrollment prerequisite).
+3. **Phone OTP expiry/privacy**: an accepted test HTTP gateway message cannot verify an expired phone proof; persisted ciphertext must not expose plaintext number (real provider remains OFF/unapproved).
+4. **Genealogy cycle containment**: a deliberately cyclic disposable DB fixture must fail owned/staff tree and team-summary reads with 409 and be cleaned; the original tree must remain readable (SRS AT-04/05 structural protection, no cycle write endpoint).
+5. **Member UI browser viewport**: Chrome checks the real member dashboard, onboarding and operations routes at 320/390/768/1280px for correct headings, no horizontal overflow/error overlays, retaining screenshots at 390px (SRS AT-07/17 partial).
+
+Each gate remains inside root `npm run verify` and exact-SHA Backend/Frontend CI. Tests do not approve commercial rules, activation, live SMS, KYC, payouts, legal copy or production.
