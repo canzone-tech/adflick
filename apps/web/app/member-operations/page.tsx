@@ -322,7 +322,7 @@ export default function MemberOperationsPage() {
           <span aria-live="polite">Showing {pinSkip+1}–{pinSkip+pins.length} of {pinTotal} PIN records</span>
           <button type="button" disabled={busy||pinSkip+pins.length>=pinTotal}
             onClick={()=>void loadPinPage(pinSkip+PIN_PAGE_SIZE)}>Next PINs</button>
-        </nav>
+        </nav>}
       </section>
       <p className="member-admin-hint">Financial compensation, paid joining, PIN transfer, live SMS provider certification and production activation remain blocked. <Link href="/communications">OTP configuration</Link> · <Link href="/account">MFA security</Link>.</p>
     </>}
