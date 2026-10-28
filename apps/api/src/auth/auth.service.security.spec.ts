@@ -36,7 +36,7 @@ describe('AuthService security and session rotation', () => {
 
   beforeAll(async () => {
     passwordHash = await argon2.hash(password, {
-      type: argon2.argon2id, memoryCost: 4096, timeCost: 1, parallelism: 1,
+      type: argon2.argon2id, memoryCost: 4096, timeCost: 2, parallelism: 1,
     });
   });
 
