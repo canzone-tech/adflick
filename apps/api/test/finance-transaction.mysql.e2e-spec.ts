@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { PayoutBatchStatus, UserStatus } from '@prisma/client';
+import { PayoutBatchStatus, UserRole, UserStatus } from '@prisma/client';
+import { PayoutsService } from '../src/payouts/payouts.service';
+import type { AuthenticatedUser } from '../src/auth/decorators/current-user.decorator';
 
 const enabled = process.env.RUN_MYSQL_FINANCE_E2E === '1';
 const suite = enabled ? describe : describe.skip;
@@ -121,6 +123,34 @@ suite('MySQL finance transaction atomicity (disposable MySQL 8.4 database only)'
       where: { organizationId, entityId: batchId, action: { in: ['BATCH_37_CONCURRENT_WINNER_A', 'BATCH_37_CONCURRENT_WINNER_B'] } },
     });
     expect(auditCount).toBe(1);
+  });
+
+  it('denies cross-tenant reconciliation and reopening after a committed state transition', async () => {
+    const payouts = new PayoutsService(prisma);
+    const maker: AuthenticatedUser = {
+      sub: actorUserId, email: 'finance-integrity@example.test', organizationId,
+      roles: [UserRole.FINANCE_MANAGER], sessionId: 'isolated-finance-test-session',
+    };
+    const priorAuditCount = await prisma.auditEvent.count({ where: { organizationId, entityId: batchId } });
+
+    // Uses the real service against the real isolated MySQL record, not a Prisma mock.
+    await expect(payouts.reconcile({
+      ...maker, organizationId: 'unrelated-tenant-' + suffix,
+    }, batchId, { items: [] })).rejects.toThrow('Payout batch not found.');
+
+    await expect(payouts.requestApproval(maker, batchId))
+      .rejects.toThrow('Only a non-empty draft batch can request approval.');
+
+    // A stale writer must not reopen the previously transitioned batch.
+    const stale = await prisma.payoutBatch.updateMany({
+      where: { id: batchId, organizationId, status: PayoutBatchStatus.SUBMITTED_TO_PROVIDER },
+      data: { status: PayoutBatchStatus.RECONCILIATION_REQUIRED },
+    });
+    expect(stale.count).toBe(0);
+    expect((await prisma.payoutBatch.findUniqueOrThrow({ where: { id: batchId } })).status)
+      .toBe(PayoutBatchStatus.PARTIALLY_RECONCILED);
+    expect(await prisma.auditEvent.count({ where: { organizationId, entityId: batchId } }))
+      .toBe(priorAuditCount);
   });
 
 });

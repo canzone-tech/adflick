@@ -213,6 +213,17 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     expect(await prisma.memberProfile.count({where:{organizationId:org,userId:account['alpha']!}})).toBe(0);
   });
 
+  it('rejects a valid recipient PIN presented by a different authenticated MEMBER without consuming either proof', async () => {
+    const attempt = enrollment('gamma', { pin: issued['alpha']!.pin });
+    await http('gamma').post('/member-enrollment/preflight', attempt).expect(409);
+    await http('gamma').post('/member-enrollment/enroll', attempt).expect(409);
+    const original = await prisma.enrollmentPin.findUniqueOrThrow({ where: { id: issued['alpha']!.id } });
+    expect(original.status).toBe('ISSUED');
+    expect(original.recipientUserId).toBe(account['alpha']);
+    expect(await prisma.memberProfile.count({ where: { organizationId: org, userId: account['gamma']! } })).toBe(0);
+    expect(await prisma.memberEmailOtp.count({ where: { organizationId: org, userId: account['gamma']!, status: 'VERIFIED' } })).toBe(1);
+    expect(await prisma.memberPhoneOtp.count({ where: { organizationId: org, userId: account['gamma']!, status: 'VERIFIED' } })).toBe(1);
+  });
   it('scopes sponsor eligibility and staff recipient lookup to real tenant members', async () => {
     await request(app.getHttpServer()).get('/api/v1/member-enrollment/progress').expect(401);
     await http('maker').get('/member-enrollment/progress').expect(403);
@@ -263,6 +274,39 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     })).status).toBe('ISSUED');
   });
 
+  it('requires unconsumed email and phone OTP separately and leaves PIN/member data intact on failure', async () => {
+    const userId = account['alpha']!;
+    const email = await prisma.memberEmailOtp.findFirstOrThrow({
+      where: { organizationId: org, userId, status: 'VERIFIED' }, select: { id: true },
+    });
+    const phone = await prisma.memberPhoneOtp.findFirstOrThrow({
+      where: { organizationId: org, userId, status: 'VERIFIED' }, select: { id: true },
+    });
+
+    try {
+      await prisma.memberEmailOtp.update({ where: { id: email.id }, data: { status: 'CONSUMED', consumedAt: new Date() } });
+      await http('alpha').post('/member-enrollment/preflight', enrollment('alpha')).expect(409);
+      await http('alpha').post('/member-enrollment/enroll', enrollment('alpha')).expect(409);
+      expect((await prisma.memberPhoneOtp.findUniqueOrThrow({ where: { id: phone.id } })).status).toBe('VERIFIED');
+    } finally {
+      await prisma.memberEmailOtp.update({ where: { id: email.id }, data: { status: 'VERIFIED', consumedAt: null } });
+    }
+
+    try {
+      await prisma.memberPhoneOtp.update({ where: { id: phone.id }, data: { status: 'CONSUMED', consumedAt: new Date() } });
+      await http('alpha').post('/member-enrollment/preflight', enrollment('alpha')).expect(409);
+      await http('alpha').post('/member-enrollment/enroll', enrollment('alpha')).expect(409);
+      expect((await prisma.memberEmailOtp.findUniqueOrThrow({ where: { id: email.id } })).status).toBe('VERIFIED');
+    } finally {
+      await prisma.memberPhoneOtp.update({ where: { id: phone.id }, data: { status: 'VERIFIED', consumedAt: null } });
+    }
+
+    expect((await prisma.enrollmentPin.findUniqueOrThrow({ where: { id: issued['alpha']!.id } })).status).toBe('ISSUED');
+    expect(await prisma.memberProfile.count({ where: { organizationId: org, userId } })).toBe(0);
+    expect(await prisma.memberConsentRecord.count({ where: { organizationId: org } })).toBe(0);
+    expect(await prisma.placementNode.count({ where: { organizationId: org } })).toBe(0);
+    expect(await prisma.auditEvent.count({ where: { organizationId: org, action: 'MEMBER_EPIN_ENROLLMENT_PENDING' } })).toBe(0);
+  });
   it('enrolls an authenticated existing member atomically as PENDING_ACTIVATION, never pays', async () => {
     const res = await http('alpha').post('/member-enrollment/enroll', enrollment('alpha')).expect(201);
     expect(res.body.status).toBe('PENDING_ACTIVATION');
@@ -294,6 +338,10 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     const mine = await http('alpha').get('/members/me').expect(200);
     expect(mine.body.status).toBe('PENDING_ACTIVATION');
     expect(await prisma.auditEvent.count({where:{organizationId:org,action:'MEMBER_EPIN_ENROLLMENT_PENDING',entityId:member.id}})).toBe(1);
+    // A pending registration is not an authoritative finance event.
+    expect(await prisma.rewardCalculation.count({ where: { organizationId: org } })).toBe(0);
+    expect(await prisma.rewardLedgerEntry.count({ where: { organizationId: org } })).toBe(0);
+    expect(await prisma.payoutBatch.count({ where: { organizationId: org } })).toBe(0);
   });
 
   it('concurrent same-side enrollment commits at most one; losing PIN remains available', async () => {
@@ -307,6 +355,33 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     const states=await Promise.all(['beta','gamma'].map(n=>prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued[n]!.id},select:{status:true}})));
     expect(states.map(x=>x.status).sort()).toEqual(['ISSUED','REDEEMED']);
     expect(await prisma.memberProfile.count({where:{organizationId:org,userId:{in:[account['beta']!,account['gamma']!]}}})).toBe(1);
+
+    const winner = states[0]!.status === 'REDEEMED' ? 'beta' : 'gamma';
+    const loser = winner === 'beta' ? 'gamma' : 'beta';
+    const winnerProfile = await prisma.memberProfile.findFirstOrThrow({
+      where: { organizationId: org, userId: account[winner]! },
+      include: { placement: true, sponsorship: true, enrollmentConsent: true },
+    });
+    expect(winnerProfile.status).toBe('PENDING_ACTIVATION');
+    expect(winnerProfile.placement).toMatchObject({ parentMemberId: rootId, side: 'RIGHT' });
+    expect(winnerProfile.sponsorship?.sponsorMemberId).toBe(rootId);
+    expect(winnerProfile.enrollmentConsent?.documentId).toBe(consentId);
+    expect(await prisma.verifiedMemberPhone.count({ where: { organizationId: org, userId: account[winner]! } })).toBe(1);
+    expect(await prisma.memberEmailOtp.count({ where: { organizationId: org, userId: account[winner]!, status: 'CONSUMED' } })).toBe(1);
+    expect(await prisma.memberPhoneOtp.count({ where: { organizationId: org, userId: account[winner]!, status: 'CONSUMED' } })).toBe(1);
+    expect(await prisma.auditEvent.count({ where: {
+      organizationId: org, action: 'MEMBER_EPIN_ENROLLMENT_PENDING', entityId: winnerProfile.id,
+    } })).toBe(1);
+
+    // The failed contender must retain BOTH verified proofs and its issued PIN;
+    // no consent, phone binding, placement or successful enrollment audit can leak.
+    expect(await prisma.memberEmailOtp.count({ where: { organizationId: org, userId: account[loser]!, status: 'VERIFIED' } })).toBe(1);
+    expect(await prisma.memberPhoneOtp.count({ where: { organizationId: org, userId: account[loser]!, status: 'VERIFIED' } })).toBe(1);
+    expect(await prisma.verifiedMemberPhone.count({ where: { organizationId: org, userId: account[loser]! } })).toBe(0);
+    expect(await prisma.memberProfile.count({ where: { organizationId: org, userId: account[loser]! } })).toBe(0);
+    expect(await prisma.memberConsentRecord.count({ where: { organizationId: org } })).toBe(2);
+    expect(await prisma.auditEvent.count({ where: { organizationId: org, action: 'MEMBER_EPIN_ENROLLMENT_PENDING' } })).toBe(2);
+    await http(loser).post('/member-enrollment/preflight', enrollment(loser, { side: 'RIGHT' })).expect(409);
   });
 
   it('revocation prevents consumption and leaves no member/consent records', async () => {

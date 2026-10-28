@@ -43,3 +43,11 @@ Additional Jest cases now exercise existing **operational** identity and finance
 These new tests run in the existing `test:api:coverage` stage; they do not replace MySQL security/finance/member integration tests or real-browser UAT. Coverage ratios are **not** artificially reweighted/excluded and no thresholds are relaxed. Unit transaction fakes assert predicates/order and failure propagation; only actual MySQL integration proves transactional rollback.
 
 Before changing release or financial policy, independently review business-policy approval, actual provider UAT and recovery evidence. Do not use green tests to authorize payment, payout or deployment.
+
+## MySQL enrollment and finance integrity regression expansion
+
+The existing disposable-MySQL acceptance suites are extended in place, rather than introducing client-archive-specific test batches. `apps/api/test/enrollment.mysql.e2e-spec.ts` now verifies: recipient-bound PIN denial across authenticated members; independent email/phone OTP consumption guards; no PIN/profile/placement/consent/audit writes on missing proof; and the actual losing concurrent RIGHT-side request leaves both verified challenges, unused PIN and no member/phone binding or enrollment audit. Successful pending enrollment also verifies that no finance calculation, ledger or payout batch was generated.
+
+`apps/api/test/finance-transaction.mysql.e2e-spec.ts` additionally tests the existing PayoutsService against real MySQL for cross-tenant reconciliation denial, reopening refusal after transition and unchanged stored audit/batch state. This remains **screen-owner finance**, not SRS member commissions; no provider, compensation, payout, or activation policies are enabled. Tests remain gated by `RUN_MYSQL_MEMBERS_E2E` / `RUN_MYSQL_FINANCE_E2E` on isolated non-production MySQL and are exercised by the root verification/CI gates.
+
+These cases assert persisted state rather than merely checking HTTP response codes. They do not claim exhaustive security coverage, real SMS-provider UAT, commercial approval, or production recovery.
