@@ -101,8 +101,12 @@ describe('FinanceService approval accounting boundary', () => {
         action: 'REWARD_APPROVAL_APPROVED', organizationId: 'org-a', actorUserId: actor.sub,
       }),
     });
-    expect(tx.rewardLedgerEntry.create.mock.invocationCallOrder[0])
-      .toBeLessThan(tx.auditEvent.create.mock.invocationCallOrder[0]);
+    const ledgerCall = tx.rewardLedgerEntry.create.mock.invocationCallOrder[0];
+    const auditCall = tx.auditEvent.create.mock.invocationCallOrder[0];
+    if (ledgerCall === undefined || auditCall === undefined) {
+      throw new Error('Expected both accrual and audit writes in the transaction.');
+    }
+    expect(ledgerCall).toBeLessThan(auditCall);
   });
 
   it('does not accrue or mark approved when finance rejects a pending request', async () => {
