@@ -33,8 +33,8 @@ for (const test of ['Emulation.setDeviceMetricsOverride', 'app-topbar', 'app-sid
 }
 // Validate required handset, tablet and desktop widths semantically instead of
 // matching one exact array string (which rejects stronger viewport coverage).
-const viewportList = browser.match(/for\\s*\\(const width of \\[([\\d,\\s]+)\\]\\)/)?.[1];
-const viewports = new Set((viewportList ?? '').split(',').map(Number));
+const viewportLine = browser.split('\\n').find(line => line.includes('for (const width of ['));
+const viewports = new Set((viewportLine?.split('[')[1]?.split(']')[0] ?? '').split(',').map(Number));
 for (const width of [320, 360, 390, 412, 768, 1280]) {
   if (!viewports.has(width)) throw new Error('Missing real-browser shell regression width: '+width);
 }
