@@ -27,3 +27,7 @@ NestJS `AlertNotifierService` logged HTTPS/host rejection and a simulated 503 du
 ## Local report readability
 
 The root coverage script keeps Jest statement/branch/function/line measurements unchanged, writes detailed HTML and JSON-summary reports under `apps/api/coverage/`, and prints only the terminal text summary to avoid thousands of red per-file rows. Red percentages mean uncovered lines, not failed tests. Coverage thresholds have not been reduced and nothing is excluded from instrumentation. Alert webhook negative-path tests assert their expected Nest logger messages using a test-local spy; production HTTPS and host allowlist enforcement remains unchanged.
+
+## Strict lint regression gate
+
+Backend ESLint now uses `--max-warnings=0` in the existing workspace script, keeping `no-explicit-any` enabled. Jest and real MySQL checks remain required; the previously observed 75 warnings were traced to loose runtime types and isolated test doubles. Future unsafe casts must fail CI rather than silently accumulate.

@@ -131,7 +131,7 @@ export class ReconciliationImportService {
             processingLeaseUntil: null,
             rowCount: rows.length,
             matchedCount: outcomes.filter((item) => item.outcome === 'MATCH').length,
-            discrepancyCount: outcomes.filter((item: any) => item.outcome !== 'MATCH').length,
+            discrepancyCount: outcomes.filter((item) => item.outcome !== 'MATCH').length,
             completedAt: new Date(),
           },
         });
@@ -141,8 +141,8 @@ export class ReconciliationImportService {
         outcome: 'PROCESSED',
         importId,
         rowCount: rows.length,
-        matchedCount: outcomes.filter((item: any) => item.outcome === 'MATCH').length,
-        discrepancyCount: outcomes.filter((item: any) => item.outcome !== 'MATCH').length,
+        matchedCount: outcomes.filter((item) => item.outcome === 'MATCH').length,
+        discrepancyCount: outcomes.filter((item) => item.outcome !== 'MATCH').length,
       };
     } catch (error) {
       await this.store.prisma.reconciliationImport.updateMany({
