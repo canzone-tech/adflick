@@ -16,7 +16,7 @@ test('all source contracts are unique, semantic and executed', () => {
   });
   assert.equal(count, expected.length);
   assert.equal(new Set(expected).size, expected.length);
-  assert.ok(expected.every(path => /^scripts\/contracts\/[a-z-]+\.mjs$/.test(path)));
+  assert.ok(expected.every(path => /^scripts\/contracts\/[a-z0-9-]+\.mjs$/.test(path)));
   assert.deepEqual(calls.map(call => call.path), expected.map(path => '/isolated/' + path));
   assert.ok(calls.every(call => call.options.shell === false && call.options.timeout > 0));
 });

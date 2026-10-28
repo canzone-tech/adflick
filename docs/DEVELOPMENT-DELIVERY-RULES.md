@@ -2,7 +2,8 @@
 
 - Approved branch: `dev/local-foundation`. Source recovery baseline: `development` at `799d689`. Default `main` is not the working branch.
 - Import batches only after isolate, SHA-256 inventory, code review, dependency/migration diff, and regression coverage.
-- Source verification: `npm run check:source` runs schema/manifest checks, domain-named regression contracts and the shared UI shell; any missing or failing contract blocks verification. Historical recovery batch IDs remain audit metadata, not delivery units. Do not confuse static source checks with executed unit/MySQL tests.\n- Development gates: `npm run verify` (clean install, source checks, environment, Prisma, migrations to disposable local MySQL, lint/typecheck, unit, integration, production builds, compiled startup, HTTP smoke).
+- Source verification: `npm run check:source` runs schema/manifest checks, domain-named regression contracts and the shared UI shell; any missing or failing contract blocks verification. Historical recovery batch IDs remain audit metadata, not delivery units. Do not confuse static source checks with executed unit/MySQL tests.
+- Development gates: `npm run verify` (clean install, source checks, environment, Prisma, migrations to disposable local MySQL, lint/typecheck, unit, integration, production builds, compiled startup, HTTP smoke).
 - CI: separate Backend CI, Frontend CI, exact-SHA Release Evidence. Keep CI/local parity. CI failures are blockers, not passed exceptions.
 - Never replay or edit an applied migration; confirm external usage before resolving historical checksum conflicts.
 - Finance: MySQL authoritative, approved versioned policy only, maker-checker, ledger + reconciliation, no live payouts without explicit independent approval.
