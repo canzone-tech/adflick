@@ -18,14 +18,14 @@ packages/
 prisma/
   schema.prisma      Canonical MySQL schema; migration history is append-only
   migrations/        Immutable historical SQL migrations
-scripts/             Root verification, release and operations tooling
+scripts/             Root verification, release and operations tooling\n  contracts/        Domain-named source regression contracts (non-runtime)
 docs/                Architecture, policy, UAT, history and recovery decisions
 .github/workflows/   Backend CI, Frontend CI, Release Evidence, diagnostics
 ```
 
 ## Cleanup rules
 
-- Legacy batch-wise manifests, Markdown plans and acceptance CSVs were consolidated into `docs/BATCH-HISTORY.md` on 27 October 2026. All 163 original file paths/blob hashes remain indexed there, plus the historical milestone CSV is recoverable from the preceding Git commit. Do not recreate individual batch documents. Keep current tests and release evidence intact.
+- Historical source batches are provenance labels only, not the unit of application development or test execution. Domain-named contracts in `scripts/contracts/` run via one fail-closed runner; do not restore numbered scripts or delete behavioral coverage.\n- Legacy batch-wise manifests, Markdown plans and acceptance CSVs were consolidated into `docs/BATCH-HISTORY.md` on 27 October 2026. All 163 original file paths/blob hashes remain indexed there, plus the historical milestone CSV is recoverable from the preceding Git commit. Do not recreate individual batch documents. Keep current tests and release evidence intact.
 - Keep `package-lock.json`, all Prisma migrations, `AGENTS.md`, `.env.example`, existing release scripts, source checks and audit docs. Do not combine migration history or rewrite applied SQL.
 - Generated `node_modules/`, `.next/`, `dist/`, screenshots and local secrets are already ignored. Never commit production backups or secrets.
 - The recovered policy modules in `apps/api/src/recovered-domain/` intentionally isolate **non-runtime** starter logic from active NestJS services. Future promotion into runtime requires versioned policy approval, tenant/RBAC, DB transactions/outbox, E2E and real UI/player UAT.

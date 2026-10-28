@@ -70,7 +70,7 @@ try {
   execute('Dependency and runtime contract', npm, ['run', 'verify:dependencies']);
   execute('Clean release preflight', npm, ['run', 'verify:clean-release']);
   if (mode !== '--frontend') {
-    execute('Batch static source regression', npm, ['run', 'check:source']);
+    execute('Source regression contracts', npm, ['run', 'check:source']);
     execute('Validate environment', npm, ['run', 'validate:env']);
     execute('Prisma schema validation', npx, ['prisma', 'validate']);
     execute('Generate Prisma client', npx, ['prisma', 'generate']);
