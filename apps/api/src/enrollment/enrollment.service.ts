@@ -162,7 +162,7 @@ export class EnrollmentService {
     const organizationId = this.organization(actor);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.enrollmentPin.findMany({
-        where: { organizationId }, orderBy: { createdAt: 'desc' }, take, skip,
+        where: { organizationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take, skip,
         select: { id: true, packageId: true, recipientUserId: true, status: true, expiresAt: true, redeemedAt: true, revokedAt: true, createdAt: true },
       }),
       this.prisma.enrollmentPin.count({ where: { organizationId } }),

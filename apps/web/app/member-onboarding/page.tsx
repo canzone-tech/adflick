@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { apiRequest, errorMessage } from '../../lib/api';
 import '../communication.css';
 import './member-onboarding.css';
@@ -36,6 +36,8 @@ export default function MemberOnboardingPage() {
   const [pin,setPin] = useState('');
   const [consentAccepted,setConsentAccepted] = useState(false);
   const [preflight,setPreflight] = useState<Preflight|null>(null);
+  const lookupVersion=useRef({sponsor:0,parent:0});
+  const preflightVersion=useRef(0);
 
   async function reload() {
     const loaded=await apiRequest<Progress>('/member-enrollment/progress');
@@ -49,6 +51,9 @@ export default function MemberOnboardingPage() {
   const [reloadKey,setReloadKey]=useState(0);
   useEffect(()=>{
     let alive=true;
+    lookupVersion.current.sponsor++;
+    lookupVersion.current.parent++;
+    preflightVersion.current++;
     setLoading(true);setError('');setProgress(null);setTree(null);setIdentity(null);
     setSponsor(null);setParent(null);setPreflight(null);
     void (async()=>{
@@ -73,14 +78,19 @@ export default function MemberOnboardingPage() {
     return()=>{alive=false;};
   },[reloadKey]);
 
-  function invalidate(){setPreflight(null);setMessage('');}
+  function invalidate(){preflightVersion.current++;setPreflight(null);setMessage('');}
   async function lookup(which:'sponsor'|'parent') {
+    if(busy)return;
     const code=(which==='sponsor'?sponsorCode:parentCode).trim();
+    if(!code)return;
+    const version=++lookupVersion.current[which];
     setBusy(true);setError('');invalidate();
     try {
       const candidate=await apiRequest<Candidate>('/member-enrollment/eligible/'+encodeURIComponent(code));
+      if(lookupVersion.current[which]!==version)return;
       if(which==='sponsor')setSponsor(candidate);else setParent(candidate);
     }catch(e) {
+      if(lookupVersion.current[which]!==version)return;
       if(which==='sponsor')setSponsor(null);else setParent(null);
       setError(errorMessage(e));
     }finally{setBusy(false);}
@@ -94,18 +104,25 @@ export default function MemberOnboardingPage() {
     };
   }
   async function check(event:FormEvent<HTMLFormElement>) {
-    event.preventDefault();setBusy(true);setError('');setMessage('');setPreflight(null);
+    event.preventDefault();
+    if(busy)return;
+    invalidate();
+    const version=preflightVersion.current;
+    setBusy(true);setError('');
     try {
       const result=await apiRequest<Preflight>('/member-enrollment/preflight',{
         method:'POST',body:JSON.stringify(body()),
       });
+      // A changed sponsor, parent, side, PIN or consent invalidates any
+      // still-in-flight preflight, even if the server accepted the old input.
+      if(preflightVersion.current!==version)return;
       setPreflight(result);
       setMessage(result.message);
-    }catch(e){setError(errorMessage(e));}
+    }catch(e){if(preflightVersion.current===version)setError(errorMessage(e));}
     finally{setBusy(false);}
   }
   async function enroll() {
-    if(!preflight?.provisional)return;
+    if(busy||!preflight?.provisional)return;
     setBusy(true);setError('');setMessage('');
     try {
       const recorded=await apiRequest<Enrollment>('/member-enrollment/enroll',{
@@ -173,7 +190,7 @@ export default function MemberOnboardingPage() {
               <label htmlFor="member-sponsor">Verified sponsor member code</label>
               <div className="member-onboard-lookup">
                 <input id="member-sponsor" required maxLength={40} pattern="[A-Za-z0-9_-]{1,40}"
-                  value={sponsorCode} onChange={e=>{setSponsorCode(e.target.value);setSponsor(null);invalidate();}}
+                  value={sponsorCode} onChange={e=>{lookupVersion.current.sponsor++;setSponsorCode(e.target.value);setSponsor(null);invalidate();}}
                   autoComplete="off"/>
                 <button type="button" disabled={busy||!sponsorCode.trim()} onClick={()=>void lookup('sponsor')}>Verify sponsor</button>
               </div>
@@ -183,7 +200,7 @@ export default function MemberOnboardingPage() {
               <label htmlFor="member-parent">Binary placement parent code</label>
               <div className="member-onboard-lookup">
                 <input id="member-parent" required maxLength={40} pattern="[A-Za-z0-9_-]{1,40}"
-                  value={parentCode} onChange={e=>{setParentCode(e.target.value);setParent(null);invalidate();}}
+                  value={parentCode} onChange={e=>{lookupVersion.current.parent++;setParentCode(e.target.value);setParent(null);invalidate();}}
                   autoComplete="off"/>
                 <button type="button" disabled={busy||!parentCode.trim()} onClick={()=>void lookup('parent')}>Check LEFT/RIGHT</button>
               </div>

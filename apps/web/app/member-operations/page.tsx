@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { apiRequest, errorMessage } from '../../lib/api';
 import '../communication.css';
 import './member-operations.css';
@@ -13,7 +13,7 @@ type IssuedPin = {
   id:string;recipientUserId:string;packageId:string;status:'ISSUED'|'REDEEMED'|'REVOKED';
   expiresAt:string;createdAt:string;redeemedAt:string|null;revokedAt:string|null;
 };
-type PinList = {items:IssuedPin[];total:number};
+type PinList = {items:IssuedPin[];total:number;take:number;skip:number};
 type Recipient = {id:string;displayName:string;email:string};
 type OneTime = {id:string;pin:string;expiresAt:string;status:string;notice:string};
 type PackageDraft = {id:string;status:string};
@@ -27,6 +27,7 @@ type Overview = {
   financialBalancesIncluded:false;note:string;
 };
 
+const PIN_PAGE_SIZE=25;
 export default function MemberOperationsPage() {
   const [identity,setIdentity] = useState<Identity|null>(null);
   const [overview,setOverview] = useState<Overview|null>(null);
@@ -34,6 +35,8 @@ export default function MemberOperationsPage() {
   const [consents,setConsents] = useState<Consent[]>([]);
   const [pins,setPins] = useState<IssuedPin[]>([]);
   const [pinTotal,setPinTotal] = useState(0);
+  const [pinSkip,setPinSkip] = useState(0);
+  const recipientLookupVersion=useRef(0);
   const [loading,setLoading] = useState(true);
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
@@ -54,14 +57,28 @@ export default function MemberOperationsPage() {
     const [packageRows,consentRows,pinRows,overviewData] = await Promise.all([
       apiRequest<Package[]>('/member-enrollment/packages'),
       apiRequest<Consent[]>('/member-enrollment/consents'),
-      apiRequest<PinList>('/member-enrollment/pins?take=100&skip=0'),
+      apiRequest<PinList>('/member-enrollment/pins?take='+PIN_PAGE_SIZE+'&skip=0'),
       apiRequest<Overview>('/members/overview'),
     ]);
     setPackages(packageRows);setConsents(consentRows);
-    setPins(pinRows.items);setPinTotal(pinRows.total);setOverview(overviewData);
+    setPins(pinRows.items);setPinTotal(pinRows.total);setPinSkip(0);setOverview(overviewData);
   }
+  async function loadPinPage(next:number) {
+    if(busy||next<0||next>=pinTotal)return;
+    setBusy(true);setError('');setMessage('');setPinSecret(null);
+    try {
+      const page=await apiRequest<PinList>('/member-enrollment/pins?take='+PIN_PAGE_SIZE+'&skip='+next);
+      setPins(page.items);setPinTotal(page.total);setPinSkip(page.skip);
+    }catch(e){setError(errorMessage(e));}
+    finally{setBusy(false);}
+  }
+  const [reloadKey,setReloadKey]=useState(0);
   useEffect(()=>{
     let alive=true;
+    recipientLookupVersion.current++;
+    setLoading(true);setError('');setIdentity(null);setOverview(null);
+    setPackages([]);setConsents([]);setPins([]);setPinTotal(0);setPinSkip(0);
+    setPinSecret(null);setRecipient(null);
     void (async()=>{
       try{
         const me=await apiRequest<Identity>('/auth/me');
@@ -72,16 +89,27 @@ export default function MemberOperationsPage() {
       finally{if(alive)setLoading(false);}
     })();
     return()=>{alive=false;};
-  },[]);
+  },[reloadKey]);
 
   async function action(label:string, run:()=>Promise<unknown>) {
+    if(busy)return;
     setBusy(true);setError('');setMessage('');
     try {
       await run();
+    } catch(e) {
+      setError(errorMessage(e));
+      setBusy(false);
+      return;
+    }
+    // Mutation succeeded before refresh. A later read failure must never be
+    // presented as "PIN issuance failed" and encourage duplicate issuance.
+    try {
       await refresh();
       setMessage(label+' — committed and reloaded from the secured API.');
-    } catch(e) { setError(errorMessage(e)); }
-    finally{setBusy(false);}
+    } catch(e) {
+      setMessage(label+' — accepted by the secured API.');
+      setError('Records could not be reloaded. Check inventory before repeating this action. '+errorMessage(e));
+    } finally{setBusy(false);}
   }
 
   const staff=identity?.roles.some(role=>['SUPER_ADMIN','ORGANIZATION_ADMIN','AUDITOR_COMPLIANCE'].includes(role))??false;
@@ -114,22 +142,39 @@ export default function MemberOperationsPage() {
     });
   }
   async function findRecipient() {
+    if(busy||!recipientEmail.trim())return;
+    const version=++recipientLookupVersion.current;
+    const target=recipientEmail.trim();
     setBusy(true);setError('');setMessage('');setRecipient(null);setPinSecret(null);
     try {
-      const record=await apiRequest<Recipient>('/member-enrollment/recipient?email='+encodeURIComponent(recipientEmail.trim()));
+      const record=await apiRequest<Recipient>('/member-enrollment/recipient?email='+encodeURIComponent(target));
+      if(recipientLookupVersion.current!==version)return;
       setRecipient(record);setMessage('Eligible, active MEMBER account found in this organization.');
-    } catch(e) {setError(errorMessage(e));}
-    finally{setBusy(false);}
+    } catch(e) {
+      if(recipientLookupVersion.current===version)setError(errorMessage(e));
+    } finally {setBusy(false);}
   }
   function issuePin(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if(!recipient)return;
+    if(busy||!recipient)return;
+    const timestamp=Date.parse(expiryInput);
+    const now=Date.now();
+    if(!Number.isFinite(timestamp)||timestamp<=now||timestamp>now+366*24*60*60*1000){
+      setError('PIN expiry must be a valid future date/time within one year.');
+      setMessage('');
+      return;
+    }
+    if(!packages.some(item=>item.code===selectedPackage&&item.status==='ENABLED')){
+      setError('Select an independently approved package before issuing a PIN.');
+      setMessage('');
+      return;
+    }
     void action('One-time e-PIN issued',async()=>{
       setPinSecret(null);
       const response=await apiRequest<OneTime>('/member-enrollment/pins',{
         method:'POST',body:JSON.stringify({
           recipientUserId:recipient.id,packageCode:selectedPackage,
-          expiresAt:new Date(expiryInput).toISOString(),
+          expiresAt:new Date(timestamp).toISOString(),
         }),
       });
       setPinSecret(response);setRecipient(null);setRecipientEmail('');setExpiryInput('');
@@ -149,7 +194,10 @@ export default function MemberOperationsPage() {
     <h1>Member enrollment operations</h1>
     <p className="communication-intro">Manage real organization packages, versioned consent and one-time recipient-bound e-PINs. Operator feature gates, MFA and maker–checker approvals remain mandatory.</p>
     {loading&&<p role="status">Loading authorized membership records…</p>}
-    {error&&<p className="communication-error" role="alert">{error} <Link href="/account">Account and MFA</Link></p>}
+    {error&&<div className="communication-error" role="alert">
+      <p>{error} <Link href="/account">Account and MFA</Link></p>
+      {!loading&&<button type="button" disabled={busy} onClick={()=>setReloadKey(key=>key+1)}>Retry authorized records</button>}
+    </div>}
     {message&&<p className="communication-success" role="status">{message}</p>}
     {!loading&&!identity&&<p role="status">Please <Link href="/login">sign in</Link> to view authorized membership records.</p>}
     {!loading&&identity&&!staff&&<p role="alert">Membership administration is restricted to authorized staff roles.</p>}
@@ -232,8 +280,7 @@ export default function MemberOperationsPage() {
         <p>Find an existing verified-login MEMBER account in this organization. PIN issuance requires an approved package and operator permission. No tokens are stored in plaintext.</p>
         {editor&&<form className="member-admin-pin-form" onSubmit={issuePin}>
           <label>Recipient account email
-            <input type="email" required value={recipientEmail} onChange={e=>{setRecipientEmail(e.target.value);setRecipient(null);}}
-              disabled={busy}/></label>
+            <input type="email" required value={recipientEmail} onChange={e=>{recipientLookupVersion.current++;setRecipientEmail(e.target.value);setRecipient(null);setMessage('');setPinSecret(null);}}/></label>
           <button type="button" disabled={busy||!recipientEmail.trim()} onClick={()=>void findRecipient()}>Find eligible recipient</button>
           {recipient&&<p role="status" className="member-admin-recipient">
             Confirmed: {recipient.displayName} ({recipient.email}) · {recipient.id}
@@ -245,7 +292,8 @@ export default function MemberOperationsPage() {
                 <option key={item.id} value={item.code}>{item.code} — {item.name}</option>)}
             </select></label>
           <label>PIN expiry date/time
-            <input type="datetime-local" required value={expiryInput} onChange={e=>setExpiryInput(e.target.value)} disabled={busy}/></label>
+            <input type="datetime-local" required value={expiryInput} onChange={e=>{setExpiryInput(e.target.value);setError('');}} disabled={busy}/>
+            <small>Future expiry within one year; validated again by the server.</small></label>
           <button type="submit" disabled={busy||!recipient||!selectedPackage||!expiryInput}>Issue one-time PIN</button>
         </form>}
         {pinSecret&&<div className="member-admin-secret" role="status">
@@ -268,7 +316,13 @@ export default function MemberOperationsPage() {
         {editor&&<label className="member-admin-revoke">Revocation reason (required)
           <input minLength={8} maxLength={240} value={revocationReason} onChange={e=>setRevocationReason(e.target.value)}
             disabled={busy}/></label>}
-        {pinTotal>pins.length&&<p className="member-admin-hint">Showing the latest {pins.length} records. Full audit evidence remains in MySQL.</p>}
+        {pinTotal>0&&<nav className="member-admin-pin-pagination" aria-label="e-PIN inventory pages">
+          <button type="button" disabled={busy||pinSkip===0}
+            onClick={()=>void loadPinPage(Math.max(0,pinSkip-PIN_PAGE_SIZE))}>Previous PINs</button>
+          <span aria-live="polite">Showing {pinSkip+1}–{pinSkip+pins.length} of {pinTotal} PIN records</span>
+          <button type="button" disabled={busy||pinSkip+pins.length>=pinTotal}
+            onClick={()=>void loadPinPage(pinSkip+PIN_PAGE_SIZE)}>Next PINs</button>
+        </nav>
       </section>
       <p className="member-admin-hint">Financial compensation, paid joining, PIN transfer, live SMS provider certification and production activation remain blocked. <Link href="/communications">OTP configuration</Link> · <Link href="/account">MFA security</Link>.</p>
     </>}

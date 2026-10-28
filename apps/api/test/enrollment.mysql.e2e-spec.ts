@@ -196,6 +196,16 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     const bad = await http('maker').post('/member-enrollment/pins',{recipientUserId:account['foreignRoot'],packageCode:'ENROLLMENT-TEST',expiresAt:new Date(Date.now()+100000).toISOString()}).expect(400);
     expect(bad.body).not.toHaveProperty('pin');
     await issue('alpha');
+    const beforeInvalid=await prisma.enrollmentPin.count({where:{organizationId:org}});
+    for (const expiresAt of [
+      new Date(Date.now()-60_000).toISOString(),
+      new Date(Date.now()+367*24*60*60*1000).toISOString(),
+    ]) {
+      await http('maker').post('/member-enrollment/pins',{
+        recipientUserId:account['alpha'],packageCode:'ENROLLMENT-TEST',expiresAt,
+      }).expect(400);
+    }
+    expect(await prisma.enrollmentPin.count({where:{organizationId:org}})).toBe(beforeInvalid);
     const rows = await http('maker').get('/member-enrollment/pins?take=10').expect(200);
     expect(rows.body.total).toBe(1);
     expect(JSON.stringify(rows.body)).not.toContain(issued['alpha']!.pin);
@@ -203,6 +213,9 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     const db = await prisma.enrollmentPin.findUniqueOrThrow({where:{id:issued['alpha']!.id}});
     expect(db.tokenHash).toMatch(/^[a-f0-9]{64}$/);
     expect(db.tokenHash).not.toBe(issued['alpha']!.pin);
+    const empty=await http('maker').get('/member-enrollment/pins?take=1&skip=1').expect(200);
+    expect(empty.body).toMatchObject({total:1,take:1,skip:1,items:[]});
+    await http('alpha').get('/member-enrollment/pins?take=1').expect(403);
   });
 
   it('invalid consent and foreign sponsor cannot consume a PIN', async () => {
@@ -382,6 +395,21 @@ suite('SRS e-PIN + pending member enrollment: real MySQL HTTP transactions', () 
     expect(await prisma.memberConsentRecord.count({ where: { organizationId: org } })).toBe(2);
     expect(await prisma.auditEvent.count({ where: { organizationId: org, action: 'MEMBER_EPIN_ENROLLMENT_PENDING' } })).toBe(2);
     await http(loser).post('/member-enrollment/preflight', enrollment(loser, { side: 'RIGHT' })).expect(409);
+
+    // Real keyset of three PINs; bounded pages must not overlap or disclose
+    // the bearer PIN/hash even when records were redeemed or remain issued.
+    const firstPage=await http('maker').get('/member-enrollment/pins?take=2&skip=0').expect(200);
+    const secondPage=await http('maker').get('/member-enrollment/pins?take=2&skip=2').expect(200);
+    expect(firstPage.body).toMatchObject({total:3,take:2,skip:0});
+    expect(secondPage.body).toMatchObject({total:3,take:2,skip:2});
+    expect(firstPage.body.items).toHaveLength(2);
+    expect(secondPage.body.items).toHaveLength(1);
+    const ids=[...firstPage.body.items,...secondPage.body.items].map((row:{id:string})=>row.id);
+    expect(new Set(ids)).toEqual(new Set([issued['alpha']!.id,issued['beta']!.id,issued['gamma']!.id]));
+    const serialized=JSON.stringify({first:firstPage.body,second:secondPage.body});
+    for(const name of ['alpha','beta','gamma'])expect(serialized).not.toContain(issued[name]!.pin);
+    expect(serialized).not.toContain('tokenHash');
+    await http('foreignStaff').get('/member-enrollment/pins?take=2&skip=0').expect(403);
   });
 
   it('revocation prevents consumption and leaves no member/consent records', async () => {

@@ -70,3 +70,13 @@ The next quality slice reuses existing MySQL/HTTP suites and the actual Chrome b
 5. **Member UI browser viewport**: Chrome checks the real member dashboard, onboarding and operations routes at 320/390/768/1280px for correct headings, no horizontal overflow/error overlays, retaining screenshots at 390px (SRS AT-07/17 partial).
 
 Each gate remains inside root `npm run verify` and exact-SHA Backend/Frontend CI. Tests do not approve commercial rules, activation, live SMS, KYC, payouts, legal copy or production.
+
+## Follow-up five-milestone implementation unit — enrollment state integrity and pagination
+
+1. No stale sponsor/parent candidate or preflight confirmation following in-flight member form edits.
+2. No stale staff recipient identity after editing the exact-email lookup.
+3. Staff PIN expiry validation and clear guidance against expired/out-of-policy dates; server remains authoritative.
+4. Real bounded paginated e-PIN inventory with safe one-time secret handling and explicit accepted-mutation/failed-refresh messaging.
+5. Disposable MySQL invalid-expiry/no-write and multi-page tenant-safe inventory assertions; Chrome member/Join 320/360/390/412/768/1280 viewport checks.
+
+Only existing front-end enrollment views, tests and shared browser runner are changed. This does not resolve unapproved sponsor placement/spillover, legal/provider/KYC, PIN transfer or any remuneration/payout policy.

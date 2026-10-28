@@ -54,7 +54,7 @@ async function run() {
   }
 
   // Physical browser viewport smoke for required compact layout breakpoints.
-  for (const width of [320, 390, 768, 1280]) {
+  for (const width of [320, 360, 390, 412, 768, 1280]) {
     await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
     await navigate('/');
     const metrics = await evaluate("(() => {const header=document.querySelector('[data-testid=app-topbar]');const work=document.querySelector('[data-testid=app-page-content]');const side=document.querySelector('[data-testid=app-sidebar]');const menu=document.querySelector('[data-testid=app-menu-toggle]');return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,header:header?.getBoundingClientRect().width,content:work?.getBoundingClientRect().width,sidebar:side?.getBoundingClientRect().width,menuVisible:menu?.getBoundingClientRect().width>0}})()");
@@ -79,6 +79,13 @@ async function run() {
       }
       if (width === 390) await screenshot('member-' + path.slice(1) + '-mobile-390');
     }
+    // Public Join is its own shell and must not overflow at SRS handset widths.
+    await navigate('/join');
+    const joinMetrics=await evaluate("(() => ({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,title:document.querySelector('main h1')?.textContent?.trim(),shells:document.querySelectorAll('[data-testid=app-shell]').length}))()");
+    if(joinMetrics.width!==width||joinMetrics.scrollWidth>width+2||
+       joinMetrics.title!=='Join ADFLICK'||joinMetrics.shells!==0)
+      throw new Error('Public signup responsive regression at '+width+'px: '+JSON.stringify(joinMetrics));
+    if(width===360||width===412)await screenshot('join-mobile-'+width);
     await navigate('/');
     if (width === 320) {
       await click('[data-testid=app-menu-toggle]');

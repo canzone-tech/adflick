@@ -61,3 +61,7 @@ Unit-coverage percentages need not change because the acceptance slices primaril
 ## Five combined member/product hardening milestones
 
 One GitHub-first QA unit covers: (1) Member Dashboard role-first fetch; (2) Member Onboarding role-first fetch; (3) staff/member explicit retry and secure data clearing; (4) public Join expired-request and consent-drift guards; (5) real MySQL authenticated repeated reads plus Chrome guest/staff route isolation. `npm run verify` remains a single combined local gate after exact-SHA Backend CI, Frontend CI and Release Evidence PASS. No coverage thresholds, business rules, financial activation, mail/SMS integrations, production or migrations are altered.
+
+## Member enrollment UI integrity follow-up
+
+New state/version guards prevent stale in-flight lookup/preflight responses from reauthorizing a changed client form; server transactions still govern placement and e-PIN redemption. Admin PIN inventory uses real 25-row MySQL pages, with no bearer token in returned inventory. Issuance guards invalid future date input, while a successful mutation with subsequent failed refresh shows a warning rather than suggesting the PIN issuance itself failed. Existing disposable MySQL E2E adds invalid-expiry no-write and multi-page no-token/tenant denial checks. Chrome adds 360/412px handset regressions and Join overflow checks, preserving other breakpoints. No lint/coverage threshold, production config, schema, financial/provider policy, or business rules are changed.
