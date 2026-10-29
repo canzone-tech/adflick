@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import sharp from 'sharp';
+import sharp = require('sharp');
 import { inspectTrustedImage, MediaVerificationService } from './media-verification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from './storage.service';
