@@ -160,7 +160,11 @@ async function run() {
     if (scopedOrganization) {
     for (const [path,id] of [['/cms','real-cms-operations'],['/campaigns','real-campaign-operations'],['/fleet','real-fleet-operations']]) {
       await navigate(path);
-      await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel')",path+' real authenticated MySQL panel');
+      await until("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel, [data-testid=" + JSON.stringify(id) + "] .real-ops-error'))",path+' real authenticated panel or explicit API error');
+      if (!await evaluate("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel'))")) {
+        const diagnostics=await evaluate("(async()=>{const root=document.querySelector('[data-testid=" + JSON.stringify(id) + "]');const checks=await Promise.all([" + JSON.stringify(["/auth/me","/cms/assets","/cms/layouts","/cms/playlists","/campaigns","/fleet/screens"]) + "].map(async path=>{try{const res=await fetch(" + JSON.stringify(apiUrl) + "+path,{credentials:'include'});return [path,res.status]}catch{return[path,'network-error']}}));return {panelStatus:root?.innerText.slice(0,450),apiStatuses:checks};})()");
+        throw new Error('Authenticated real panel unavailable at '+path+': '+JSON.stringify(diagnostics));
+      }
       if(await evaluate("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-error'))"))
         throw new Error('Secured panel data load failed for '+path);
     }
