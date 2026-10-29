@@ -12,3 +12,7 @@ Historical schema migrations are immutable if applied in any authoritative envir
 Use normal fast-forward Git updates with expected-HEAD checks; preserve unrelated work. Document every technical gate result as PASS, FAIL, or BLOCKED. Never claim a test ran without logs.
 
 Consolidated batch documentation now lives in `docs/BATCH-HISTORY.md`; do not recreate one Markdown/text/CSV file per historical batch. Preserve source scans, executable test cases, Prisma migrations and Git recoverability. SRS v1.0 functional scope approved 2026-10-27; all compensation/legal/payment policies require separate authorization.
+
+## Cross-chat continuity and player OS scope (2026-10-29)
+
+Before resuming after a long conversation, read `docs/NEXT-CHAT-HANDOFF.md` and `docs/CLIENT-PLATFORM-SUPPORT.md`. The project owner explicitly confirmed **seven required advertising-device player targets**: Android mobile/tablet, Android TV, iOS/iPadOS, Samsung Tizen, LG webOS, Windows and Linux. Current Android Flutter source does not establish cross-platform native binaries or platform UAT. Keep the shared delivery API contract and record separately what is required, implemented, compiled, device-tested and approved. The original client SRS DOCX has not been independently available for a verbatim OS clause; do not invent quotations.
