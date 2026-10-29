@@ -128,8 +128,13 @@ async function main() {
   const buildEnv = { ...common, NODE_ENV: 'production' };
   await command('Prisma client generation', 'node_modules/.bin/prisma', ['generate'], common);
   await command('Apply ADFLICK migrations to the disposable MySQL only', 'node_modules/.bin/prisma', ['migrate', 'deploy'], common);
-  if (commandMode === '--persistent-dev-uat') {
-    if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.ADFLICK_LOCAL_DEV_CI !== '1') throw new Error('Persistent auth browser test is CI only.');
+  if (browserUat) {
+    // Both disposable local:uat and CI persistent-dev-uat need an actual
+    // test-only session. Never insert these accounts in an operator's persistent DB.
+    if (persistentDevelopment &&
+        (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.ADFLICK_LOCAL_DEV_CI !== '1')) {
+      throw new Error('Persistent authenticated browser UAT is CI only.');
+    }
     const { PrismaClient } = await import('@prisma/client');
     const { createFirstAdmin } = await import('../prisma/first-admin.mjs');
     process.env.DATABASE_URL = mysql.url;
@@ -160,15 +165,17 @@ async function main() {
   await probe(apiUrl + '/ready');
   await probe(apiUrl + '/auth/me', 401);
   const web = run(process.execPath, [webEntry], { ...buildEnv, HOSTNAME: '127.0.0.1', PORT: String(webPort) }, 'compiled web');
-  await waitFor(webUrl + '/', web, 'Web');
-  await probe(webUrl + '/login');
-  const page = await (await probe(webUrl + '/')).text();
+  await waitFor(webUrl + '/login', web, 'Web');
+  // A public HTML page is needed for the static-asset smoke; dashboard
+  // now requires a real authenticated server session.
+  await probe(webUrl + '/', 307);
+  const page = await (await probe(webUrl + '/login')).text();
   const asset = page.match(/(?:src|href)="([^"]*\/_next\/static\/[^"]+\.(?:js|css))"/)?.[1];
   if (!asset) throw new Error('Next HTML has no static JS/CSS asset for visual rendering.');
   const assetResponse = await probe(new URL(asset, webUrl).toString());
   if (!(assetResponse.headers.get('content-type') ?? '').match(/javascript|css/)) throw new Error('Compiled Next.js JavaScript/CSS was not served with a valid type.');
   console.log('\nADFLICK LOCAL READY');
-  console.log('Dashboard: ' + webUrl);
+  console.log('Dashboard (login required): ' + webUrl);
   console.log('Login:     ' + webUrl + '/login');
   console.log('CMS:       ' + webUrl + '/cms');
   console.log('API health:' + apiUrl + '/health');

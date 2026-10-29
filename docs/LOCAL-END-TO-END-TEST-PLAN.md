@@ -133,3 +133,15 @@ Production: NOT AUTHORIZED / NOT DEPLOYED
 **First manual checkpoint:** complete ENV-01…ENV-03, API-01, AUTH-01…AUTH-05, CMS-02, FLEET-01/02. That is a functional local operator journey, not just a build smoke. Native TV devices and live promotions are later independently approved gates.
 
 Cross-reference `docs/UAT-CHECKLIST.md`, `docs/DEVELOPMENT-DELIVERY-RULES.md`, `docs/CLIENT-PLATFORM-SUPPORT.md` and `docs/PLAYER-PROTOCOL-V1.md`.
+
+## Security regression — guest workspace shell exposed (2026-10-29)
+
+**Source evidence:** user-supplied Ubuntu Chrome Incognito screens at `/account`, `/cms`, `/health` revealed that API auth was correctly returning 401, but the protected operations navigation and CMS browser-only editor were still fully visible without a login. This was **not** acceptable as an admin workspace. The previously documented manual UI-01/UI-02 instructions that tell a *guest* to browse the workspace without sign-in are superseded by these security expectations:
+
+- **Before login:** only `/login` and `/join` return full public pages. All operations/member workspace URLs, including `/`, `/account`, `/cms`, `/fleet`, `/health`, redirect to `/login` **before HTML containing the sidebar/editor is served**.
+- **After real login:** `/` dashboard, sidebar, CMS and Fleet can render for authenticated identities. Tenant-sensitive data, actions and member/admin role boundaries remain protected separately by NestJS JWT/MFA/RBAC.
+- **After logout / invalid or forged access cookie:** no private page HTML or navigation is rendered and the user is redirected to login. API downtime fails closed rather than allowing a dummy session.
+- **Automated:** `npm run local:uat` now creates a disposable test-only organization administrator in its own isolated MySQL to test both guest redirects and a genuinely authenticated browser workflow; no existing developer admin/database is altered. The persistent local operator `local:dev:admin` remains strictly one-time and manual.
+- **Security smoke:** compiled web GET `/`, `/cms` and other protected workspace paths without valid cookies must return HTTP **307** with `Location: /login`; invalid fake cookie is also denied. A valid login must receive HTTP 200. Capture only sanitized evidence.
+
+**Manual retest cases added:** `GUEST-01` Incognito root/CMS/Fleet/Health/Account redirect, no shell; `GUEST-02` guest Login/Join 200; `AUTH-07` correct authenticated shell/CMS; `AUTH-08` logout revocation and protected-page redirect. These tests start **NOT RUN** on the new fix SHA until the operator executes them.

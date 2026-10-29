@@ -43,10 +43,23 @@ async function main() {
       await probe(base + '/api/v1/ready', 200);
       await probe(base + '/api/v1/auth/me', 401);
     } else {
-      await ready(base + '/', child);
-      for (const page of ['/login', '/finance', '/fleet', '/cms', '/communications', '/email-verification', '/phone-verification', '/member-dashboard', '/member-onboarding', '/member-operations', '/join']) {
+      await ready(base + '/login', child);
+      for (const page of ['/login', '/join']) {
         const response = await probe(base + page, 200);
         if (!(response.headers.get('content-type') ?? '').includes('text/html')) throw new Error('Unexpected content-type for ' + page);
+      }
+      for (const page of ['/', '/cms', '/campaigns', '/fleet', '/finance', '/account', '/health', '/communications', '/email-verification', '/phone-verification', '/member-dashboard', '/member-onboarding', '/member-operations']) {
+        const response = await probe(base + page, 307);
+        if (new URL(response.headers.get('location') ?? '', base).pathname !== '/login') {
+          throw new Error('Guest workspace access was not redirected to login: ' + page);
+        }
+      }
+      const forged = await fetch(base + '/cms', {
+        redirect: 'manual', headers: { Cookie: 'adflick-access=forged-session-value' },
+        signal: AbortSignal.timeout(2500),
+      });
+      if (forged.status !== 307 || new URL(forged.headers.get('location') ?? '', base).pathname !== '/login') {
+        throw new Error('Forged auth cookie was accepted by the compiled workspace.');
       }
     }
     console.log('Compiled ' + target + ' runtime smoke PASS.');

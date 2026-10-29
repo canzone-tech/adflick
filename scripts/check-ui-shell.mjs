@@ -8,6 +8,7 @@ const required = [
   'apps/web/app/app-chrome.css',
   'apps/web/app/layout.tsx',
   'scripts/browser-uat.mjs',
+  'apps/web/middleware.ts',
 ];
 for (const file of required) {
   if (!fs.existsSync(path.join(root,file))) throw new Error('Missing canonical UI shell: '+file);
@@ -17,6 +18,14 @@ const layout = read('apps/web/app/layout.tsx');
 const globals = read('apps/web/app/globals.css');
 if (globals.includes('.screen-card{') || globals.includes('.sidebar{') || globals.includes('.topbar{')) throw new Error('Retired homepage CSS must not leak into other workspace pages.');
 const browser = read('scripts/browser-uat.mjs');
+const accessGuard = read('apps/web/middleware.ts');
+for (const token of ["'/login'", "'/join'", "request.cookies.get(name)", "/auth/me", "loginRedirect(request)", "matcher:", "no-store"]) {
+  if (!accessGuard.includes(token)) throw new Error('Missing pre-render authenticated workspace enforcement: ' + token);
+}
+if (!browser.includes('Chrome guest workspace pre-render redirects PASS') ||
+    !browser.includes('Forged session cookie passed workspace gate.')) {
+  throw new Error('Real-browser unauthenticated workspace redirects must be tested.');
+}
 if (!shell.includes("pathname === '/login' || pathname === '/join'")) throw new Error('Public Join Now must remain outside operations chrome.');
 if (!layout.includes('<AppChrome>{children}</AppChrome>') || !layout.includes("import './app-chrome.css'")) {
   throw new Error('All operations pages must receive the central AppChrome in root layout.');

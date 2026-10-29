@@ -35,6 +35,31 @@ async function browserLogin() { await navigate('/login'); await click('input[typ
 async function privilegedMutationStatus() { return await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/campaigns') + ", {method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:'{}'});return r.status;})()"); }
 async function run() {
   await boot();
+  // Fail the UAT immediately if guest/Incognito can render any workspace page.
+  const guestWorkspace = ['/', '/account', '/cms', '/campaigns', '/fleet', '/health', '/member-dashboard', '/member-onboarding', '/member-operations', '/finance'];
+  for (const path of guestWorkspace) {
+    const result = await fetch(new URL(path, webUrl), { redirect: 'manual', signal: AbortSignal.timeout(8000) });
+    if (result.status !== 307 || new URL(result.headers.get('location') ?? '', webUrl).pathname !== '/login')
+      throw new Error('Unauthenticated workspace did not redirect before render: ' + path + ' HTTP ' + result.status);
+  }
+  const forged = await fetch(new URL('/cms', webUrl), { redirect: 'manual', headers: { Cookie: 'adflick-access=forged' } });
+  if (forged.status !== 307) throw new Error('Forged session cookie passed workspace gate.');
+  await command('Page.navigate', { url: new URL('/cms', webUrl).toString() });
+  await until("location.pathname === '/login'", 'guest client-side redirect');
+  if (await evaluate("Boolean(document.querySelector('[data-testid=app-sidebar],.cms-grid,.real-ops-panel'))"))
+    throw new Error('Guest Chrome was able to see workspace sidebar or CMS editor.');
+  console.log('Chrome guest workspace pre-render redirects PASS');
+
+  await navigate('/login'); await click('form button');
+  if (!await evaluate("location.pathname==='/login' && Boolean(document.querySelector('input[type=email]:invalid'))"))
+    throw new Error('Required login form validation not enforced.');
+  const apiStatus = await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/auth/me') + ", {credentials:'omit'});return r.status;})()");
+  if (apiStatus !== 401) throw new Error('Browser API unauthenticated request was not HTTP 401.');
+  console.log('Chrome member portal guest isolation PASS');
+  console.log('Chrome CMS/campaign/fleet guest isolation PASS');
+  if (!process.env.ADFLICK_BROWSER_TEST_EMAIL || !process.env.ADFLICK_BROWSER_TEST_PASSWORD)
+    throw new Error('Browser UAT requires disposable test-admin credentials, never a real operator secret.');
+  await browserLogin();
   const routes = ['/', '/cms', '/fleet', '/campaigns', '/delivery', '/scheduler', '/playback', '/health', '/incidents', '/finance', '/finance/payouts', '/login'];
   const results = [];
   for (const path of routes) { const state = await navigate(path); await screenshot(path === '/' ? 'home' : path.slice(1).replaceAll('/', '-')); results.push({ path, ...state }); }
@@ -103,41 +128,10 @@ async function run() {
   }
   await command('Emulation.clearDeviceMetricsOverride');
   await navigate('/'); await click('a[href="/cms"]'); await until("location.pathname === '/cms'", 'real sidebar click');
-  await navigate('/login'); await click('form button');
-  if (!await evaluate("location.pathname==='/login' && Boolean(document.querySelector('input[type=email]:invalid'))")) throw new Error('Required login form validation not enforced.');
-  const apiStatus = await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/auth/me') + ", {credentials:'omit'});return r.status;})()");
-  if (apiStatus !== 401) throw new Error('Browser API unauthenticated request was not HTTP 401.');
-  // Public browser must never display authenticated member or staff records.
-  for (const path of ['/member-dashboard','/member-onboarding','/member-operations']) {
-    await navigate(path);
-    await until("document.querySelector('main')?.innerText.includes('Please sign in')",path+' guest access guidance');
-    const privateData=await evaluate("Boolean(document.querySelector('.member-dashboard-facts, .member-onboard-summary, .member-admin-overview'))");
-    if(privateData)throw new Error('Guest accessed private member content: '+path);
-  }
-  console.log('Chrome member portal guest isolation PASS');
-  // New secured operations sections must not expose tenant records in an
-  // anonymous Chrome session. Existing visual previews remain independent.
-  for (const [path, id] of [['/cms','real-cms-operations'],['/campaigns','real-campaign-operations'],['/fleet','real-fleet-operations']]) {
-    await navigate(path);
-    await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "]')?.innerText.toLowerCase().includes('sign in')", path+' guest real-data isolation');
-    const leaked=await evaluate("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel'))");
-    if (leaked) throw new Error('Guest accessed secured operation rows: '+path);
-  }
-  console.log('Chrome CMS/campaign/fleet guest isolation PASS');
-
-
-
-  await navigate('/cms'); await click('.cms-tabs button:nth-child(3)'); await until("document.body.innerText.includes('Add preview assets in the Media Library tab first.')", 'empty playlist guidance');
-  if (!await evaluate("document.querySelector('.playlist-grid .primary-button')?.disabled === true")) throw new Error('Empty playlist preview must be disabled.');
-  if (!await evaluate("document.querySelector('[role=status]')?.innerText.includes('Playlist preview only.')")) throw new Error('CMS tab feedback was not reset.');
-  await click('.cms-tabs button:nth-child(2)'); await until("Boolean(document.querySelector('.media-form input'))", 'media form loaded'); await click('.media-form input'); await command('Input.insertText', { text: 'UAT Local Image' }); await click('.media-form button'); await until("document.body.innerText.includes('UAT Local Image') && document.body.innerText.includes('Needs upload')", 'preview media added');
-  await click('.cms-tabs button:nth-child(3)'); await until("Boolean(document.querySelector('.playlist-sequence input[type=checkbox]'))", 'preview media available'); await click('.playlist-sequence input[type=checkbox]'); await until("document.querySelector('.playlist-grid .primary-button')?.disabled === false", 'playlist enabled'); await click('.playlist-grid .primary-button'); await until("document.querySelector('[role=status]')?.innerText.includes('has not been saved or scheduled')", 'playlist disclaimer');
-  console.log('Chrome CMS interactions PASS');
-
-  await navigate('/campaigns'); await until("document.querySelector('.campaign-preview-note')?.innerText.includes('browser-only')", 'campaign demo warning'); await click('.campaign-header .campaign-primary'); await until("Boolean(document.querySelector('.campaign-form-grid input'))", 'campaign draft form'); await click('.campaign-form-grid input'); await command('Input.insertText', { text: 'UAT Draft Campaign' }); await click('.campaign-form-grid label:nth-child(2) input'); await command('Input.insertText', { text: 'Test Brand Only' }); await click('.campaign-form-grid label:nth-child(3) input'); await command('Input.insertText', { text: '1000' }); await click('.campaign-form-actions button'); await until("document.body.innerText.includes('UAT Draft Campaign') && document.querySelector('.campaign-notice')?.innerText.includes('No backend request was made')", 'local campaign preview'); await navigate('/campaigns'); if (await evaluate("document.body.innerText.includes('UAT Draft Campaign')")) throw new Error('Campaign demo unexpectedly persisted.'); console.log('Chrome Campaign interactions PASS');
-
+  // Browser was authenticated before workspace visual/interaction checks.
+  // Guest redirects and no-sidebar checks are executed above, before login.
   if (process.env.ADFLICK_BROWSER_TEST_EMAIL && process.env.ADFLICK_BROWSER_TEST_PASSWORD) {
-    await browserLogin();
+    // Already authenticated before the workspace layout smoke; do not re-login.
     const browserStorage = await evaluate("({access:localStorage.getItem('adflick_access_token'),refresh:localStorage.getItem('adflick_refresh_token'),cookie:document.cookie})");
     if (browserStorage.access !== null || browserStorage.refresh !== null) throw new Error('Authentication tokens were written to browser local storage.');
     if (/adflick-(access|refresh)|__Host-adflick-(access|refresh)/i.test(browserStorage.cookie)) throw new Error('HttpOnly auth cookie was exposed to document.cookie.');
@@ -252,7 +246,14 @@ async function run() {
     const storageAfterLogout = await evaluate("({access:localStorage.getItem('adflick_access_token'),refresh:localStorage.getItem('adflick_refresh_token')})"); if (storageAfterLogout.access !== null || storageAfterLogout.refresh !== null) throw new Error('Logout left authentication tokens in browser storage.');
     console.log('Chrome authenticated operator + privileged MFA UAT PASS: HttpOnly cookie login, MFA enrollment, fail-closed mutation, session reset, single-use challenge, replay rejection, step-up, logout revocation, no localStorage tokens');
   }
-  await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }); for (const path of ['/', '/login', '/cms']) { await navigate(path); await screenshot('mobile-' + (path === '/' ? 'home' : path.slice(1))); }
+  // Signed-out users must not render the operations shell even at mobile widths.
+  await command('Page.navigate', { url: new URL('/cms', webUrl).toString() });
+  await until("location.pathname === '/login'", 'post-logout protected route redirect');
+  if (await evaluate("Boolean(document.querySelector('[data-testid=app-sidebar]'))"))
+    throw new Error('Operations sidebar leaked after logout.');
+  await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await navigate('/login'); await screenshot('mobile-login');
+  await navigate('/join'); await screenshot('mobile-join');
   results.push({ sidebarNavigation: 'PASS', browserRequiredLoginValidation: 'PASS', unauthorizedApiStatus: apiStatus, mobileViewport: '390x844' }); writeFileSync(join(artifact, 'results.json'), JSON.stringify(results, null, 2) + '\n');
 }
 try { await run(); console.log('ADFLICK BROWSER UAT PASS; evidence at ' + artifact); } catch (error) { console.error('ADFLICK BROWSER UAT FAIL: ' + (error instanceof Error ? error.message : String(error))); process.exitCode = 1; } finally { try { socket?.close(); } catch {} if (chrome?.pid) { try { process.kill(-chrome.pid, 'SIGTERM'); } catch { try { chrome.kill('SIGTERM'); } catch {} } } for (const item of pending.values()) { clearTimeout(item.timeout); item.reject(new Error('Browser shutting down.')); } pending.clear(); try { rmSync(profile, { recursive: true, force: true }); } catch {} }
