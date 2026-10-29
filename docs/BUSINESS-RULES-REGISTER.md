@@ -14,3 +14,9 @@ The project owner explicitly approved **ADFLICK Binary 1:1 MLM + Advertising Pla
 | Multi-tenancy | Tenant guards/tests present in source | CI DB-backed horizontal-access tests required; **PENDING** |
 
 Never turn proposed demonstration values into guaranteed commercial terms.
+
+## Confirmed client device/platform scope — 2026-10-29 (non-financial)
+
+The project owner explicitly confirmed that ADFLICK advertising playback must target **Android mobile/tablet, Android TV/Android-based Smart TVs, iOS/iPadOS, Samsung Tizen, LG webOS, Windows and Linux**. All are client-required product targets, not merely optional platform dropdown labels. This clarifies the product delivery scope; it **does not authorize new monetary/eligibility/payment rules**, infrastructure or production.
+
+Source confidence: project-owner-confirmed client requirement in chat; a verbatim clause from the original SRS DOCX has not been independently re-read. Tracking IDs and per-platform status: `docs/CLIENT-PLATFORM-SUPPORT.md`. Native build, OS version/minimum device, real playback/field UAT and release approval remain independent for each platform. Do not confuse Android-only Flutter source or a MySQL screen row with completed cross-platform support.

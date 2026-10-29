@@ -39,7 +39,7 @@
 
 ### P4 — Advertising/pl​ayout integration + operational hardening
 - [ ] Integrate existing `apps/api/src/campaigns`, `devices`, `playback`, `cms`, `delivery`, `scheduler` with real web workflows.
-- [ ] Recover/build player under a separately approved platform target; physical SmartTV L-shape, offline/replay, remote and attestation UAT.
+- [ ] Deliver **all client-required advertising player targets** (PLAT-01…PLAT-07): Android mobile/tablet, Android TV, iOS/iPadOS, Samsung Tizen, LG webOS, Windows, Linux. Platform-specific packaging, signed builds, physical/emulator ad playback, offline/replay, remote/touch/keyboard, attestation and rollback UAT are mandatory; only Android source foundation currently exists. See `docs/CLIENT-PLATFORM-SUPPORT.md`.
 - [ ] Separate verified-playback rewards from member MLM commissions and approve both policy sets independently.
 - [ ] Notifications/support, plan audit reports, access review, consent/retention, penetration and load tests.
 
@@ -100,3 +100,9 @@ Evidence and remaining prerequisites: `docs/REAL-OPERATIONS-INTEGRATION.md`. The
 - [ ] Flutter/Dart compilation, package dependency lock, Android Gradle APK signing, emulator + Android phone + Android TV remote/hardware codec UAT, real CDN storage and independently verified TV overlay, offline queue, live video feed, multi-creative zoning, media rights, field proof and fraud controls — separate gates.
 
 Detailed architecture, safety boundaries and missing approvals: `docs/ANDROID-ADS-PLAYER-DELIVERY.md`. All financial, ad-pricing and payout decisions remain unchanged/unapproved. This batch has no server/production deployment.
+
+## Client platform scope update — confirmed by owner 2026-10-29
+
+**Required delivery scope (not optional):** PLAT-01 Android phone/tablet; PLAT-02 Android TV; PLAT-03 iOS/iPadOS; PLAT-04 Samsung Tizen Smart TV; PLAT-05 LG webOS Smart TV; PLAT-06 Windows player; PLAT-07 Linux player. The previous Android-first code batch **does not** satisfy the remaining five platform families, and Node CI GREEN does not close native platform UAT. Preserve a common tenant-aware/versioned media, campaign, manifest, device, and telemetry API; deliver and test each platform's actual player separately. Do not assume the same native runtime is compatible with all TV/desktop OSes. **Original SRS clause not independently re-read during this clarification; decision grounded in project owner's explicit client-requirement confirmation.**
+
+Prioritization: shared platform-neutral delivery/telemetry contract → Android phone/tablet + Android TV native CI/device evidence → feasibility/approved SDK decisions for iOS/iPadOS, Tizen, webOS, Windows and Linux → OS-specific player delivery and real-device UAT → per-platform product sign-off. OS versions, hardware models, packaging/DRM and ad delivery policy must be reviewed, not guessed. Financial features and production remain blocked by independent approval.

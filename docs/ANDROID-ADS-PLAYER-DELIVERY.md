@@ -19,3 +19,7 @@ The worker runner is compiled `apps/api/src/media-verification.runner.ts` and re
 Android release workflow is a separate gate: Flutter SDK + Android SDK review, locked dependencies and Android artifact build, emulator/mobile/Android TV real tests, signed APK checks, authorized pilot devices, media source rights and ad insertion/commercial policy. Production deployment remains separately blocked by off-host encrypted backup/restore evidence, signed immutable compiled artifacts and explicit release approval.
 
 No existing payments, commissions, member eligibility or other projects are touched.
+
+## Relationship to the full client OS requirement
+
+This document covers **only the Android implementation slice**, not the whole client platform scope. On 2026-10-29 the owner confirmed **all** of the following advertising-device targets as client requirements: Android phone/tablet, Android TV, iOS/iPadOS, Samsung Tizen, LG webOS, Windows and Linux. The original SRS wording was not available to quote at this update; the current decision is owner-confirmed. `apps/player_flutter` does not satisfy the other five platform families merely because Flutter is cross-platform. Their implementation, native packaging, platform-appropriate playback and device UAT remain required and pending, as detailed in `docs/CLIENT-PLATFORM-SUPPORT.md`.

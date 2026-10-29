@@ -41,3 +41,19 @@ Each line requires real test log, reviewer, SHA and PASS/FAIL/BLOCKED. Static so
 **Observed:** root local verify SUCCESS; interactive development admin CLI could not access `User` because the persistent owned DB had not applied migrations, and password keystrokes appeared in terminal screenshot. This is not evidence of a successful first account creation or sign-in, and does not imply any fault in the disposable root verifier. No password string or screenshot containing personal terminal context is stored in this repository.
 
 **Engineering action:** auto-run Prisma migrate deploy via shared fail-closed persistent DB preparation before any first-admin query, fully close readline before entering raw TTY password input, and add no-echo/migration-preflight regressions. **Operator local acceptance pending** after final three-CI SHA and retry with a fresh unique secret. No historical migration editing, database deletion, production operation or other-project changes.
+
+## Mandatory client player OS acceptance matrix — 2026-10-29 clarification
+
+**All seven target rows are client-required and NOT yet product-accepted**; see `docs/CLIENT-PLATFORM-SUPPORT.md`. A passed Node web/API CI or a Fleet dropdown is not native player acceptance. The original SRS document's exact OS clause has not been independently re-read; the product owner confirmed these targets explicitly in chat.
+
+| Platform gate | Minimum real evidence | Status |
+| --- | --- | --- |
+| PLAT-01 Android phone/tablet | Signed Android package, emulator + actual phone/tablet, image/video ad, lifecycle/network recovery and touch UX | **PENDING** |
+| PLAT-02 Android TV | Signed TV app, real Android TV devices, D-pad, video codec, 16:9/L-band/safe-area, playback/recovery | **PENDING** |
+| PLAT-03 iOS/iPadOS | Signed Apple player build, iPhone/iPad field test, native decoder/storage/network/telemetry | **PENDING** |
+| PLAT-04 Samsung Tizen | Tizen app package, real Samsung TV, remote/media/overlay/background and reconnection tests | **PENDING** |
+| PLAT-05 LG webOS | webOS app package, real LG TV, remote/media/overlay/background and reconnection tests | **PENDING** |
+| PLAT-06 Windows | Signed installer/runtime, representative Windows device, codec/kiosk/reboot/upgrade tests | **PENDING** |
+| PLAT-07 Linux | Approved distro/architecture native package, representative Linux device, codec/kiosk/reboot/upgrade tests | **PENDING** |
+
+For **each** platform also verify tenant-scoped pairing, secret storage, revocation, valid/expired signed manifest, independently READY ads, schedule and authorization checks, offline queue, authenticated heartbeat, deduplicated playback events, invalid event rejection, disclosure/fraud rules, signed artifact checksums, reviewer and rollback. Backend event acceptance is **not independent proof-of-view** or payout approval. No platform row can be marked PASS using generic Flutter or Node tests alone.
