@@ -1,0 +1,24 @@
+.real-ops{margin:28px 0 18px;padding:clamp(16px,2.6vw,25px);min-width:0;background:#f9f8ff;border:1px solid #dbd1fa;border-radius:16px;color:#302446}
+.real-ops *{box-sizing:border-box}
+.real-ops-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.real-ops-header h2{font:800 clamp(18px,2vw,23px) Manrope,sans-serif;margin:3px 0 8px}
+.real-ops-header p,.real-ops-panel p{font-size:12px;line-height:1.65;color:#5a516b}
+.real-ops-kicker{font-size:10px!important;font-weight:800;letter-spacing:1.2px;color:#6746ae!important}
+.real-ops-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:15px}
+.real-ops-panel{background:#fff;border:1px solid #e5def5;border-radius:12px;padding:16px;min-width:0}
+.real-ops-panel h3{font:800 16px Manrope,sans-serif;margin:0 0 12px}
+.real-ops-panel ul{list-style:none;margin:12px 0;padding:0;display:grid;gap:10px;max-height:350px;overflow-y:auto}
+.real-ops-panel li{padding:10px;border:1px solid #eee9f8;border-radius:9px;overflow-wrap:anywhere;display:grid;gap:5px}
+.real-ops-panel li strong{font-size:12px}
+.real-ops-panel li small,.real-ops-panel form small,.real-ops-secret small{font-size:11px;color:#665d76;line-height:1.5;overflow-wrap:anywhere}
+.real-ops-panel form{display:grid;gap:12px;margin:15px 0}
+.real-ops-panel label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#514265}
+.real-ops-panel input,.real-ops-panel select{display:block;min-height:42px;width:100%;padding:9px 10px;border:1px solid #d2c6e8;border-radius:8px;background:#fff;color:#302446;font:13px DM Sans,Arial,sans-serif}
+.real-ops button{min-height:40px;border:1px solid #c8b3eb;border-radius:8px;padding:8px 13px;background:#f0eaff;color:#5230a4;font:700 12px DM Sans,Arial,sans-serif;cursor:pointer}
+.real-ops button:disabled{opacity:.55;cursor:not-allowed}
+.real-ops button:focus-visible,.real-ops input:focus-visible,.real-ops select:focus-visible{outline:3px solid #7a58e5;outline-offset:2px}
+.real-ops-error,.real-ops-notice{padding:12px;border-radius:9px;border:1px solid #ebcbd0;background:#fff4f5;color:#933246;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.real-ops-notice{border-color:#c9e4d7;background:#effaf4;color:#246342}
+.real-ops-secret{padding:13px;border:1px solid #ebce8c;border-radius:9px;background:#fff8df;display:grid;gap:10px;margin:14px 0}
+.real-ops-secret code{font-size:18px;letter-spacing:1.5px;overflow-wrap:anywhere}
+@media(max-width:520px){.real-ops-header button{width:100%}.real-ops-panel{padding:13px}}

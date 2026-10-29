@@ -87,6 +87,7 @@ try {
     execute('Apply immutable migrations to disposable MySQL', npx, ['prisma', 'migrate', 'deploy']);
     execute('MySQL security HTTP integration', npm, ['run', 'test:e2e:security'], { RUN_MYSQL_SECURITY_E2E: '1' });
     execute('Member genealogy MySQL integrity + HTTP acceptance', npm, ['run', 'test:e2e:members', '-w', 'apps/api'], { RUN_MYSQL_MEMBERS_E2E: '1' });
+    execute('Real CMS/campaign/fleet MySQL HTTP integration', npm, ['run', 'test:e2e:operations', '-w', 'apps/api'], { RUN_MYSQL_OPERATIONS_E2E: '1' });
     execute('MySQL finance transaction integration', npm, ['run', 'test:e2e:finance'], { RUN_MYSQL_FINANCE_E2E: '1' });
   }
   if (mode !== '--backend') {

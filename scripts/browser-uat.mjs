@@ -115,6 +115,16 @@ async function run() {
     if(privateData)throw new Error('Guest accessed private member content: '+path);
   }
   console.log('Chrome member portal guest isolation PASS');
+  // New secured operations sections must not expose tenant records in an
+  // anonymous Chrome session. Existing visual previews remain independent.
+  for (const [path, id] of [['/cms','real-cms-operations'],['/campaigns','real-campaign-operations'],['/fleet','real-fleet-operations']]) {
+    await navigate(path);
+    await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "]')?.innerText.includes('sign in')", path+' guest real-data isolation');
+    const leaked=await evaluate("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel'))");
+    if (leaked) throw new Error('Guest accessed secured operation rows: '+path);
+  }
+  console.log('Chrome CMS/campaign/fleet guest isolation PASS');
+
 
 
   await navigate('/cms'); await click('.cms-tabs button:nth-child(3)'); await until("document.body.innerText.includes('Add preview assets in the Media Library tab first.')", 'empty playlist guidance');
@@ -146,6 +156,14 @@ async function run() {
     await navigate('/account');
     await until("document.body.innerText.includes('ORGANIZATION_ADMIN')", 'account restored after role-safe navigation');
 
+    for (const [path,id] of [['/cms','real-cms-operations'],['/campaigns','real-campaign-operations'],['/fleet','real-fleet-operations']]) {
+      await navigate(path);
+      await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel')",path+' real authenticated MySQL panel');
+      if(await evaluate("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-error'))"))
+        throw new Error('Secured panel data load failed for '+path);
+    }
+    await navigate('/account');
+
     const beforeEnrollment = await privilegedMutationStatus();
     if (beforeEnrollment !== 403) throw new Error('Privileged mutation did not fail closed before MFA enrollment; status=' + beforeEnrollment);
     await until("Boolean(document.querySelector('[data-testid=\"mfa-enroll-password\"]'))", 'MFA enrollment controls');
@@ -159,6 +177,34 @@ async function run() {
     await until("document.body.innerText.includes('MFA enabled') && document.querySelector('[data-testid=\"mfa-status\"]')?.innerText.includes('Enabled')", 'MFA confirmation');
     const afterEnrollment = await privilegedMutationStatus();
     if (afterEnrollment !== 400) throw new Error('Privileged mutation did not pass the MFA gate after enrollment; status=' + afterEnrollment);
+    // These mutations run only against CI's disposable MySQL. They prove
+    // actual persistence and one-time secret hiding, not media approval or deployment.
+    await navigate('/cms');
+    await until("Boolean(document.querySelector('[data-testid=real-cms-operations] .real-ops-panel'))", 'CMS MySQL section ready');
+    await click('[data-testid=real-cms-operations] .real-ops-panel:nth-child(2) button');
+    await until("document.querySelector('[data-testid=real-cms-operations]')?.innerText.includes('Layout DRAFT saved to tenant-scoped MySQL')", 'real layout draft persisted');
+    await navigate('/cms');
+    await until("document.querySelector('[data-testid=real-cms-operations]')?.innerText.includes('Retail 3-Zone Layout') && document.querySelector('[data-testid=real-cms-operations]')?.innerText.includes('DRAFT')", 'real CMS layout survives page reload');
+
+    await navigate('/fleet');
+    await until("Boolean(document.querySelector('[data-testid=real-fleet-operations] .real-ops-panel'))", 'fleet MySQL section ready');
+    await click('[data-testid=real-fleet-operations] form input');
+    await command('Input.insertText', {text:'Browser Test Screen'});
+    await click('[data-testid=real-fleet-operations] form button');
+    await until("document.querySelector('[data-testid=real-fleet-operations]')?.innerText.includes('Screen registered in MySQL')", 'real screen registered');
+    if(!await evaluate("Boolean(document.querySelector('[data-testid=real-fleet-operations] .real-ops-secret code'))"))throw new Error('One-time pairing code not displayed immediately after registration.');
+    await click('[data-testid=real-fleet-operations] .real-ops-secret button');
+    if(await evaluate("Boolean(document.querySelector('[data-testid=real-fleet-operations] .real-ops-secret'))"))throw new Error('Pairing code still visible after dismissal.');
+    await navigate('/fleet');
+    await until("document.querySelector('[data-testid=real-fleet-operations]')?.innerText.includes('Browser Test Screen')", 'real fleet screen survives page reload');
+    if(await evaluate("Boolean(document.querySelector('[data-testid=real-fleet-operations] .real-ops-secret'))"))throw new Error('One-time pairing code reappeared on reload.');
+
+    await navigate('/campaigns');
+    await until("Boolean(document.querySelector('[data-testid=real-campaign-operations] .real-ops-panel'))", 'campaign MySQL section ready');
+    if(await evaluate("document.querySelector('[data-testid=real-campaign-operations] form button')?.disabled !== true"))
+      throw new Error('Campaign draft creation is enabled without an independently READY creative.');
+    console.log('Chrome real CMS/fleet MySQL persistence + campaign fail-closed PASS');
+    await navigate('/account');
     await screenshot('mfa-enrolled');
 
     await click('.account-logout'); await until("location.pathname === '/login'", 'logout after MFA enrollment');

@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { useState } from 'react';
 import './fleet.css';
+import { RealFleetOperations } from '../../components/real-fleet-operations';
 
 type Screen = { id: string; name: string; platform: string; status: string; lastSeen: string; version: string };
 const initialScreens: Screen[] = [
@@ -52,6 +53,7 @@ export default function FleetPage() {
       </aside>
     </section>
     <div className="fleet-notice" role="status"><span>i</span>{notice}</div>
-    <footer className="fleet-footer">ADFLICK PLAYOUT CMS <span>·</span> BATCH 04 <span>·</span> Real fleet data requires authenticated API integration</footer>
+    <RealFleetOperations />
+      <footer className="fleet-footer">ADFLICK PLAYOUT CMS <span>·</span> BATCH 04 <span>·</span> Real fleet data requires authenticated API integration</footer>
   </main>;
 }

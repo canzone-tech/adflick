@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { useState } from 'react';
 import './cms.css';
+import { RealCmsOperations } from '../../components/real-cms-operations';
 
 type Zone = { id: number; name: string; x: number; y: number; width: number; height: number; type: 'Video' | 'Ticker' | 'Image' };
 
@@ -96,6 +97,7 @@ export default function CmsPage() {
       </section>}
 
       <div className="notice" role="status"><span>i</span>{message}</div>
+      <RealCmsOperations zones={zones} layoutName={layoutName} />
       <footer className="cms-footer">ADFLICK PLAYOUT CMS <span>·</span> BATCH 03 <span>·</span> Media uploads require configured S3 storage and authenticated API calls</footer>
     </main>
   );

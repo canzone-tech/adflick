@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { useMemo, useState } from 'react';
 import './campaigns.css';
+import { RealCampaignOperations } from '../../components/real-campaign-operations';
 
 type Status='DRAFT'|'PENDING_REVIEW'|'APPROVED'|'SCHEDULED'|'ACTIVE'|'PAUSED'|'COMPLETED'|'REJECTED';
 type Campaign={id:string;name:string;advertiser:string;budget:string;start:string;end:string;creatives:number;screens:number;status:Status;note:string};
@@ -37,6 +38,7 @@ export default function CampaignsPage(){
    <div className="campaign-table"><div className="campaign-row campaign-table-head"><span>CAMPAIGN</span><span>FLIGHT DATES</span><span>BUDGET</span><span>STATUS / ACTIONS</span></div>
    {visible.length===0?<div className="campaign-empty">No campaigns match this filter.</div>:visible.map(c=><article className="campaign-row" key={c.id}><div className="campaign-name"><strong>{c.name}</strong><small>{c.id} · {c.advertiser}</small><small>{c.creatives} creatives · {c.screens} target screens</small></div><div className="campaign-dates"><strong>{c.start}</strong><small>to {c.end}</small></div><strong className="campaign-budget">{c.budget}</strong><div className="campaign-actions"><span className={`campaign-status ${c.status.toLowerCase()}`}>{labels[c.status]}</span><small>{c.note}</small><div className="campaign-action-buttons">{c.status==='DRAFT'||c.status==='REJECTED'?<button onClick={()=>changeStatus(c.id,'PENDING_REVIEW','Submitted for review')}>Submit</button>:null}{c.status==='PENDING_REVIEW'?<><button onClick={()=>changeStatus(c.id,'APPROVED','Approved by reviewer')}>Approve</button><button className="reject" onClick={()=>changeStatus(c.id,'REJECTED','Rejected: update creative and resubmit')}>Reject</button></>:null}{c.status==='APPROVED'?<button onClick={()=>changeStatus(c.id,'SCHEDULED','Scheduled in preview')}>Schedule</button>:null}{c.status==='SCHEDULED'?<button onClick={()=>changeStatus(c.id,'ACTIVE','Marked active in preview')}>Activate</button>:null}{c.status==='ACTIVE'?<button onClick={()=>changeStatus(c.id,'PAUSED','Paused in preview')}>Pause</button>:null}{c.status==='PAUSED'?<button onClick={()=>changeStatus(c.id,'ACTIVE','Resumed in preview')}>Resume</button>:null}</div></div></article>)}
    </div></section>
-  <section className="campaign-callout"><span>i</span><div><strong>Workflow safety</strong><p>Campaign approvals are enforced by the API. This page is currently a visual/local prototype. Its buttons do not call the API, publish campaigns to players, reserve budget, or create invoices. Live delivery requires a scheduler and player manifest service.</p></div></section><div className="campaign-notice" role="status">{note}</div><footer className="campaign-footer">AJOOBA DIGITAL · ADFLICK PLAYOUT CMS · BATCH 06</footer>
+  <RealCampaignOperations />
+      <section className="campaign-callout"><span>i</span><div><strong>Workflow safety</strong><p>Campaign approvals are enforced by the API. This page is currently a visual/local prototype. Its buttons do not call the API, publish campaigns to players, reserve budget, or create invoices. Live delivery requires a scheduler and player manifest service.</p></div></section><div className="campaign-notice" role="status">{note}</div><footer className="campaign-footer">AJOOBA DIGITAL · ADFLICK PLAYOUT CMS · BATCH 06</footer>
  </main>
 }

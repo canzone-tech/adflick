@@ -9,59 +9,73 @@ import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { ReviewCampaignDto } from './dto/review-campaign.dto';
 
+/** Prisma BigInt values cannot be JSON.stringify'd by Express.
+ * Keep financial minor-unit precision as decimal strings over REST.
+ * Do not round, calculate or infer an advertising spend policy.
+ */
+export function serializeCampaignAmount<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(item => serializeCampaignAmount(item)) as T;
+  if (value && typeof value === 'object' && 'budgetPaise' in value) {
+    const row = value as Record<string, unknown>;
+    return { ...row, budgetPaise: typeof row.budgetPaise === 'bigint' ? row.budgetPaise.toString() : row.budgetPaise } as T;
+  }
+  return value;
+}
+
 const MANAGE_ROLES = [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.ADVERTISER, UserRole.CONTENT_MANAGER, UserRole.OPERATIONS_MANAGER];
 @Controller('campaigns')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CampaignsController {
   constructor(private readonly campaigns: CampaignsService) {}
+  private async json(result: Promise<unknown>) { return serializeCampaignAmount(await result); }
 
   @Get()
   @Roles(...MANAGE_ROLES, UserRole.FINANCE_MANAGER, UserRole.AUDITOR_COMPLIANCE)
-  list(@CurrentUser() actor: AuthenticatedUser) { return this.campaigns.list(actor); }
+  list(@CurrentUser() actor: AuthenticatedUser) { return this.json(this.campaigns.list(actor)); }
 
   @Get(':id')
   @Roles(...MANAGE_ROLES, UserRole.FINANCE_MANAGER, UserRole.AUDITOR_COMPLIANCE)
-  get(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.campaigns.get(actor, id); }
+  get(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.json(this.campaigns.get(actor, id)); }
 
   @Post()
   @Roles(...MANAGE_ROLES)
-  create(@CurrentUser() actor: AuthenticatedUser, @Body() dto: CreateCampaignDto) { return this.campaigns.create(actor, dto); }
+  create(@CurrentUser() actor: AuthenticatedUser, @Body() dto: CreateCampaignDto) { return this.json(this.campaigns.create(actor, dto)); }
 
   @Patch(':id')
   @Roles(...MANAGE_ROLES)
   update(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string, @Body() dto: UpdateCampaignDto) {
-    return this.campaigns.update(actor, id, dto);
+    return this.json(this.campaigns.update(actor, id, dto));
   }
 
   @Post(':id/submit')
   @Roles(...MANAGE_ROLES)
-  submit(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.campaigns.submit(actor, id); }
+  submit(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.json(this.campaigns.submit(actor, id)); }
 
   @Post(':id/approve')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.OPERATIONS_MANAGER)
   approve(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string, @Body() dto: ReviewCampaignDto) {
-    return this.campaigns.approve(actor, id, dto.note);
+    return this.json(this.campaigns.approve(actor, id, dto.note));
   }
 
   @Post(':id/reject')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.OPERATIONS_MANAGER)
   reject(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string, @Body() dto: ReviewCampaignDto) {
-    return this.campaigns.reject(actor, id, dto.note);
+    return this.json(this.campaigns.reject(actor, id, dto.note));
   }
 
   @Post(':id/schedule')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.OPERATIONS_MANAGER)
-  schedule(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.campaigns.schedule(actor, id); }
+  schedule(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.json(this.campaigns.schedule(actor, id)); }
 
   @Post(':id/pause')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.OPERATIONS_MANAGER)
-  pause(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.campaigns.transition(actor, id, 'pause'); }
+  pause(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.json(this.campaigns.transition(actor, id, 'pause')); }
 
   @Post(':id/resume')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.OPERATIONS_MANAGER)
-  resume(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.campaigns.transition(actor, id, 'resume'); }
+  resume(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.json(this.campaigns.transition(actor, id, 'resume')); }
 
   @Post(':id/complete')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.OPERATIONS_MANAGER)
-  complete(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.campaigns.transition(actor, id, 'complete'); }
+  complete(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) { return this.json(this.campaigns.transition(actor, id, 'complete')); }
 }

@@ -80,3 +80,13 @@ Each gate remains inside root `npm run verify` and exact-SHA Backend/Frontend CI
 5. Disposable MySQL invalid-expiry/no-write and multi-page tenant-safe inventory assertions; Chrome member/Join 320/360/390/412/768/1280 viewport checks.
 
 Only existing front-end enrollment views, tests and shared browser runner are changed. This does not resolve unapproved sponsor placement/spillover, legal/provider/KYC, PIN transfer or any remuneration/payout policy.
+
+## Next operational integration unit — real CMS, campaign and fleet read/draft flows
+
+- [x] Add separate authenticated, tenant-scoped CMS MySQL record panels (assets, layout drafts, playlist drafts), actual presigned storage upload flow only when configured, and no false READY status without a trusted worker.
+- [x] Add explicit non-publishing real layout and READY-asset playlist draft actions while preserving the earlier local preview.
+- [x] Add real campaign list/draft/submit-for-review, gated on READY media. Losslessly serialize Prisma budget BigInt values as JSON decimal strings; no demo budget, financial payout or live ad activation.
+- [x] Add real fleet inventory/health and user-triggered screen registration with one-time pairing code disclosure. No device commands or physical player validation.
+- [x] Add disposable MySQL HTTP authorization and persistence acceptance plus Chrome guest isolation and real admin layout/fleet reload checks. No S3-ready media worker or physical SmartTV UAT is claimed.
+
+Evidence and remaining prerequisites: `docs/REAL-OPERATIONS-INTEGRATION.md`. These are **partial product slices, not SRS or production acceptance**. SRS public marketing, legal approvals, real provider/device UAT and commercial/placement approvals remain pending.
