@@ -7,3 +7,7 @@ The recovered HTML Smart TV prototype is a **simulation**. A Flutter/Dart device
 Retain production boundaries: independent Ubuntu app account / PM2 / Apache vhosts, private service ports, source-free compiled artifacts, versioned config, and authorized migrations. Production setup is **not provisioned or approved** here.
 
 MySQL is the transactional source of truth. Redis, event queues and object storage must never become authoritative ledgers.
+
+## Android player development module
+
+`apps/player_flutter` is a source-only Flutter Android phone/Android TV advertising client aligned with the project's provided SmartTV L-band architecture. It is outside the npm workspaces and is **not compiled, packaged or signed** by the three Node CI workflows. The root Node verification now performs a static Android player/API contract check only; Dart/Flutter/Android compilation, emulator tests and physical device evidence are separate uncompleted acceptance gates. `apps/api/src/cms/media-verification.service.ts` adds an explicitly disabled-by-default trusted JPEG/PNG/WebP verification path; audio/video verification still requires reviewed external media decoding infrastructure. Refer to `docs/ANDROID-ADS-PLAYER-DELIVERY.md`.

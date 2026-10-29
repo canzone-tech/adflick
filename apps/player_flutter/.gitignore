@@ -1,0 +1,9 @@
+.dart_tool/
+.packages
+.pub/
+build/
+flutter_*.png
+android/local.properties
+android/.gradle/
+android/captures/
+android/gradle/wrapper/gradle-wrapper.jar

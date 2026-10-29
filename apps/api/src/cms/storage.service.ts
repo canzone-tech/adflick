@@ -1,4 +1,4 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -44,6 +44,25 @@ export class StorageService {
   async createDownloadUrl(key: string) {
     const { client, bucket } = this.requireConfig();
     return getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: 300 });
+  }
+
+  // Trusted worker only. Read a bounded object stream; never trust upload claims.
+  async readVerificationObject(key: string, maxBytes: number): Promise<{ bytes: Buffer }> {
+    const { client, bucket } = this.requireConfig();
+    const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    if (response.ContentLength !== undefined && response.ContentLength > maxBytes) {
+      throw new BadRequestException('Stored media exceeds verifier byte limit.');
+    }
+    if (!response.Body) throw new BadRequestException('Stored media has no readable body.');
+    const chunks: Buffer[] = [];
+    let count = 0;
+    for await (const part of response.Body as AsyncIterable<Uint8Array>) {
+      const chunk = Buffer.from(part);
+      count += chunk.length;
+      if (count > maxBytes) throw new BadRequestException('Stored media stream exceeds verifier byte limit.');
+      chunks.push(chunk);
+    }
+    return { bytes: Buffer.concat(chunks, count) };
   }
 
   async deleteObject(key: string) {

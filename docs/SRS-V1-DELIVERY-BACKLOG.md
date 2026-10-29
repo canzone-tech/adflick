@@ -90,3 +90,13 @@ Only existing front-end enrollment views, tests and shared browser runner are ch
 - [x] Add disposable MySQL HTTP authorization and persistence acceptance plus Chrome guest isolation and real admin layout/fleet reload checks. No S3-ready media worker or physical SmartTV UAT is claimed.
 
 Evidence and remaining prerequisites: `docs/REAL-OPERATIONS-INTEGRATION.md`. These are **partial product slices, not SRS or production acceptance**. SRS public marketing, legal approvals, real provider/device UAT and commercial/placement approvals remain pending.
+
+## Android advertising playout development track (2026-10-29)
+
+- [x] Introduce Flutter/Dart Android **mobile + Android TV** player source with dedicated Android launcher and Leanback metadata, secure device pairing, authenticated manifest, signed-media image/video renderer, heartbeat and player-reported telemetry. This is development source, **not an APK build or field UAT PASS**.
+- [x] Add fullscreen ad mode and a faithful 75/25 **L-band preview**, explicitly leaving the primary video feed unconnected instead of simulating protected live channels.
+- [x] Add operator-triggered, off-by-default JPEG/PNG/WebP trusted image verification (bounded S3 read + SHA256 + independent decode + tenant-scoped atomic READY); no video/audio READY shortcut.
+- [x] Add Jest verifier regressions and a root source-contract test for Android manifest, pairing/manifest/heartbeat/telemetry APIs.
+- [ ] Flutter/Dart compilation, package dependency lock, Android Gradle APK signing, emulator + Android phone + Android TV remote/hardware codec UAT, real CDN storage and independently verified TV overlay, offline queue, live video feed, multi-creative zoning, media rights, field proof and fraud controls — separate gates.
+
+Detailed architecture, safety boundaries and missing approvals: `docs/ANDROID-ADS-PLAYER-DELIVERY.md`. All financial, ad-pricing and payout decisions remain unchanged/unapproved. This batch has no server/production deployment.
