@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import sharp = require('sharp');
+import * as sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from './storage.service';
 
