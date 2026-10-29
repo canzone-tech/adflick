@@ -35,6 +35,6 @@ test('platform confirmation is not misrepresented as an original SRS quotation o
   assert.match(matrix, /project.owner.confirmed client scope/i);
   assert.match(matrix, /original DOCX was not accessible/i);
   assert.match(matrix, /Required ≠ built ≠ tested ≠ approved/);
-  assert.match(matrix, /does not establish an approved, working Tizen, webOS, Windows, Linux or iOS player/);
+  assert.match(matrix, /Flutter support does\\s+(?:\\*\\*)?not(?:\\*\\*)?\\s+establish an approved, working Tizen, webOS, Windows, Linux or iOS player/);
   assert.match(fleet, /Registration only records a platform in MySQL/);
 });
