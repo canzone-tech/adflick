@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## Local operator test plan ready for new exact-SHA gate
+
+Added `docs/LOCAL-END-TO-END-TEST-PLAN.md` with beginning-to-end Ubuntu local test sequence, root verify, guest automated browser, first-admin-aware persistent MySQL runtime, manual staff/CMS/Fleet and versioned device-protocol tests, all 13 OS UAT blockers, PASS/FAIL/BLOCKED evidence and no-production controls. Historical user local PASS at `335a3cae76b965fef74f355befda0c587615f510` does **not** auto-approve the plan-documentation SHA. Recheck branch HEAD and three CI workflows before requesting new `git pull` / `npm run verify`.
+
 ## New-chat scope update — required nine TV/media-player OS platforms
 
 Client names: **Google TV / Android TV; Tizen OS; webOS; Roku TV; Fire TV OS; Titan OS; SmartCast; Xumo TV OS; tvOS (Apple)**. Three overlap the earlier seven targets, six are additional, yielding **PLAT-01…PLAT-13** and preserving mobile/iOS/Windows/Linux. See `docs/CLIENT-PLATFORM-SUPPORT.md` for current requirements, feasibility and hardware blockers; older seven-item handoff below is historical context. Fleet OS labels and contract tests track these targets, but they do not prove native players exist. Do not claim CI, user local verification, physical OS devices, production or app-store partners PASS without exact evidence.

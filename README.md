@@ -46,6 +46,7 @@ GitHub-first delivery: apply changes to `dev/local-foundation`, get **Backend CI
 - [Consolidated historical batch summary and recovery index](docs/BATCH-HISTORY.md)
 - [Development/delivery rules](docs/DEVELOPMENT-DELIVERY-RULES.md)
 - [UAT checklist](docs/UAT-CHECKLIST.md)
+- [Start-to-finish Ubuntu local UAT test plan](docs/LOCAL-END-TO-END-TEST-PLAN.md)
 - [Production runbook](docs/PRODUCTION-RUNBOOK.md) and [release signoff](docs/RELEASE-SIGNOFF.md)
 
 **Production NOT AUTHORIZED.** Real encrypted off-host backup and isolated restore, approved business rules, immutable source-free release artifact, operator approval, scoped rollback and external UAT must all be independently verified. No live monetary operations or promised income are enabled.

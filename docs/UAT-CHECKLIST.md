@@ -57,3 +57,9 @@ Each line requires real test log, reviewer, SHA and PASS/FAIL/BLOCKED. Static so
 | PLAT-07 Linux | Approved distro/architecture native package, representative Linux device, codec/kiosk/reboot/upgrade tests | **PENDING** |
 
 For **each** platform also verify tenant-scoped pairing, secret storage, revocation, valid/expired signed manifest, independently READY ads, schedule and authorization checks, offline queue, authenticated heartbeat, deduplicated playback events, invalid event rejection, disclosure/fraud rules, signed artifact checksums, reviewer and rollback. Backend event acceptance is **not independent proof-of-view** or payout approval. No platform row can be marked PASS using generic Flutter or Node tests alone.
+
+## Current expanded platform acceptance & local test runbook — 2026-10-29
+
+The historical seven-target section above records an earlier scope checkpoint; the current project owner also requires **Roku TV, Fire TV OS, Titan OS, VIZIO SmartCast, Xumo TV OS and Apple tvOS**. With existing Android TV/Tizen/webOS families this is **nine mandatory TV platforms**, plus Android/iOS mobile and Windows/Linux, tracked as **PLAT-01…PLAT-13**. No real native platform is certified by Node CI or Fleet registration.
+
+**Execute from zero:** `docs/LOCAL-END-TO-END-TEST-PLAN.md` defines P0/P1 disposable local verification; P2 standalone compiled browser UAT; P3 one-time-first-admin-if-needed; P4 persistent dev API/Web; P5 guest/admin/MFA/CMS/Fleet/device protocol; P6 restart persistence; case-ID observations and a redacted evidence template. All **new manual test cases start NOT RUN** on the new plan SHA. Developer `local:dev:uat` is CI-only; native 13-group device UAT remains separately pending. Original SRS product approvals and production authorization are unchanged.
