@@ -4,6 +4,32 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## Chat rollover inventory — 2026-10-29 (unintegrated incoming attachments)
+
+**At this checkpoint:** branch HEAD was `cbfabea201c49c1bbbfc13be5f647899c0a012dc` prior to this addendum. Backend CI was reported **SUCCESS** on this previous HEAD ([run 40838826247](https://github.com/canzone-tech/adflick/actions/runs/40838826247)), while Frontend CI ([40838826248](https://github.com/canzone-tech/adflick/actions/runs/40838826248)) and Release Evidence ([40838826332](https://github.com/canzone-tech/adflick/actions/runs/40838826332)) were **IN PROGRESS** when checked. These are **not** evidence for the new handoff commit. Re-query all three on the new exact HEAD. Operator local `npm run verify`, native player builds/UAT, backup/restore and production are **PENDING/NOT VERIFIED** for the new SHA.
+
+The user uploaded the following materials in the closing chat. They were **not copied into Git**, and are **not automatically guaranteed to be accessible in a new chat**. File sizes and SHA-256 are computed from the conversation's local file copies; ZIP member listings were opened, but the source archives were **not independently reconciled, scanned for secrets, installed, compiled, or test-executed**. Do not import these into the public repo until separately reviewed and approved.
+
+| Attached file | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `ADFLICK_PLAYOUT_BATCH_051_100_RECOVERY_BUNDLE.zip` | 15,751 | `f476c27214e0391b959d23d4aff18fc3c623436b5d27b070f702b28bd40f2721` |
+| `ADFLICK_PLAYOUT_BATCH_101_150_SINGLE_BUNDLE.zip` | 350,442 | `49f73282fb766a38f0c37a4988998e73cf53ad217fec731845b3970f8057613a` |
+| `ADFLICK_PLAYOUT_CMS_BATCH_01-50_MASTER_BUNDLE.zip` | 19,217,253 | `8f3a140824d9023fc38da55160ec038700ca8bb7cee2a439db76f0d0f8992390` |
+| `ADFLICK_PLAYOUT_CMS_BATCH_01_SOURCE.zip` | 23,048 | `3a90b858415b817c5648d8ab9be755c14c4801cd0f9256411b61f9503c38e676` |
+| `ADFLICK_PLAYOUT_CMS_BATCH_02_COMPLETE_SOURCE.zip` | 36,582 | `1224ee741b9da9349930643c468b8aece08836805b0dbed248f100f9bfd0f67a` |
+| `ADFLICK_PLAYOUT_CMS_BATCH_03_COMPLETE_SOURCE.zip` | 54,822 | `255edf57cd216c1f928bf642babef842f10c9045e13afd677764788651adb6f5` |
+| `ADFLICK_PLAYOUT_CMS_BATCH_04_COMPLETE_SOURCE.zip` | 72,464 | `1c7bba22aceab61491db4bf279caf3e8d2286b37632a5ecd943aedc82cc7477d` |
+| `ADFLICK_PLAYOUT_CMS_BATCH_05_COMPLETE_SOURCE.zip` | 88,073 | `7d512d689825da81283ce0e9d3509feff1bc963933481db9823451f3a27dcaaa` |
+| `ADFLICK_PLAYOUT_ENGINEERING_BATCH_IMPLEMENTATION_GUIDE.docx` | 46,000 approx. | `65ffbb1a37670bff4b57f74d946b3a3d0818e89a446f9284e8dc6667f970f89b` |
+| `ADFLICK_PLAYOUT_MASTER_SOURCE_RECOVERY_BATCH_001_150_AUDIT_BUNDLE.zip` | 43,518 | `4e94dc8b848959b63afc2cdae0276ce7b82c1b593541da419d9b98d48d2a5f8e` |
+| `ADFLICK_SmartTV_LShape_Architecture-13.html` | 76 KB approx. | `553b53fe4162b6407525acfec9a1d58aaa6f7f8a26ec07df0c7ec6221e0e0526` |
+
+**Observed archive listings:** The 051–100 bundle has 8 metadata/register/notes entries, not proven full source for those batches. The 101–150 bundle contains 49 nested archives named Batch 102 through 150 plus one manifest; no Batch 101 source was listed. The 001–050 master bundle has 52 outer entries, including nested batch ZIPs and a candidate latest Batch 50 ZIP; no source comparison/integration was performed. The audit bundle has 5 documentary/register entries. Small ZIP archives passed a basic CRC read; the 19 MB master did **not** undergo a complete CRC check. The HTML is a Smart TV layout **reference simulator**, not real TV/player UAT.
+
+**Engineering guide's constraint:** The attached engineering guide describes source recovery and Batch 001–150 reconciliation as *not yet evidenced*, prohibits blind ZIP overlay and starting Batch 151 before reconciliation, and requires a batch register, hash-based provenance, isolated extraction, review, tests and acceptance. Treat files as new recovery inputs, not proof that all 150 batches are complete. Existing SRS/product approvals and platform requirements remain separately governed by repo documents.
+
+**Next chat priority:** Inspect live branch HEAD + exact-SHA workflows first. If the owner wants archive recovery next, request reattachment/access to these exact hashed files if unavailable; review manifests and scan isolated content against the canonical repo, update the consolidated `docs/BATCH-HISTORY.md` with evidence rather than generating 150 unnecessary files, and never activate business rules or production from untrusted archives.
+
 ## First action when this document is read
 
 1. Fetch live `dev/local-foundation` HEAD and inspect `AGENTS.md`, `docs/DEVELOPMENT-DELIVERY-RULES.md`, `docs/CLIENT-PLATFORM-SUPPORT.md`, `docs/SRS-V1-DELIVERY-BACKLOG.md`, `docs/SRS-V1-TRACEABILITY.md`, `docs/ANDROID-ADS-PLAYER-DELIVERY.md` and changed source. Do **not** assume the snapshot SHA below is still HEAD.
