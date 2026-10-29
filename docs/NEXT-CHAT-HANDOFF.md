@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## CI follow-up: authenticated navigation and API reachability, 2026-10-29
+
+Guest pre-render redirect cases PASS in browser CI, but authenticated navigation to /health later redirected /login and a sanitized Chrome API auth probe had status 0 (network error). CI failure is not an accepted release. Disabled automatic Next.js Link prefetch in central Operations navigation to bound session checks; added local browser UAT API health / app-process-liveness diagnostics on failure. Check newer exact-SHA CI and investigate any remaining failure before local instructions.
+
 ## Urgent 2026-10-29 operator UAT security finding
 
 Owner found in Chrome Incognito that unauthenticated users could access the full Operations sidebar, /cms interactive preview and /health shell, although private API calls returned Unauthorized. Treat as legitimate **guest workspace access defect**. Fix in `apps/web/middleware.ts` checks real NestJS /auth/me before protected route render and redirects guests, forged/revoked cookies to /login. `scripts/browser-uat.mjs` now requires guest pre-render redirect checks and authenticated browser tests with isolated throwaway admin; `scripts/smoke-runtime.mjs` denies protected compiled routes. No DB schema or production change. Verify exact-SHA CI and obtain fresh operator local `git pull` / `npm run verify`, `npm run local:uat`, Incognito and logged-in screenshots before claiming fixed local UAT.

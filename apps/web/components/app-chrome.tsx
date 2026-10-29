@@ -103,7 +103,7 @@ function WorkspaceShell({ children, pathname, mobileOpen, setMobileOpen, toggleR
       <a className="app-skip-link" href="#app-page-content">Skip to page content</a>
       {mobileOpen && <button className="app-backdrop" type="button" aria-label="Close navigation" onClick={closeNavigation} data-testid="app-backdrop" />}
       <aside className={'app-sidebar' + (mobileOpen ? ' app-sidebar-open' : '')} aria-label="Workspace navigation" id="app-main-navigation" ref={navRef} onKeyDown={handleDrawerKeyDown} data-testid="app-sidebar">
-        <Link className="app-brand" href="/" onClick={closeNavigation} aria-label="ADFLICK workspace overview">
+        <Link className="app-brand" href="/" prefetch={false} onClick={closeNavigation} aria-label="ADFLICK workspace overview">
           <span className="app-brand-mark" aria-hidden="true">A▶</span>
           <span><strong>ADFLICK</strong><small>OPERATIONS</small></span>
         </Link>
@@ -115,6 +115,7 @@ function WorkspaceShell({ children, pathname, mobileOpen, setMobileOpen, toggleR
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={false}
                   onClick={closeNavigation}
                   className={'app-nav-item' + (link.href === active.href ? ' app-nav-active' : '')}
                   aria-current={link.href === active.href ? 'page' : undefined}
@@ -127,7 +128,7 @@ function WorkspaceShell({ children, pathname, mobileOpen, setMobileOpen, toggleR
           ))}
         </nav>
         <div className="app-sidebar-footer">
-          <Link href="/account" onClick={closeNavigation}>Security &amp; account</Link>
+          <Link href="/account" prefetch={false} onClick={closeNavigation}>Security &amp; account</Link>
           <span>Workspace access requires a valid session for protected APIs.</span>
         </div>
       </aside>
@@ -149,7 +150,7 @@ function WorkspaceShell({ children, pathname, mobileOpen, setMobileOpen, toggleR
               <strong>{active.label}</strong>
             </div>
           </div>
-          <Link className="app-topbar-account" href="/account" aria-label="Account and multi-factor security">Account &amp; security</Link>
+          <Link className="app-topbar-account" href="/account" prefetch={false} aria-label="Account and multi-factor security">Account &amp; security</Link>
         </header>
         <div id="app-page-content" className="app-page" data-testid="app-page-content">
           {children}

@@ -181,8 +181,18 @@ async function main() {
   console.log('API health:' + apiUrl + '/health');
   console.log(persistentDevelopment ? 'Database:  persistent ADFLICK-only MySQL 8.4 volume; survives Ctrl+C and relaunch' : 'Database:  disposable Docker MySQL 8.4 (localhost only; will be destroyed on exit)');
   if (browserUat) {
-    await command('Real headless Chrome browser UAT', process.execPath, ['scripts/browser-uat.mjs', webUrl, apiUrl], { ...common, ADFLICK_UAT_URL: webUrl });
-    console.log('BROWSER UAT PASS (isolated compiled runtime).');
+    try {
+      await command('Real headless Chrome browser UAT', process.execPath, ['scripts/browser-uat.mjs', webUrl, apiUrl], { ...common, ADFLICK_UAT_URL: webUrl });
+      console.log('BROWSER UAT PASS (isolated compiled runtime).');
+    } catch (e) {
+      // Diagnostics only: statuses and process liveness, never secrets or DB URLs.
+      const healthStatus = await fetch(apiUrl + '/health', { signal: AbortSignal.timeout(2000) })
+        .then(r => r.status).catch(() => 0);
+      console.error('ADFLICK browser UAT dependency status: API health HTTP ' + healthStatus
+        + ', API process alive=' + (api.child.exitCode === null)
+        + ', WEB process alive=' + (web.child.exitCode === null));
+      throw e;
+    }
   } else {
     console.log('Open the URLs in your Ubuntu browser. Press Ctrl+C to stop only ADFLICK application services.' + (persistentDevelopment ? ' MySQL volume will be preserved.' : ''));
     await Promise.race([

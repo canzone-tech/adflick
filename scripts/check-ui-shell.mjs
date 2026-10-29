@@ -34,6 +34,7 @@ for (const route of ['/','/cms','/campaigns','/delivery','/scheduler','/fleet','
   if (!shell.includes("href: '"+route+"'")) throw new Error('Missing canonical navigation route '+route);
   if (!browser.includes("'"+route+"'")) throw new Error('Browser layout test must cover '+route);
 }
+if (!shell.includes('prefetch={false}')) throw new Error('Protected workspace links must not flood /auth/me via automatic prefetch.');
 for (const control of ['aria-current','aria-expanded','aria-controls','app-skip-link','app-menu-toggle','app-backdrop','handleDrawerKeyDown','Escape']) {
   if (!shell.includes(control)) throw new Error('Missing accessible shell control: '+control);
 }
