@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## Session verification throughput adjustment
+
+Next.js pre-render authorization checks added repeat read-only /auth/me calls across many E2E browser routes. Applied a scoped **300/min GET /auth/me limit** (authentication/JWT unchanged; stricter login/refresh/MFA limits unchanged) and added anonymous /auth/me HTTP diagnostics on browser failure. Treat this as technical rate control, not proof of a previous 429 without logs. Exact SHA CI and operator retest required.
+
 ## CI follow-up: authenticated navigation and API reachability, 2026-10-29
 
 Guest pre-render redirect cases PASS in browser CI, but authenticated navigation to /health later redirected /login and a sanitized Chrome API auth probe had status 0 (network error). CI failure is not an accepted release. Disabled automatic Next.js Link prefetch in central Operations navigation to bound session checks; added local browser UAT API health / app-process-liveness diagnostics on failure. Check newer exact-SHA CI and investigate any remaining failure before local instructions.

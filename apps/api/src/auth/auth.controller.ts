@@ -29,7 +29,10 @@ export class AuthController {
   async refresh(@Body() dto: RefreshDto, @Req() req: Request, @Ip() ip: string, @Headers('user-agent') userAgent: string | undefined, @Res({ passthrough: true }) res: Response) { const refreshToken = dto?.refreshToken ?? req.cookies?.[REFRESH_COOKIE_NAME]; const session = await this.auth.refresh(refreshToken ?? '', this.meta(ip, userAgent)); this.setSessionCookies(res, session); return { user: session.user, expiresIn: session.expiresIn, refreshExpiresAt: session.refreshExpiresAt }; }
   @Post('logout') @UseGuards(JwtAuthGuard)
   async logout(@Body() dto: LogoutDto, @Req() req: Request, @CurrentUser() actor: AuthenticatedUser, @Ip() ip: string, @Res({ passthrough: true }) res: Response) { const refreshToken = dto?.refreshToken ?? req.cookies?.[REFRESH_COOKIE_NAME]; const result = await this.auth.logout(refreshToken, actor, this.meta(ip)); this.clearSessionCookies(res); return result; }
-  @Get('me') @UseGuards(JwtAuthGuard) me(@CurrentUser() actor: AuthenticatedUser) { return this.auth.me(actor); }
+  // Workspace route guards verify sessions on every protected page/RSC request.
+  // Keep GET /me bounded but independent from the much stricter login/refresh/MFA limits.
+  @Get('me') @Throttle({ default: { limit: 300, ttl: 60_000 } }) @UseGuards(JwtAuthGuard)
+  me(@CurrentUser() actor: AuthenticatedUser) { return this.auth.me(actor); }
   @Post('change-password') @UseGuards(JwtAuthGuard) changePassword(@Body() dto: ChangePasswordDto, @CurrentUser() actor: AuthenticatedUser) { return this.auth.changePassword(actor, dto.currentPassword, dto.newPassword); }
   @Get('mfa/status') @UseGuards(JwtAuthGuard) mfaStatus(@CurrentUser() actor: AuthenticatedUser) { return this.mfa.status(actor); }
   @Post('mfa/enroll') @UseGuards(JwtAuthGuard) @Throttle({ default: { limit: 3, ttl: 60_000 } }) mfaEnroll(@Body() dto: MfaEnrollDto, @CurrentUser() actor: AuthenticatedUser, @Ip() ip: string) { return this.mfa.enroll(actor, dto.currentPassword, { ipAddress: ip }); }

@@ -188,7 +188,11 @@ async function main() {
       // Diagnostics only: statuses and process liveness, never secrets or DB URLs.
       const healthStatus = await fetch(apiUrl + '/health', { signal: AbortSignal.timeout(2000) })
         .then(r => r.status).catch(() => 0);
+      const anonymousMeStatus = await fetch(apiUrl + '/auth/me', {
+        headers: { Origin: webUrl }, signal: AbortSignal.timeout(2000),
+      }).then(r => r.status).catch(() => 0);
       console.error('ADFLICK browser UAT dependency status: API health HTTP ' + healthStatus
+        + ', anonymous /auth/me HTTP ' + anonymousMeStatus
         + ', API process alive=' + (api.child.exitCode === null)
         + ', WEB process alive=' + (web.child.exitCode === null));
       throw e;

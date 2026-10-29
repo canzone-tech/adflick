@@ -75,3 +75,7 @@ Operator Chrome Incognito screenshots showed that `/account` correctly denied id
 ### Additional CI regression investigation, 2026-10-29
 
 An authenticated Chrome run redirected from `/health` to `/login`; a diagnostic browser probe returned `authStatus: 0` (network error) during the event. This is **CI FAIL**, not proof of a working operator journey. Protected link prefetch in the shared sidebar was disabled to avoid spawning many competing authenticated RSC route requests/session lookups; the isolated local runtime now reports API health and child process liveness if browser UAT fails. Re-run all exact-SHA CI gates and operator local browser acceptance before calling this fixed. No relaxation of device/user authorization, no production change.
+
+### Session-read throttle isolation (follow-up)
+
+Authenticated /auth/me is called by the Next.js pre-render route guard for page requests and some React Server Component navigations, in addition to normal user identity reads. It now has a **specific bounded 300 requests per 60 seconds** rather than sharing the lower default; all password-login, refresh, MFA, device, payout and mutation limits remain unchanged. This is **not** authentication bypass, merely a scoped read-only capacity rule. If Chrome UAT again fails, its runtime prints anonymous /auth/me HTTP status plus API health/liveness to distinguish 429 from a real API/network problem; do not infer a confirmed 429 until the status is observed.
