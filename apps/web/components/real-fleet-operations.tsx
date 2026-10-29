@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { apiRequest, errorMessage, formatAge } from '../lib/api';
 import './real-operations.css';
 
-type Identity = {roles:string[]};
+type Identity = {roles:string[];organizationId:string|null};
 type Screen = {id:string;name:string;platform:string;status:string;playerVersion:string|null;lastHeartbeatAt:string|null};
 type Health = {generatedAt:string;heartbeatStaleAfterSeconds:number;screens:{total:number;online:number;offline:number;maintenance:number;unhealthy:number}};
 type Registered = {screen:Screen;pairingCode:string;expiresAt:string;instructions:string};
@@ -24,7 +24,7 @@ export function RealFleetOperations() {
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [reloadKey,setReloadKey]=useState(0);
-  const canRead=identity?.roles.some(role=>readRoles.includes(role))??false;
+  const canRead=Boolean(identity?.organizationId && identity.roles.some(role=>readRoles.includes(role)));
   const canWrite=identity?.roles.some(role=>writeRoles.includes(role))??false;
 
   async function refresh() {
@@ -43,7 +43,7 @@ export function RealFleetOperations() {
         const me=await apiRequest<Identity>('/auth/me');
         if(!alive)return;
         setIdentity(me);
-        if(!me.roles.some(role=>readRoles.includes(role)))return;
+        if(!me.organizationId || !me.roles.some(role=>readRoles.includes(role)))return;
         const [rows,summary]=await Promise.all([
           apiRequest<Screen[]>('/fleet/screens'),
           apiRequest<Health>('/fleet/health-summary'),
@@ -85,7 +85,8 @@ export function RealFleetOperations() {
     {loading&&<p role="status">Checking fleet access and stored device state…</p>}
     {error&&<p className="real-ops-error" role="alert">{error}</p>}
     {!loading&&!identity&&<p>Please <Link href="/login">sign in</Link> to access fleet records.</p>}
-    {!loading&&identity&&!canRead&&<p role="status">Your role cannot view organization fleet records.</p>}
+    {!loading && identity && !identity.organizationId && <p role="status">Organization context required. This account is not linked to an organization; select or provision an approved tenant context before viewing secured records.</p>}
+    {!loading&&identity&&identity.organizationId&&!canRead&&<p role="status">Your role cannot view organization fleet records.</p>}
     {!loading&&canRead&&<div className="real-ops-grid">
       <div className="real-ops-panel"><h3>Recorded screens ({screens.length} latest)</h3>
         {health&&<p role="status">Tenant summary: {health.screens.total} screens · {health.screens.online} online · {health.screens.offline} offline · {health.screens.unhealthy} unhealthy</p>}

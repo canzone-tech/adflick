@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { apiRequest, errorMessage } from '../lib/api';
 import './real-operations.css';
 
-type Identity = { roles: string[] };
+type Identity = { roles: string[]; organizationId: string|null };
 type Zone = { id: number; name: string; x: number; y: number; width: number; height: number; type: string };
 type Asset = { id: string; title: string; originalName: string; mimeType: string; status: string; sizeBytes: string };
 type Playlist = { id: string; name: string; status: string; itemsJson: unknown };
@@ -29,7 +29,7 @@ export function RealCmsOperations({ zones, layoutName }: { zones: Zone[]; layout
   const [selectedAsset, setSelectedAsset] = useState('');
   const [durationSeconds, setDurationSeconds] = useState('15');
   const [reloadKey, setReloadKey] = useState(0);
-  const canRead = identity?.roles.some(role => readerRoles.includes(role)) ?? false;
+  const canRead = Boolean(identity?.organizationId && identity.roles.some(role => readerRoles.includes(role)));
   const canWrite = identity?.roles.some(role => writerRoles.includes(role)) ?? false;
   const canUpload = identity?.roles.some(role => [...writerRoles,'ADVERTISER'].includes(role)) ?? false;
 
@@ -50,7 +50,7 @@ export function RealCmsOperations({ zones, layoutName }: { zones: Zone[]; layout
         const me = await apiRequest<Identity>('/auth/me');
         if (!alive) return;
         setIdentity(me);
-        if (me.roles.some(role => readerRoles.includes(role))) {
+        if (me.organizationId && me.roles.some(role => readerRoles.includes(role))) {
           const [a, p, t] = await Promise.all([
             apiRequest<Asset[]>('/cms/assets'),
             apiRequest<Playlist[]>('/cms/playlists'),
@@ -141,7 +141,8 @@ export function RealCmsOperations({ zones, layoutName }: { zones: Zone[]; layout
     {loading && <p role="status">Checking CMS access and loading stored records…</p>}
     {error && <p className="real-ops-error" role="alert">{error}</p>}
     {!loading && !identity && <p>Sign in via <Link href="/login">member/staff login</Link> for secured CMS access.</p>}
-    {!loading && identity && !canRead && <p role="status">Your role has no CMS record access.</p>}
+    {!loading && identity && !identity.organizationId && <p role="status">Organization context required. This account is not linked to an organization; select or provision an approved tenant context before viewing secured records.</p>}
+    {!loading && identity && identity.organizationId && !canRead && <p role="status">Your role has no CMS record access.</p>}
     {!loading && canRead && <>
       <div className="real-ops-grid">
         <div className="real-ops-panel"><h3>Stored media ({assets.length} latest)</h3>

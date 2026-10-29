@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { apiRequest, errorMessage } from '../lib/api';
 import './real-operations.css';
 
-type Identity = { roles: string[] };
+type Identity = { roles: string[]; organizationId: string|null };
 type Asset = { id: string; title: string; status: string };
 type Campaign = {
   id: string; name: string; status: string; reviewNote: string|null;
@@ -27,7 +27,7 @@ export function RealCampaignOperations() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
-  const canRead = identity?.roles.some(role => readRoles.includes(role)) ?? false;
+  const canRead = Boolean(identity?.organizationId && identity.roles.some(role => readRoles.includes(role)));
   const canWrite = identity?.roles.some(role => writeRoles.includes(role)) ?? false;
 
   async function refresh(withAssets: boolean) {
@@ -45,7 +45,7 @@ export function RealCampaignOperations() {
         const me = await apiRequest<Identity>('/auth/me');
         if (!alive) return;
         setIdentity(me);
-        if (!me.roles.some(role => readRoles.includes(role))) return;
+        if (!me.organizationId || !me.roles.some(role => readRoles.includes(role))) return;
         const [campaigns, media] = await Promise.all([
           apiRequest<Campaign[]>('/campaigns'),
           me.roles.some(role => cmsReadRoles.includes(role)) ? apiRequest<Asset[]>('/cms/assets') : Promise.resolve([] as Asset[]),
@@ -101,7 +101,8 @@ export function RealCampaignOperations() {
     {loading && <p role="status">Checking campaign access and stored records…</p>}
     {error && <p role="alert" className="real-ops-error">{error}</p>}
     {!loading && !identity && <p>Please <Link href="/login">sign in</Link> for real campaign records.</p>}
-    {!loading && identity && !canRead && <p role="status">Your role cannot access campaign records.</p>}
+    {!loading && identity && !identity.organizationId && <p role="status">Organization context required. This account is not linked to an organization; select or provision an approved tenant context before viewing secured records.</p>}
+    {!loading && identity && identity.organizationId && !canRead && <p role="status">Your role cannot access campaign records.</p>}
     {!loading && canRead && <div className="real-ops-grid">
       <div className="real-ops-panel"><h3>Stored campaigns ({rows.length} latest)</h3>
         {rows.length === 0 ? <p role="status">No real campaigns recorded for this account.</p> :

@@ -156,6 +156,8 @@ async function run() {
     await navigate('/account');
     await until("document.body.innerText.includes('ORGANIZATION_ADMIN')", 'account restored after role-safe navigation');
 
+    const scopedOrganization = await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/auth/me') + ",{credentials:'include'});const identity=await r.json();return Boolean(identity.organizationId);})()");
+    if (scopedOrganization) {
     for (const [path,id] of [['/cms','real-cms-operations'],['/campaigns','real-campaign-operations'],['/fleet','real-fleet-operations']]) {
       await navigate(path);
       await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel')",path+' real authenticated MySQL panel');
@@ -163,8 +165,20 @@ async function run() {
         throw new Error('Secured panel data load failed for '+path);
     }
     await navigate('/account');
+    } else {
+      // Bootstrap first-admin is intentionally unscoped. Do not silently
+      // invent a tenant or expose global data through tenant-only APIs.
+      for (const [path,id] of [['/cms','real-cms-operations'],['/campaigns','real-campaign-operations'],['/fleet','real-fleet-operations']]) {
+        await navigate(path);
+        await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "]')?.innerText.includes('Organization context required')",path+' unscoped staff guidance');
+        if(await evaluate("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel'))"))
+          throw new Error('Unscoped bootstrap admin received tenant data: '+path);
+      }
+      console.log('Chrome unscoped first-admin real operations denial PASS');
+      await navigate('/account');
+    }
 
-    const beforeEnrollment = await privilegedMutationStatus();
+        const beforeEnrollment = await privilegedMutationStatus();
     if (beforeEnrollment !== 403) throw new Error('Privileged mutation did not fail closed before MFA enrollment; status=' + beforeEnrollment);
     await until("Boolean(document.querySelector('[data-testid=\"mfa-enroll-password\"]'))", 'MFA enrollment controls');
     await click('[data-testid="mfa-enroll-password"]'); await command('Input.insertText', { text: process.env.ADFLICK_BROWSER_TEST_PASSWORD }); await click('[data-testid="mfa-enroll-button"]');
@@ -177,6 +191,7 @@ async function run() {
     await until("document.body.innerText.includes('MFA enabled') && document.querySelector('[data-testid=\"mfa-status\"]')?.innerText.includes('Enabled')", 'MFA confirmation');
     const afterEnrollment = await privilegedMutationStatus();
     if (afterEnrollment !== 400) throw new Error('Privileged mutation did not pass the MFA gate after enrollment; status=' + afterEnrollment);
+    if (scopedOrganization) {
     // These mutations run only against CI's disposable MySQL. They prove
     // actual persistence and one-time secret hiding, not media approval or deployment.
     await navigate('/cms');
@@ -205,6 +220,9 @@ async function run() {
       throw new Error('Campaign draft creation is enabled without an independently READY creative.');
     console.log('Chrome real CMS/fleet MySQL persistence + campaign fail-closed PASS');
     await navigate('/account');
+    } else {
+      console.log('Unscoped bootstrap admin: no CMS/fleet tenant mutations performed');
+    }
     await screenshot('mfa-enrolled');
 
     await click('.account-logout'); await until("location.pathname === '/login'", 'logout after MFA enrollment');

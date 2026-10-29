@@ -18,3 +18,7 @@ The public engineering dashboard and existing `/cms`, `/campaigns`, and `/fleet`
 - Campaign approval and scheduling are deliberately not exposed as new real-panel actions; business/legal/financial/provider decisions remain unapproved.
 - No published marketing homepage, provider-approved SMS, binary commission calculation or payout functionality is enabled. Only explicit release approval and production recovery/rollback evidence can authorize deployment.
 - Source code is committed on `dev/local-foundation`. Exact-SHA CI and user-run `npm run verify` remain mandatory before any further deployment planning.
+
+## Bootstrap administrator has no tenant context
+
+The initial provisioned first-admin account may carry `ORGANIZATION_ADMIN` without an `organizationId`. Such a session is **not** allowed to assume arbitrary tenant access. Real CMS, Campaign and Fleet panels now check both role **and** selected organization before making record requests, present an explicit organization-context-required message, and show no tenant inventory. Chrome first-admin UAT asserts this safe-denial path. MySQL REST E2E tests independently verify tenant-scoped create/read/persistence using explicitly provisioned isolated organizations; Chrome write-and-reload checks run only when the browser account actually has an organization context. No implicit tenant creation, impersonation, or scope elevation is introduced.
