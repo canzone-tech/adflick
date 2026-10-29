@@ -4,19 +4,49 @@
 
 **Evidence boundary:** The original `ADFLICK_Binary_1x1_MLM_Complete_SRS.docx` is referenced in repository traceability but the original DOCX was not accessible for a verbatim platform-clause check during this update. This requirement is therefore **project-owner-confirmed client scope**, not a claimed quotation from the original document. Preserve the original SRS wording if/when supplied and reconcile any difference explicitly.
 
+## Updated client Smart TV and media-player OS list (2026-10-29)
+
+**Nine explicitly required TV platform families:** Google TV / Android TV, Tizen OS, webOS, Roku TV, Fire TV OS, Titan OS, SmartCast, Xumo TV OS and Apple tvOS. This list was supplied by the project owner as **client requirements**, not optional Fleet options. Three TV families overlap the earlier seven groups (PLAT-02 Android TV, PLAT-04 Tizen, PLAT-05 webOS); six new groups (PLAT-08…PLAT-13) expand the matrix to **13 required delivery groups, including nine TV families**. Keep previously required Android/iOS mobile/tablet and Windows/Linux media-player targets. tvOS is not iOS; Google TV and Android TV share a development OS family but require client-device acceptance separately.
+
+**Evidence boundary:** this is owner-supplied scope, not a verified original SRS quotation, and is not acceptance of native SDKs, media rights, APKs, app-store distribution, hardware tests, commercial policy, or system-wide TV overlays.
+
 ## Required delivery targets
 
 | ID | Client-required platform / device | Existing implementation (2026-10-29) | Platform acceptance |
 | --- | --- | --- | --- |
 | PLAT-01 | **Android phones and tablets** | Flutter/Dart Android source foundation in `apps/player_flutter`; native build not yet verified | **PENDING** — Android build/emulator/real phone and tablet UAT |
-| PLAT-02 | **Android TV / Android-based Smart TVs** | Same Flutter Android source and Leanback launcher/L-band preview | **PENDING** — APK, remote/D-pad, codecs, overscan, real L-band and physical TV UAT |
+| PLAT-02 | **Google TV / Android TV / Android-based Smart TVs** | Same Flutter Android source and Leanback launcher/L-band preview | **PENDING** — APK, remote/D-pad, codecs, overscan, real L-band and physical TV UAT |
 | PLAT-03 | **iOS phones / iPadOS tablets** | No verified iOS target build, signed app or device playback | **MISSING / PENDING** — approved Apple implementation, signing, supported iPhone/iPad UAT |
 | PLAT-04 | **Samsung Smart TV (Tizen OS)** | Fleet stores platform label only; no verified Tizen application | **MISSING / PENDING** — Tizen runtime/player, remote, native media, install and real Samsung TV UAT |
 | PLAT-05 | **LG Smart TV (webOS)** | Fleet stores platform label only; no verified webOS application | **MISSING / PENDING** — webOS runtime/player, remote, native media, install and real LG TV UAT |
 | PLAT-06 | **Windows player devices** | Fleet stores platform label only; no verified Windows desktop/kiosk application | **MISSING / PENDING** — installer/runtime, codec, recovery and real Windows device UAT |
 | PLAT-07 | **Linux player devices** | Fleet stores platform label only; no verified Linux desktop/kiosk application | **MISSING / PENDING** — distribution/architecture matrix, packaging, codec and real Linux device UAT |
+| PLAT-08 | **Roku TV (Roku OS)** | No BrightScript/SceneGraph player | **MISSING / PENDING** — Roku signed app, store approval, real TV D-pad/media UAT |
+| PLAT-09 | **Fire TV OS (Amazon Fire OS)** | No verified Fire TV app | **MISSING / PENDING** — Fire OS/Amazon integration and real device UAT, plus Vega OS scope decision |
+| PLAT-10 | **Titan OS** | No verified Titan OS app | **MISSING / PENDING** — partner access, SDK, packaging and real TV UAT |
+| PLAT-11 | **VIZIO SmartCast** | No verified VIZIO app | **MISSING / PENDING** — partner access, VIZIO OS/SmartCast model map and real TV UAT |
+| PLAT-12 | **Xumo TV OS** | No verified Xumo app | **MISSING / PENDING** — Entertainment OS/Scaled stack decision, partner integration and real-device UAT |
+| PLAT-13 | **Apple tvOS (Apple TV)** | No native tvOS player | **MISSING / PENDING** — Xcode/signing, AVPlayer, remote/device UAT |
 
-**Required ≠ built ≠ tested ≠ approved.** An operator selecting a platform and registering a screen in MySQL proves only fleet registration. Existing 3× GitHub CI GREEN and root `npm run verify` cover the Node services/web plus Android source contracts, **not** the seven native player targets. Do not advertise cross-platform runtime support as delivered until each target has independent evidence.
+**Required ≠ built ≠ tested ≠ approved.** An operator selecting a platform and registering a screen in MySQL proves only fleet registration. Existing 3× GitHub CI GREEN and root `npm run verify` cover the Node services/web plus Android source contracts, **not** the thirteen native player platform gates. Do not advertise cross-platform runtime support as delivered until each target has independent evidence.
+
+## TV platform feasibility and vendor restrictions (not runtime approvals)
+
+| Required TV family | SDK/runtime to evaluate | Primary blocker |
+| --- | --- | --- |
+| Google TV / Android TV (PLAT-02) | Android TV app; investigate existing Flutter Android code | Android/Google TV hardware, signed APK, media/remote/L-band UAT |
+| Samsung Tizen OS (PLAT-04) | Tizen TV web app / platform player APIs | Per-model codecs/web-engine, signed package and TV UAT |
+| LG webOS (PLAT-05) | webOS TV web app / media APIs | Per-generation web engine, signing/distribution and TV UAT |
+| Roku TV (PLAT-08) | BrightScript + SceneGraph | Dedicated app, certification and player UAT |
+| Fire TV OS (PLAT-09) | Fire OS Android-compatible target where supported | Amazon services and hardware. **Vega OS is a distinct runtime, not automatically covered by an Android APK** |
+| Titan OS (PLAT-10) | Titan OS partner portal/docs | OEM partner authorization and SDK/device matrix |
+| SmartCast (PLAT-11) | VIZIO partner application platform | Partner onboarding, current VIZIO OS model mapping and ad/privacy rules |
+| Xumo TV OS (PLAT-12) | Comcast Entertainment OS or legacy Scaled stack | Partner approval and device/stack choice |
+| tvOS (PLAT-13) | Apple tvOS native SDK with AVPlayer/AVKit | macOS/Xcode, signing, real Apple TV and Siri Remote UAT |
+
+**Vendor references (independent research, not ADFLICK support proof):** [Google TV](https://developer.android.com/training/tv/get-started/google-tv), [Samsung](https://developer.samsung.com/smarttv/develop/specifications/general-specifications.html), [LG](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine), [Roku](https://developer.roku.com/dev/docs/getting-started), [Fire OS](https://developer.amazon.com/docs/fire-tv/fire-os-overview.html), [Vega OS](https://www.developer.amazon.com/apps-and-games/sdks), [Titan OS](https://www.titanos.tv/partner-portal), [VIZIO](https://www.vizio.com/en/content-partners), [Xumo](https://docs.developer.comcast.com/docs/development-stack-tools), [tvOS](https://developer.apple.com/tvos/).
+
+**Critical blocker:** App-contained L-band advertising is not permission to draw ads on top of third-party apps, TV launcher, HDMI or external broadcast streams. OS-wide overlay and primary-video playback require a separately approved OEM/operator capability, licensing and product decision. Pairing, versioned manifests, creative grant validation, heartbeat, offline recovery, telemetry deduplication, privacy and platform-specific signed artifacts need **separate acceptance per TV OS**.
 
 ## Cross-platform contract (every target, required before acceptance)
 

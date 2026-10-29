@@ -39,7 +39,7 @@
 
 ### P4 — Advertising/pl​ayout integration + operational hardening
 - [ ] Integrate existing `apps/api/src/campaigns`, `devices`, `playback`, `cms`, `delivery`, `scheduler` with real web workflows.
-- [ ] Deliver **all client-required advertising player targets** (PLAT-01…PLAT-07): Android mobile/tablet, Android TV, iOS/iPadOS, Samsung Tizen, LG webOS, Windows, Linux. Platform-specific packaging, signed builds, physical/emulator ad playback, offline/replay, remote/touch/keyboard, attestation and rollback UAT are mandatory; only Android source foundation currently exists. See `docs/CLIENT-PLATFORM-SUPPORT.md`.
+- [ ] Deliver **all client-required advertising player targets** (PLAT-01…PLAT-13): Android mobile/tablet, Android TV, iOS/iPadOS, Samsung Tizen, LG webOS, Windows, Linux. Platform-specific packaging, signed builds, physical/emulator ad playback, offline/replay, remote/touch/keyboard, attestation and rollback UAT are mandatory; only Android source foundation currently exists. See `docs/CLIENT-PLATFORM-SUPPORT.md`.
 - [ ] Separate verified-playback rewards from member MLM commissions and approve both policy sets independently.
 - [ ] Notifications/support, plan audit reports, access review, consent/retention, penetration and load tests.
 
@@ -106,3 +106,15 @@ Detailed architecture, safety boundaries and missing approvals: `docs/ANDROID-AD
 **Required delivery scope (not optional):** PLAT-01 Android phone/tablet; PLAT-02 Android TV; PLAT-03 iOS/iPadOS; PLAT-04 Samsung Tizen Smart TV; PLAT-05 LG webOS Smart TV; PLAT-06 Windows player; PLAT-07 Linux player. The previous Android-first code batch **does not** satisfy the remaining five platform families, and Node CI GREEN does not close native platform UAT. Preserve a common tenant-aware/versioned media, campaign, manifest, device, and telemetry API; deliver and test each platform's actual player separately. Do not assume the same native runtime is compatible with all TV/desktop OSes. **Original SRS clause not independently re-read during this clarification; decision grounded in project owner's explicit client-requirement confirmation.**
 
 Prioritization: shared platform-neutral delivery/telemetry contract → Android phone/tablet + Android TV native CI/device evidence → feasibility/approved SDK decisions for iOS/iPadOS, Tizen, webOS, Windows and Linux → OS-specific player delivery and real-device UAT → per-platform product sign-off. OS versions, hardware models, packaging/DRM and ad delivery policy must be reviewed, not guessed. Financial features and production remain blocked by independent approval.
+
+## 2026-10-29 mandatory TV/media-player scope extension
+
+All tracked groups: PLAT-01, PLAT-02, PLAT-03, PLAT-04, PLAT-05, PLAT-06, PLAT-07, PLAT-08, PLAT-09, PLAT-10, PLAT-11, PLAT-12, PLAT-13. Nine required TV targets are **PLAT-02 Google TV/Android TV**, **PLAT-04 Samsung Tizen OS**, **PLAT-05 LG webOS**, **PLAT-08 Roku TV**, **PLAT-09 Fire TV OS**, **PLAT-10 Titan OS**, **PLAT-11 VIZIO SmartCast**, **PLAT-12 Xumo TV OS** and **PLAT-13 Apple tvOS**; preserve PLAT-01 Android mobile/tablet, PLAT-03 iOS/iPadOS, PLAT-06 Windows and PLAT-07 Linux. All native TV UAT gates **PENDING**, no OS-wide overlay permission or new payout authorization.
+
+- [ ] Approve exact supported models/OS, vendor/OEM partner access, DRM/codec/media source rights, app-contained vs external-video overlays and distribution/signing policy.
+- [ ] Distinguish Fire OS versus Vega OS, Xumo Entertainment OS versus Scaled stack and SmartCast versus VIZIO OS models.
+- [ ] Inspect existing player/device APIs, define versioned neutral manifests/telemetry and platform capability negotiation; keep all business rules server-authoritative.
+- [ ] Deliver independent platform packages, touch/remote UAT, signed-media playback, offline/restart recovery, tenant-safe pairing, proof-of-play deduplication and real-device evidence.
+- [ ] SDK runners, certificates, stores, physical devices and OEM/provider contracts require explicit owner approval. CI static Node checks **do not** certify native players.
+
+See `docs/CLIENT-PLATFORM-SUPPORT.md` for acceptance matrix and external SDK references.

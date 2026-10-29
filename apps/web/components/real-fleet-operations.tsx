@@ -101,7 +101,7 @@ export function RealFleetOperations() {
           <label>Screen name<input required minLength={2} maxLength={160} disabled={busy}
             value={name} onChange={e=>setName(e.target.value)}/></label>
           <label>Player platform<select value={platform} disabled={busy} onChange={e=>setPlatform(e.target.value)}>
-            {['Android Mobile','Android Tablet','Android TV','iOS / iPadOS','Samsung Tizen','LG webOS','Windows Player','Linux Player'].map(value=><option key={value}>{value}</option>)}
+            {['Android Mobile','Android Tablet','Android TV','Google TV','iOS / iPadOS','Samsung Tizen','LG webOS','Windows Player','Linux Player','Roku TV','Fire TV OS','Titan OS','VIZIO SmartCast','Xumo TV OS','Apple tvOS'].map(value=><option key={value}>{value}</option>)}
           </select></label>
           <button disabled={busy||name.trim().length<2} type="submit">Register screen in MySQL</button>
         </form>:<p>Your role can inspect but cannot register screens.</p>}
@@ -111,7 +111,7 @@ export function RealFleetOperations() {
           <small>Expires: <time dateTime={pairing.expiresAt}>{new Date(pairing.expiresAt).toLocaleString()}</time>. Only shown in this browser session; server stores its hash.</small>
           <button type="button" onClick={()=>setPairing(null)}>Dismiss secure code</button>
         </div>}
-        <p><strong>Client-required OS targets:</strong> Android phones/tablets/TV, iOS/iPadOS, Samsung Tizen, LG webOS, Windows and Linux. Registration only records a platform in MySQL; it does not mean a native player build is available or certified. See the per-platform UAT matrix.</p>
+        <p><strong>Client-required OS targets:</strong> Android/iOS mobile/tablets, Google TV/Android TV, Samsung Tizen, LG webOS, Roku TV, Fire TV OS, Titan OS, VIZIO SmartCast, Xumo TV OS, Apple tvOS, Windows and Linux. Registration only records a platform in MySQL; it does not mean a native player build is available or certified. See the per-platform UAT matrix.</p>
         <p>Actual player must pair within the API expiry window. No physical SmartTV/player verification, playback attestation or production deployment is implied.</p>
       </div>
     </div>}

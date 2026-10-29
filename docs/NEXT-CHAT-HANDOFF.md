@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## New-chat scope update — required nine TV/media-player OS platforms
+
+Client names: **Google TV / Android TV; Tizen OS; webOS; Roku TV; Fire TV OS; Titan OS; SmartCast; Xumo TV OS; tvOS (Apple)**. Three overlap the earlier seven targets, six are additional, yielding **PLAT-01…PLAT-13** and preserving mobile/iOS/Windows/Linux. See `docs/CLIENT-PLATFORM-SUPPORT.md` for current requirements, feasibility and hardware blockers; older seven-item handoff below is historical context. Fleet OS labels and contract tests track these targets, but they do not prove native players exist. Do not claim CI, user local verification, physical OS devices, production or app-store partners PASS without exact evidence.
+
 ## Chat rollover inventory — 2026-10-29 (unintegrated incoming attachments)
 
 **At this checkpoint:** branch HEAD was `cbfabea201c49c1bbbfc13be5f647899c0a012dc` prior to this addendum. Backend CI was reported **SUCCESS** on this previous HEAD ([run 40838826247](https://github.com/canzone-tech/adflick/actions/runs/40838826247)), while Frontend CI ([40838826248](https://github.com/canzone-tech/adflick/actions/runs/40838826248)) and Release Evidence ([40838826332](https://github.com/canzone-tech/adflick/actions/runs/40838826332)) were **IN PROGRESS** when checked. These are **not** evidence for the new handoff commit. Re-query all three on the new exact HEAD. Operator local `npm run verify`, native player builds/UAT, backup/restore and production are **PENDING/NOT VERIFIED** for the new SHA.
