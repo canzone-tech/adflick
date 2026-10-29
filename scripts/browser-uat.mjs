@@ -119,7 +119,7 @@ async function run() {
   // anonymous Chrome session. Existing visual previews remain independent.
   for (const [path, id] of [['/cms','real-cms-operations'],['/campaigns','real-campaign-operations'],['/fleet','real-fleet-operations']]) {
     await navigate(path);
-    await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "]')?.innerText.includes('sign in')", path+' guest real-data isolation');
+    await until("document.querySelector('[data-testid=" + JSON.stringify(id) + "]')?.innerText.toLowerCase().includes('sign in')", path+' guest real-data isolation');
     const leaked=await evaluate("Boolean(document.querySelector('[data-testid=" + JSON.stringify(id) + "] .real-ops-panel'))");
     if (leaked) throw new Error('Guest accessed secured operation rows: '+path);
   }
