@@ -91,3 +91,7 @@ The primary product purpose is **to actually display ads on mobile phones/tablet
 - Project policy changes, payment/reward eligibility, real provider integrations, infrastructure changes and production deployments need distinct explicit approval. No invented compensation, payment, ad-rate or device-reward promises.
 - MySQL is authoritative for financial records. Device-reported playback or fleet registration is not independent proof of an ad actually shown or a payout trigger.
 - Report changed paths, branch/exact SHA, three CI statuses, local verification (PASS/PENDING/FAIL), Android and other native device UAT (separate), deployment/rollback/smoke states and concrete blockers.
+
+## Next verified engineering slice — authenticated shared player protocol v1
+
+First code batch after 9-platform scope reconciliation adds `GET /api/v1/devices/{screenId}/protocol?version=1`: read-only, existing device-secret authentication and revocation, supported v1/406 negotiation, returned scoped endpoint paths and explicitly self-reported proof-of-play status. API does not create media grants, expose secrets or modify financial rules or old manifest v1. Backend Jest regression file and `docs/PLAYER-PROTOCOL-V1.md` explain acceptance. **Native TV SDKs/apps, signed binaries, hardware UAT, local verify at any new SHA and deployment remain separately pending.** Check the actual live commit/CI before claiming any gate passes.

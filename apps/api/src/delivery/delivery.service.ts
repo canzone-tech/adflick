@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotAcceptableException, ServiceUnavailableException } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { CampaignStatus, AssetStatus, ScreenStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,6 +6,8 @@ import { StorageService } from '../cms/storage.service';
 
 const MANIFEST_TTL_MS = 5 * 60 * 1000;
 const GRANT_TTL_MS = 20 * 60 * 1000;
+const MANIFEST_SCHEMA_VERSION = 1;
+const PLAYER_PROTOCOL_VERSION = 1;
 @Injectable()
 export class DeliveryService {
   constructor(private readonly prisma: PrismaService, private readonly storage: StorageService) {}
@@ -21,6 +23,35 @@ export class DeliveryService {
     const expected = Buffer.from(screen.deviceKeyHash, 'hex');
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new ForbiddenException('Invalid device credentials.');
     return screen;
+  }
+
+  /**
+   * Read-only contract discovery. This is server protocol capability, NOT
+   * proof that the requesting OS has a built or certified native player.
+   * Reuse the exact same device authorization/revocation check as manifests.
+   */
+  async getProtocol(screenId: string, secret: string, requestedVersion?: string) {
+    const screen = await this.authenticate(screenId, secret);
+    if (requestedVersion !== undefined && requestedVersion !== String(PLAYER_PROTOCOL_VERSION)) {
+      throw new NotAcceptableException('Unsupported player protocol version.');
+    }
+    const id = encodeURIComponent(screen.id);
+    return {
+      protocolVersion: PLAYER_PROTOCOL_VERSION,
+      manifestSchemaVersion: MANIFEST_SCHEMA_VERSION,
+      screen: { id: screen.id, platform: screen.devicePlatform ?? screen.platform },
+      authentication: { scheme: 'DEVICE_SECRET', header: 'x-device-secret' },
+      endpoints: {
+        manifest: `/api/v1/devices/${id}/manifest`,
+        heartbeat: `/api/v1/devices/${id}/heartbeat`,
+        playbackEvents: `/api/v1/devices/${id}/playback/events`,
+        commands: `/api/v1/devices/${id}/commands`,
+      },
+      telemetry: {
+        playbackAuthorizationRequired: true,
+        evidence: 'SELF_REPORTED_ONLY',
+      },
+    };
   }
 
   async getManifest(screenId: string, secret: string) {
@@ -120,7 +151,7 @@ export class DeliveryService {
       }
     }
     return {
-      schemaVersion: 1,
+      schemaVersion: MANIFEST_SCHEMA_VERSION,
       screen: { id: screen.id, name: screen.name, platform: screen.devicePlatform ?? screen.platform },
       generatedAt: now.toISOString(),
       expiresAt: until.toISOString(),

@@ -118,3 +118,12 @@ All tracked groups: PLAT-01, PLAT-02, PLAT-03, PLAT-04, PLAT-05, PLAT-06, PLAT-0
 - [ ] SDK runners, certificates, stores, physical devices and OEM/provider contracts require explicit owner approval. CI static Node checks **do not** certify native players.
 
 See `docs/CLIENT-PLATFORM-SUPPORT.md` for acceptance matrix and external SDK references.
+
+### Cross-platform player protocol v1 — smallest safe API slice
+
+- [x] Add authenticated, versioned, read-only server `/devices/{id}/protocol?version=1` discovery for all PLAT-01…PLAT-13, reusing the existing screen secret/revocation check and current NestJS API, without changing manifest v1, Prisma schema, eligibility or finance.
+- [x] Add backend Jest tests for v1 response, 403 for invalid/retired/suspended/unpaired devices, 406 for unsupported versions, no secret/tenant leakage and no grant/storage writes. Run gates on exact release SHA.
+- [ ] Build **real** native clients and add firmware/SDK/remote/codec/media/offline UAT per TV OS; client capability claims are not server/physical certification.
+- [ ] Run the new protocol on a real provisioned player device, verify transport TLS, revocation behavior, and version skew with a signed client; partner/OEM access and SDK runner decisions need separate approval.
+
+See `docs/PLAYER-PROTOCOL-V1.md`.

@@ -65,3 +65,9 @@
 - Reuse presentation/state machine components only after platform-specific evidence; support for one TV OS does not imply another. Maintain phone, tablet and TV UI/remote variants independently.
 - Requirements are confirmed, but **implementation stack/OS minimum versions, named hardware models, supported codecs, release channels and provider/commercial policies** still need client/product acceptance. Do not silently invent them.
 - This is a functional-scope clarification; **no production deployment, provider activation, payment, compensation, legal claims, or financial rule changes** are authorized.
+
+## Server cross-platform player protocol (first implementation slice)
+
+A new, **device-secret-protected read-only** `GET /api/v1/devices/{screenId}/protocol?version=1` returns the server's v1 protocol, manifest schema version, scoped endpoint paths and self-reported-telemetry trust boundary. Unknown versions are explicitly rejected; the protocol endpoint does **not** mint any ad/media authorizations. It keeps existing v1 manifests backward compatible for Android and future TV clients.
+
+See `docs/PLAYER-PROTOCOL-V1.md` for the audited response, security tests, non-goals and remaining OS adapter/SDK needs. **This protocol is backend work only:** native apps, DRM/codecs/partner approvals, TV overlays and physical UAT remain MISSING/PENDING for each platform.
