@@ -227,7 +227,13 @@ async function run() {
     if (await evaluate("document.body.innerText.includes('Mall Atrium Display')"))
       throw new Error('Sample delivery records leaked into live view.');
     await navigate('/scheduler');
-    await until("document.querySelector('[data-testid=scheduler-api-state]')?.innerText.includes('Live API connected') && document.querySelector('[data-testid=scheduler-empty]')", 'live scheduler assignment state');
+    try {
+      await until("document.querySelector('[data-testid=scheduler-api-state]')?.innerText.includes('Live API connected') && document.querySelector('[data-testid=scheduler-empty]')", 'live scheduler assignment state');
+    } catch {
+      // Only disclose response status and UI flags. Never emit screen ID, tenant or credentials.
+      const state = await evaluate("(async()=>{const chosen=document.querySelector('select[aria-label=\\\"Registered screen\\\"]')?.value||'';const code=chosen?await fetch(" + JSON.stringify(apiUrl) + "+'/fleet/screens/'+encodeURIComponent(chosen)+'/playlists',{credentials:'include'}).then(r=>r.status).catch(()=>0):0;return {apiLabel:document.querySelector('[data-testid=scheduler-api-state] b')?.innerText,hasScreenSelect:Boolean(chosen),hasEmpty:Boolean(document.querySelector('[data-testid=scheduler-empty]')),playlistsHttp:code,at:location.pathname};})()");
+      throw new Error('Live scheduler assignment state missing: ' + JSON.stringify(state));
+    }
     if (!await evaluate("document.body.innerText.includes('Browser Test Screen')"))
       throw new Error('Real registered fleet screen missing from scheduler selection.');
     await navigate('/playback');
