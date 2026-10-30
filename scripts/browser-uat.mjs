@@ -228,7 +228,7 @@ async function run() {
       throw new Error('Sample delivery records leaked into live view.');
     await navigate('/scheduler');
     try {
-      await until("document.querySelector('[data-testid=scheduler-api-state]')?.innerText.includes('Live API connected') && document.querySelector('[data-testid=scheduler-empty]')", 'live scheduler assignment state');
+      await until("document.querySelector('[data-testid=scheduler-api-state]')?.innerText.includes('Live API connected') && Boolean(document.querySelector('[data-testid=scheduler-empty]'))", 'live scheduler assignment state');
     } catch {
       // Only disclose response status and UI flags. Never emit screen ID, tenant or credentials.
       const state = await evaluate("(async()=>{const chosen=document.querySelector('select[aria-label=\\\"Registered screen\\\"]')?.value||'';const code=chosen?await fetch(" + JSON.stringify(apiUrl) + "+'/fleet/screens/'+encodeURIComponent(chosen)+'/playlists',{credentials:'include'}).then(r=>r.status).catch(()=>0):0;return {apiLabel:document.querySelector('[data-testid=scheduler-api-state] b')?.innerText,hasScreenSelect:Boolean(chosen),hasEmpty:Boolean(document.querySelector('[data-testid=scheduler-empty]')),playlistsHttp:code,at:location.pathname};})()");
