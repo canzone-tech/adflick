@@ -12,7 +12,7 @@ export default function HealthPage(){
  const load=useCallback(async()=>{
   setLoading(true);
   try{const [screens,counts]=await Promise.all([apiRequest<Screen[]>('/fleet/screens'),apiRequest<Summary>('/fleet/health-summary')]);setRows(screens);setSummary(counts);setLive(true);setNotice(`Live API connected · ${screens.length} screens returned · heartbeat stale threshold ${counts.heartbeatStaleAfterSeconds}s.`);}
-  catch(e){setLive(false);setNotice(errorMessage(e));}finally{setLoading(false);}
+  catch(e){setRows([]);setSummary(blank);setLive(false);setNotice(errorMessage(e));}finally{setLoading(false);}
  },[]);
  useEffect(()=>{void load();},[load]);
  const visible=useMemo(()=>rows.filter(r=>filter==='ALL'||filter==='UNHEALTHY'?(filter==='ALL'||r.status!=='ONLINE'||!!r.lastPlayerError||(r.cpuPercent??0)>=95||(r.memoryPercent??0)>=95||(r.storagePercent??0)>=95):r.status===filter),[rows,filter]);

@@ -218,6 +218,26 @@ async function run() {
     await until("document.querySelector('[data-testid=real-fleet-operations]')?.innerText.includes('Browser Test Screen')", 'real fleet screen survives page reload');
     if(await evaluate("Boolean(document.querySelector('[data-testid=real-fleet-operations] .real-ops-secret'))"))throw new Error('One-time pairing code reappeared on reload.');
 
+    // Cross-page real MySQL continuity: saved Fleet record must appear in
+    // Delivery, Scheduler and actual Playback report (never sample screens).
+    await navigate('/delivery');
+    await until("document.querySelector('[data-testid=delivery-api-state]')?.innerText.includes('Live API connected')", 'real delivery API');
+    if (!await evaluate("document.body.innerText.includes('Browser Test Screen')"))
+      throw new Error('Real registered fleet screen missing from delivery page.');
+    if (await evaluate("document.body.innerText.includes('Mall Atrium Display')"))
+      throw new Error('Sample delivery records leaked into live view.');
+    await navigate('/scheduler');
+    await until("document.querySelector('[data-testid=scheduler-api-state]')?.innerText.includes('Live API connected') && document.querySelector('[data-testid=scheduler-empty]')", 'live scheduler assignment state');
+    if (!await evaluate("document.body.innerText.includes('Browser Test Screen')"))
+      throw new Error('Real registered fleet screen missing from scheduler selection.');
+    await navigate('/playback');
+    await until("document.querySelector('[data-testid=playback-api-state]')?.innerText.includes('Live API connected')", 'live accepted playback report');
+    if (!await evaluate("document.querySelector('[data-testid=playback-empty]')?.innerText.includes('No accepted plays')"))
+      throw new Error('New tenant should have no accepted play records.');
+    if (await evaluate("document.body.innerText.includes('Summer Collection 15s.mp4')"))
+      throw new Error('Sample playback ledger leaked into live view.');
+    console.log('Chrome live Delivery / Scheduler / Playback tenant data PASS');
+
     await navigate('/campaigns');
     await until("Boolean(document.querySelector('[data-testid=real-campaign-operations] .real-ops-panel'))", 'campaign MySQL section ready');
     if(await evaluate("document.querySelector('[data-testid=real-campaign-operations] form button')?.disabled !== true"))
@@ -227,6 +247,12 @@ async function run() {
     } else {
       console.log('Unscoped bootstrap admin: no CMS/fleet tenant mutations performed');
     }
+    // A one-time MFA setup screen contains a real TOTP secret + recovery codes.
+    // Never upload screenshots of that DOM to CI artifacts, even with test accounts.
+    await navigate('/account');
+    await until("document.querySelector('[data-testid=mfa-status]')?.innerText.includes('Enabled')", 'fresh account MFA status');
+    if (await evaluate("Boolean(document.querySelector('[data-testid=mfa-setup-output]'))"))
+      throw new Error('One-time MFA secrets persisted after route reload; refusing screenshot.');
     await screenshot('mfa-enrolled');
 
     await click('.account-logout'); await until("location.pathname === '/login'", 'logout after MFA enrollment');

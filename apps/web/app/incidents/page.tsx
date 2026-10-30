@@ -26,7 +26,7 @@ export default function IncidentsPage(){
    ]);
    const filtered=['CRITICAL','HIGH','MEDIUM','LOW'].includes(filter)?list.filter(x=>x.severity===filter):list;
    setRows(filtered);setSummary(counts);setSelected(current=>filtered.some(x=>x.id===current)?current:(filtered[0]?.id||''));setLive(true);setNotice(`Live API connected · ${list.length} incident records loaded.`);
-  }catch(e){setLive(false);setNotice(errorMessage(e));}
+  }catch(e){setRows([]);setSummary(emptySummary);setSelected('');setLive(false);setNotice(errorMessage(e));}
   finally{setLoading(false);}
  },[filter]);
  useEffect(()=>{void load();},[load]);

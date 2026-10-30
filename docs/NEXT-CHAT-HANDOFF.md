@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## New live-operations quality slice — 2026-10-30
+
+Real authenticated Delivery reads Fleet screens and health; Scheduler reads selected real screen assignments (not fake toggles); Playback shows accepted-play aggregates from secure reports API (not synthetic events/false rejected counts). Error paths clear stale sensitive data on Health, Incidents, Finance and Payouts. Browser UAT tests cross-page synthetic persistent MySQL continuity and no secret-bearing MFA screenshot. Source contract test registered in root check:source; `docs/UAT-CHECKLIST.md` explains true remaining blockers. Exact-SHA three CI gates must be checked before any local pull/verify instruction. No production permission or physical TV signoff.
+
 ## Session verification throughput adjustment
 
 Next.js pre-render authorization checks added repeat read-only /auth/me calls across many E2E browser routes. Applied a scoped **300/min GET /auth/me limit** (authentication/JWT unchanged; stricter login/refresh/MFA limits unchanged) and added anonymous /auth/me HTTP diagnostics on browser failure. Treat this as technical rate control, not proof of a previous 429 without logs. Exact SHA CI and operator retest required.

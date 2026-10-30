@@ -22,7 +22,7 @@
     "test:api": "npm run test -w apps/api",
     "typecheck:api": "npx tsc --noEmit -p apps/api/tsconfig.json",
     "typecheck:web": "npx tsc --noEmit -p apps/web/tsconfig.json",
-    "check:source": "node scripts/check-source.mjs && node --test scripts/check-regression-contracts.test.mjs && node scripts/check-regression-contracts.mjs && node scripts/check-source-provenance.mjs && npm run check:ui && node --test scripts/android-player-contract.test.mjs && node --test scripts/client-platform-contract.test.mjs",
+    "check:source": "node scripts/check-source.mjs && node --test scripts/check-regression-contracts.test.mjs && node scripts/check-regression-contracts.mjs && node scripts/check-source-provenance.mjs && npm run check:ui && node --test scripts/android-player-contract.test.mjs && node --test scripts/client-platform-contract.test.mjs && node --test scripts/live-operations-contract.test.mjs",
     "validate:env": "node scripts/validate-env.mjs",
     "verify:release": "npm run check:source && npm run validate:env && npx prisma validate && npm run typecheck:api && npm run typecheck:web && npm run lint && npm run test:api && npm run build:api && npm run build:web",
     "test:e2e:security": "npm run test:e2e:security -w apps/api",
