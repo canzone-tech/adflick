@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## 2026-11-03 local login failed-fetch origin root fix
+
+Operator Chrome used localhost:<web-port>/login but compiled local runtime printed 127.0.0.1:<web-port>/login; API at 127.0.0.1:<api-port> healthy. The server Host-based redirect approach was removed after CI proved Next standalone normalized Host and Chrome sandbox could not reach localhost. Public login now browser-canonicalizes localhost to 127.0.0.1 (same web port/path/query) only with matching loopback API config, before submit and on hydration. Registered pure unit gate via `scripts/local-origin.test.mjs`. Recheck latest exact-SHA 3x CI before local pull/verify; operator login confirmation pending.
+
 ## Browser alias CI nuance — 2026-11-03
 
 CI Chrome cannot connect to `localhost:<port>` when the Next standalone server is bound explicitly to `127.0.0.1`; browser shows chrome-error internal page. Switched regression to direct loopback HTTP request with `Host: localhost:<port>` (verifies actual server canonical redirect), plus canonical URL HTTP 200 and full Chrome signed-in/session acceptance. The literal Chrome localhost navigation needs separate Ubuntu operator verification and must not be claimed browser-PASS from CI. See UAT checklist.
