@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## 2026-11-03 login `Failed to fetch` root cause
+
+Local operator actually typed `http://localhost:45237/login` although `npm run local:dev:up` printed `http://127.0.0.1:45237/login`. The API health `127.0.0.1:40977` returned OK; client Origin mismatch triggered fetch/network error. Added local-only Next middleware redirect from localhost to WEB_ORIGIN `127.0.0.1` on exact matching port, before page rendering; no cross-origin CORS/security relaxation. Added real-browser alias-to-canonical login check and source contract. Run exact-SHA Backend/Frontend/Release Evidence then user local pull/verify and real login. Do not claim operator login PASS without their result.
+
 ## New live-operations quality slice — 2026-10-30
 
 Real authenticated Delivery reads Fleet screens and health; Scheduler reads selected real screen assignments (not fake toggles); Playback shows accepted-play aggregates from secure reports API (not synthetic events/false rejected counts). Error paths clear stale sensitive data on Health, Incidents, Finance and Payouts. Browser UAT tests cross-page synthetic persistent MySQL continuity and no secret-bearing MFA screenshot. Source contract test registered in root check:source; `docs/UAT-CHECKLIST.md` explains true remaining blockers. Exact-SHA three CI gates must be checked before any local pull/verify instruction. No production permission or physical TV signoff.

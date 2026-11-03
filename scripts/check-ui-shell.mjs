@@ -19,6 +19,12 @@ const globals = read('apps/web/app/globals.css');
 if (globals.includes('.screen-card{') || globals.includes('.sidebar{') || globals.includes('.topbar{')) throw new Error('Retired homepage CSS must not leak into other workspace pages.');
 const browser = read('scripts/browser-uat.mjs');
 const accessGuard = read('apps/web/middleware.ts');
+for (const token of ["canonicalLocalRedirect(request)", "configured.hostname !== '127.0.0.1'", "incoming.hostname !== 'localhost'", "incoming.port !== configured.port"]) {
+  if (!accessGuard.includes(token)) throw new Error('Local origin canonicalization guard missing: ' + token);
+}
+if (!browser.includes('Chrome localhost to canonical 127.0.0.1 login redirect PASS')) {
+  throw new Error('Real browser must cover localhost-to-loopback login regression.');
+}
 for (const token of ["'/login'", "'/join'", "request.cookies.get(name)", "/auth/me", "loginRedirect(request)", "matcher:", "no-store"]) {
   if (!accessGuard.includes(token)) throw new Error('Missing pre-render authenticated workspace enforcement: ' + token);
 }

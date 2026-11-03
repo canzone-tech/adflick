@@ -41,6 +41,15 @@ async function browserLogin() { await navigate('/login'); await click('input[typ
 async function privilegedMutationStatus() { return await evaluate("(async()=>{const r=await fetch(" + JSON.stringify(apiUrl + '/campaigns') + ", {method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:'{}'});return r.status;})()"); }
 async function run() {
   await boot();
+  // Regression: local users often type localhost while the API is bound to
+  // 127.0.0.1. Canonicalize BEFORE login so cookies and CORS agree.
+  const aliasLogin = new URL('/login?from=%2Fcms', webUrl);
+  aliasLogin.hostname = 'localhost';
+  await command('Page.navigate', { url: aliasLogin.toString() });
+  await until("location.hostname === '127.0.0.1' && location.pathname === '/login' && location.search === '?from=%2Fcms'", 'canonical local login redirect');
+  if (await evaluate("Boolean(document.querySelector('[data-testid=app-sidebar]'))"))
+    throw new Error('Localhost alias showed operations shell without session.');
+  console.log('Chrome localhost to canonical 127.0.0.1 login redirect PASS');
   // Fail the UAT immediately if guest/Incognito can render any workspace page.
   const guestWorkspace = ['/', '/account', '/cms', '/campaigns', '/fleet', '/health', '/member-dashboard', '/member-onboarding', '/member-operations', '/finance'];
   for (const path of guestWorkspace) {
