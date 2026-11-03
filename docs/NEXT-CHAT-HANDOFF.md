@@ -4,6 +4,10 @@
 **Working branch:** `dev/local-foundation` (not `main` or `development`)  
 **Scope:** Adflick only. Never use another project's secrets, assets, databases, rules or VPS resources.
 
+## Browser alias CI nuance — 2026-11-03
+
+CI Chrome cannot connect to `localhost:<port>` when the Next standalone server is bound explicitly to `127.0.0.1`; browser shows chrome-error internal page. Switched regression to direct loopback HTTP request with `Host: localhost:<port>` (verifies actual server canonical redirect), plus canonical URL HTTP 200 and full Chrome signed-in/session acceptance. The literal Chrome localhost navigation needs separate Ubuntu operator verification and must not be claimed browser-PASS from CI. See UAT checklist.
+
 ## 2026-11-03 login `Failed to fetch` root cause
 
 Local operator actually typed `http://localhost:45237/login` although `npm run local:dev:up` printed `http://127.0.0.1:45237/login`. The API health `127.0.0.1:40977` returned OK; client Origin mismatch triggered fetch/network error. Added local-only Next middleware redirect from localhost to WEB_ORIGIN `127.0.0.1` on exact matching port, before page rendering; no cross-origin CORS/security relaxation. Added real-browser alias-to-canonical login check and source contract. Run exact-SHA Backend/Frontend/Release Evidence then user local pull/verify and real login. Do not claim operator login PASS without their result.
