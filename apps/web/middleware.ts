@@ -19,9 +19,13 @@ function canonicalLocalRedirect(request: NextRequest): NextResponse | null {
   try {
     const configured = new URL(process.env.WEB_ORIGIN);
     const incoming = request.nextUrl;
+    // Next standalone may normalize nextUrl.hostname to "localhost" even
+    // when a browser reached 127.0.0.1. The actual Host header distinguishes
+    // the alias from the canonical host. Never redirect by nextUrl.hostname alone.
+    const requestedHost = request.headers.get('host')?.toLowerCase();
     if (configured.protocol !== 'http:' || configured.hostname !== '127.0.0.1' ||
-        !configured.port || incoming.hostname !== 'localhost' ||
-        incoming.protocol !== configured.protocol || incoming.port !== configured.port) return null;
+        !configured.port || requestedHost !== `localhost:${configured.port}` ||
+        incoming.protocol !== configured.protocol) return null;
     const destination = new URL(incoming.pathname + incoming.search, configured.origin);
     const response = NextResponse.redirect(destination, 307);
     response.headers.set('Cache-Control', 'no-store');

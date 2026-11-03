@@ -19,7 +19,7 @@ const globals = read('apps/web/app/globals.css');
 if (globals.includes('.screen-card{') || globals.includes('.sidebar{') || globals.includes('.topbar{')) throw new Error('Retired homepage CSS must not leak into other workspace pages.');
 const browser = read('scripts/browser-uat.mjs');
 const accessGuard = read('apps/web/middleware.ts');
-for (const token of ["canonicalLocalRedirect(request)", "configured.hostname !== '127.0.0.1'", "incoming.hostname !== 'localhost'", "incoming.port !== configured.port"]) {
+for (const token of ["canonicalLocalRedirect(request)", "configured.hostname !== '127.0.0.1'", "request.headers.get('host')", "requestedHost !== `localhost:${configured.port}`"]) {
   if (!accessGuard.includes(token)) throw new Error('Local origin canonicalization guard missing: ' + token);
 }
 if (!browser.includes('Chrome localhost to canonical 127.0.0.1 login redirect PASS')) {
